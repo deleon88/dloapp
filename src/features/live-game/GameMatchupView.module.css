@@ -1,0 +1,99 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.header > [data-card-bg] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease;
+}
+
+.header > *:not([data-card-bg]) {
+  position: relative;
+  z-index: 1;
+}
+
+.teamBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.teamBlockRight {
+  justify-content: flex-end;
+}
+
+.teamCity {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.teamNickname {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.teamRecord {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.gameInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.venueName {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.gameTime {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.nickAbbr { display: none; }
+
+@media (max-width: 480px) {
+  .header { padding: 10px 12px; gap: 4px; }
+  .teamBlock { gap: 7px; }
+  .teamBlock img { width: 32px; height: 32px; }
+  .teamCity { display: none; }
+  .nickFull { display: none; }
+  .nickAbbr { display: inline; }
+  .teamNickname { font-size: 0.82rem; }
+  .gameInfo { gap: 2px; }
+  .venueName { display: none; }
+}

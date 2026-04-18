@@ -1,0 +1,88 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.sideAway {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sideHome {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.val {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  white-space: nowrap;
+  width: 26px;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.sideAway .val {
+  text-align: right;
+}
+
+.sideHome .val {
+  text-align: left;
+}
+
+.label {
+  font-size: 0.5rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 38px;
+}
+
+.trackHalf {
+  flex: 1;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.fillAway {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  border-radius: 4px 0 0 4px;
+  transition: width 0.5s ease;
+}
+
+.fillHome {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  transition: width 0.5s ease;
+}
+
+.avgLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1.5px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 1px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

@@ -1,0 +1,103 @@
+/*
+ * Inline overlay — renders inside .card (position: relative; overflow: hidden).
+ * !important overrides the generic `.card > *:not([data-card-bg])` rule in
+ * LineupComparison.module.css which has higher specificity (0,2,0 vs 0,1,0).
+ */
+.overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 10 !important;
+  background-color: var(--bg-deep);
+  display: flex;
+  flex-direction: column;
+  animation: overlayIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.overlayOut {
+  animation: overlayOut 140ms ease forwards !important;
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 7px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.teamLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.viewLabel {
+  font-size: 0.58rem;
+  font-weight: 600;
+  font-family: var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.70rem;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.closeBtn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── Diamond container ────────────────────────────────────────── */
+.diamond {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 4px 8px;
+  overflow: hidden;
+}
+
+/* ── CardBgLayers inside overlay ──────────────────────────────── */
+.overlay > [data-card-bg] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease;
+}
+
+.overlay > *:not([data-card-bg]) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Entry / exit animations ──────────────────────────────────── */
+@keyframes overlayIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+
+@keyframes overlayOut {
+  from { opacity: 1; transform: scale(1);    }
+  to   { opacity: 0; transform: scale(0.98); }
+}

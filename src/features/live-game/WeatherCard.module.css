@@ -1,0 +1,53 @@
+.card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.card > [data-card-bg] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card > *:not([data-card-bg]) {
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.value {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}

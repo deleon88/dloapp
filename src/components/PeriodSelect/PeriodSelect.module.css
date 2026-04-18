@@ -1,0 +1,101 @@
+.wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Trigger button */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.trigger:hover {
+  background: var(--bg-highlight);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
+
+.chevron {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: transform var(--transition-fast);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* Dropdown */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 170px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  list-style: none;
+  overflow: hidden;
+  z-index: 200;
+  animation: dropIn 0.12s ease both;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Option rows */
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+
+.option:not(.optionLocked):hover {
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+}
+
+.optionSelected {
+  color: var(--text-primary);
+  background: var(--bg-subtle);
+}
+
+/* Locked state */
+.optionLocked {
+  cursor: default;
+  color: var(--text-faint);
+}
+
+.optionLabel {
+  flex: 1;
+}
+
+.lockBadge {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-amber);
+  background: var(--accent-amber-dim);
+  border-radius: var(--radius-full);
+  padding: 3px 5px;
+}

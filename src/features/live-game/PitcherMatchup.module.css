@@ -1,0 +1,168 @@
+.card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.card > [data-card-bg] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card > *:not([data-card-bg]) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Pitcher headers ─────────────────────────────────────────────── */
+.pitcherRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+}
+
+.pitcherSide {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 12px;
+}
+
+.pitcherSideRight {
+  justify-content: flex-end;
+  border-left: 1px solid var(--border);
+}
+
+.headshot {
+  width: 52px;
+  height: 52px;
+  border-radius: .75rem;
+  object-fit: cover;
+  background: var(--bg-subtle);
+  flex-shrink: 0;
+}
+
+.pitcherInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pitcherMeta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.pitcherName {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pitcherRecord {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 1px;
+}
+
+/* ── Stat views ───────────────────────────────────────────────────── */
+.barsSection {
+  cursor: pointer;
+  user-select: none;
+}
+
+.bars {
+  padding: 10px 14px 4px;
+  display: flex;
+  flex-direction: column;
+  min-height: 74px;
+}
+
+/* ── View dots ────────────────────────────────────────────────────── */
+.viewDots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 0 8px;
+}
+
+.viewDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background 0.2s;
+}
+
+.viewDotActive {
+  background: rgba(255,255,255,0.6);
+}
+
+/* ── Chip view ────────────────────────────────────────────────────── */
+.chipView {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 14px 4px;
+  min-height: 74px;
+  align-content: center;
+}
+
+.chipGroup {
+  display: flex;
+  gap: 5px;
+}
+
+.chipGroupRight {
+  justify-content: flex-end;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  padding: 5px 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.chipLabel {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+}
+
+.chipVal {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 480px) {
+  .pitcherSide { padding: 10px 10px 8px; gap: 8px; }
+  .headshot { width: 38px; height: 38px; }
+  .pitcherName { font-size: 0.72rem; }
+  .pitcherMeta { font-size: 0.54rem; }
+}

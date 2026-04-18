@@ -1,0 +1,99 @@
+.header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 12px;
+  height: var(--nav-height);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.brandName {
+  font-size: var(--text-base);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.brandSub {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.links {
+  display: flex;
+  list-style: none;
+  gap: 2px;
+  height: 100%;
+  align-items: center;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.link:hover {
+  color: var(--text-primary);
+  background: var(--bg-subtle);
+}
+
+.linkActive {
+  color: var(--text-primary);
+  background: var(--bg-highlight);
+}
+
+/* League toggle */
+.leagueToggle {
+  display: flex;
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.leagueBtn {
+  padding: 3px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-radius: calc(var(--radius-sm) - 2px);
+  transition: color var(--transition-fast), background var(--transition-fast);
+  line-height: 1.4;
+}
+
+.leagueBtn:hover {
+  color: var(--text-secondary);
+}
+
+.leagueBtnActive {
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+}

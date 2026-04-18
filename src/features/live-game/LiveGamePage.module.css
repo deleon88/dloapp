@@ -1,0 +1,39 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--space-12) 0;
+  font-size: 0.82rem;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  transition: all var(--transition-fast);
+  align-self: flex-start;
+}
+
+.backBtn:hover {
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+  border-color: var(--border-active);
+}

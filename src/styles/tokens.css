@@ -1,0 +1,69 @@
+:root {
+  /* Backgrounds */
+  --bg-deep:        #040a18;
+  --bg-card:        #141d31;
+  --bg-subtle:      rgba(255, 255, 255, 0.04);
+  --bg-highlight:   rgba(255, 255, 255, 0.07);
+
+  /* Borders */
+  --border:         rgba(255, 255, 255, 0.06);
+  --border-active:  rgba(255, 255, 255, 0.12);
+
+  /* Text */
+  --text-primary:   rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(255, 255, 255, 0.60);
+  --text-muted:     rgba(255, 255, 255, 0.35);
+  --text-faint:     rgba(255, 255, 255, 0.18);
+
+  /* Accents */
+  --accent-blue:         #3b82f6;
+  --accent-blue-dim:     rgba(59, 130, 246, 0.15);
+  --accent-emerald:      #10b981;
+  --accent-emerald-dim:  rgba(16, 185, 129, 0.15);
+  --accent-amber:        #f59e0b;
+  --accent-amber-dim:    rgba(245, 158, 11, 0.15);
+  --accent-red:          #ef4444;
+  --accent-red-dim:      rgba(239, 68, 68, 0.15);
+
+  /* Typography */
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Font sizes */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+
+  /* Spacing */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Border radius */
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   18px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+
+  /* Transitions */
+  --transition-fast:   150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* Layout */
+  --container-max: 480px;
+  --nav-height:    52px;
+}

@@ -1,0 +1,137 @@
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.sectionTitle {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+}
+
+.divider {
+  background: var(--border);
+}
+
+.column {
+  padding: 10px 0;
+}
+
+.teamHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 8px;
+}
+
+.teamName {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.badge {
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.confirmed {
+  background: var(--accent-emerald-dim);
+  color: var(--accent-emerald);
+}
+
+.projected {
+  background: var(--accent-amber-dim);
+  color: var(--accent-amber);
+}
+
+/* Column header */
+.lineupHeader {
+  display: grid;
+  grid-template-columns: 18px 1fr 28px 34px 34px 34px;
+  gap: 2px;
+  padding: 2px 12px 4px;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.lineupHeader span:nth-child(n+3) {
+  text-align: center;
+}
+
+/* Row */
+.lineupRow {
+  display: grid;
+  grid-template-columns: 18px 1fr 28px 34px 34px 34px;
+  gap: 2px;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  align-items: center;
+  transition: background var(--transition-fast);
+}
+
+.lineupRow:hover {
+  background: var(--bg-subtle);
+}
+
+.order {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.name {
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.72rem;
+}
+
+.pos {
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.stat {
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.statBold {
+  text-align: center;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.empty {
+  padding: 20px 12px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+}

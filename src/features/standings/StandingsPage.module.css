@@ -1,0 +1,107 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.heading {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.columns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.division {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.divisionName {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.divisionName::before,
+.divisionName::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  padding: 6px 12px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.table td {
+  padding: 8px 12px;
+  text-align: right;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: var(--bg-subtle);
+}
+
+.teamCol {
+  text-align: left !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  white-space: nowrap;
+}
+
+.message {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--space-12) 0;
+  font-size: 0.82rem;
+}
+
+.error {
+  text-align: center;
+  color: var(--accent-red);
+  padding: var(--space-12) 0;
+  font-size: 0.82rem;
+}

@@ -1,0 +1,102 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-4);
+}
+
+/* Diamond — bases at 2nd (top), 3rd (left), 1st (right) */
+.diamond {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+.base {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+
+.occupied {
+  background-color: var(--accent-amber);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+.empty {
+  background-color: var(--bg-highlight);
+  border: 1px solid var(--border-active);
+}
+
+.second {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.third {
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.first {
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.homePlate {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background-color: var(--text-muted);
+  border-radius: 1px;
+}
+
+/* Counts */
+.counts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.countRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.countLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  width: 12px;
+  text-align: center;
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.dotEmpty {
+  background: var(--bg-highlight);
+  border: 1px solid var(--border-active);
+}
+
+.ball   { background: var(--accent-emerald); }
+.strike { background: var(--accent-red); }
+.out    { background: var(--text-muted); }

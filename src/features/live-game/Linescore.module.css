@@ -1,0 +1,50 @@
+.wrapper {
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.table thead th {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr:hover td {
+  background: var(--bg-subtle);
+}
+
+.teamCol {
+  text-align: left !important;
+  font-family: var(--font-body) !important;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding-right: 16px !important;
+}
+
+.divider {
+  border-left: 1px solid var(--border);
+  padding: 0 !important;
+  width: 1px;
+}
+
+.total {
+  font-weight: 700;
+  color: var(--text-primary);
+}
