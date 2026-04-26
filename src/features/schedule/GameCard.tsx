@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import type { ScheduledGame } from "@/api/mlb/types";
 import { getTeamMeta, getBarColor, capLogoUrl, teamBg } from "@/data/teams";
 import MatchupBar from "@/components/MatchupBar/MatchupBar";
+import { useT } from "@/i18n/useT";
 import styles from "./GameCard.module.css";
 
 export type LineupStatus = 'confirmed' | 'projected'
@@ -84,17 +85,14 @@ export default function GameCard({
         />
       </div>
 
-      <div className={styles.statbars}>
-        <StatBar label="Starters" aVal={awayFipPlus ?? null} hVal={homeFipPlus ?? null} ac={acBar} hc={hcBar} />
-        <StatBar
-          label="Offense"
-          aVal={awayOpsPlus ?? null}
-          hVal={homeOpsPlus ?? null}
-          ac={acBar}
-          hc={hcBar}
-        />
-        <StatBar label="Bullpen" aVal={null} hVal={null} ac={acBar} hc={hcBar} />
-      </div>
+      <StatBars
+        awayFipPlus={awayFipPlus}
+        homeOpsPlus={homeOpsPlus}
+        awayOpsPlus={awayOpsPlus}
+        homeFipPlus={homeFipPlus}
+        acBar={acBar}
+        hcBar={hcBar}
+      />
     </Link>
   );
 }
@@ -147,13 +145,33 @@ function TeamSide({
           </div>
         </>
       )}
-      {lineupStatus && (
-        <div className={lineupStatus === 'confirmed' ? styles.statusConfirmed : styles.statusProjected}>
-          {lineupStatus === 'confirmed' ? 'Lineup Confirmado' : 'Lineup Proyectado'}
-        </div>
-      )}
+      {lineupStatus && <LineupStatusBadge status={lineupStatus} />}
     </div>
   );
+}
+
+function LineupStatusBadge({ status }: { status: LineupStatus }) {
+  const t = useT()
+  return (
+    <div className={status === 'confirmed' ? styles.statusConfirmed : styles.statusProjected}>
+      {status === 'confirmed' ? t('lineupConfirmed') : t('lineupProjected')}
+    </div>
+  )
+}
+
+function StatBars({ awayFipPlus, homeFipPlus, awayOpsPlus, homeOpsPlus, acBar, hcBar }: {
+  awayFipPlus?: number; homeFipPlus?: number
+  awayOpsPlus?: number; homeOpsPlus?: number
+  acBar: string; hcBar: string
+}) {
+  const t = useT()
+  return (
+    <div className={styles.statbars}>
+      <StatBar label={t('starters')} aVal={awayFipPlus ?? null} hVal={homeFipPlus ?? null} ac={acBar} hc={hcBar} />
+      <StatBar label={t('offense')} aVal={awayOpsPlus ?? null} hVal={homeOpsPlus ?? null} ac={acBar} hc={hcBar} />
+      <StatBar label={t('bullpen')} aVal={null} hVal={null} ac={acBar} hc={hcBar} />
+    </div>
+  )
 }
 
 function StatBar({ label, aVal, hVal, ac, hc }: {

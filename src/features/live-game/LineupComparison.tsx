@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import type { PlayerStats } from '@/api/mlb/endpoints/lineupStats'
 import { getTeamMeta, getBarColor } from '@/data/teams'
+import { useT } from '@/i18n/useT'
 import CardBgLayers from './CardBgLayers'
 import FieldingAlignmentModal from './FieldingAlignmentModal'
 import styles from './LineupComparison.module.css'
@@ -32,9 +33,17 @@ function barPct(wrc: number): number {
 }
 
 function lineupAvgWrc(lineup: LineupSlot[], wrcMap: Map<number, PlayerStats>): number | null {
-  const vals = lineup.map(p => wrcMap.get(p.id)?.wRcPlus).filter((v): v is number => v != null)
-  if (!vals.length) return null
-  return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length)
+  let sumWrcPa = 0
+  let sumPa = 0
+  for (const p of lineup) {
+    const s = wrcMap.get(p.id)
+    if (s?.wRcPlus == null) continue
+    const pa = s.pa ?? p.pa ?? 1
+    sumWrcPa += s.wRcPlus * pa
+    sumPa += pa
+  }
+  if (sumPa === 0) return null
+  return Math.round(sumWrcPa / sumPa)
 }
 
 interface LineupChipStats { ops: string; woba: string; xwoba: string }
@@ -92,6 +101,7 @@ export default function LineupComparison({
   const pillColor = mode === 'away' ? awayColor : mode === 'home' ? homeColor : null
 
   const [fieldingOpen, setFieldingOpen] = useState(false)
+  const t = useT()
 
   const activeSide    = mode as 'away' | 'home'
   const activeLineup  = mode === 'home' ? homeLineup   : awayLineup
@@ -119,7 +129,7 @@ export default function LineupComparison({
         <button
           className={`${styles.segment} ${mode === 'comparison' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('comparison')}
-        >Comparación</button>
+        >{t('comparison')}</button>
         <button
           className={`${styles.segment} ${mode === 'home' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('home')}
@@ -135,7 +145,7 @@ export default function LineupComparison({
               className={styles.fieldingChip}
               onClick={() => setFieldingOpen(true)}
             >
-              Fielding Alignment
+              {t('fieldingAlignment')}
             </button>
           ) : (
             <span />
@@ -144,7 +154,7 @@ export default function LineupComparison({
         </div>
       )}
 
-      {isLoading && <p className={styles.loading}>Cargando lineup…</p>}
+      {isLoading && <p className={styles.loading}>{t('loadingLineup')}</p>}
 
       {!isLoading && mode === 'comparison' && (
         <ComparisonView
@@ -336,13 +346,14 @@ function SingleView({ lineup, color, wrcMap }: {
   lineup: LineupSlot[]; color: string; wrcMap: Map<number, PlayerStats>
 }) {
   const slots = lineup.length > 0 ? lineup : Array(9).fill(null)
+  const t = useT()
 
   return (
     <div>
       <div className={styles.singleHeader}>
         <span>#</span>
         <span />
-        <span>Bateador</span>
+        <span>{t('batter')}</span>
         <span style={{ textAlign: 'center' }}>OPS</span>
         <span style={{ textAlign: 'center' }}>wOBA</span>
         <div className={styles.singleBarWrap}><div style={{ flex: 1 }} /><span style={{ minWidth: '22px', textAlign: 'center' }}>wRC+</span></div>
@@ -379,13 +390,14 @@ function SingleView({ lineup, color, wrcMap }: {
 }
 
 function StatusBadge({ status, align }: { status?: LineupStatus; align: 'left' | 'right' }) {
+  const t = useT()
   if (!status) return <span />
   return (
     <span
       className={status === 'confirmed' ? styles.statusConfirmed : styles.statusProjected}
       style={{ justifySelf: align === 'left' ? 'start' : 'end' }}
     >
-      {status === 'confirmed' ? 'Confirmado' : 'Proyectado'}
+      {status === 'confirmed' ? t('confirmed') : t('projected')}
     </span>
   )
 }

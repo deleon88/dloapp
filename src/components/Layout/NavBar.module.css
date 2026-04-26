@@ -9,10 +9,10 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: 6px;
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 12px;
+  padding: 0 10px;
   height: var(--nav-height);
 }
 
@@ -49,7 +49,9 @@
 .link {
   display: flex;
   align-items: center;
-  padding: 6px 12px;
+  justify-content: center;
+  min-width: 80px;
+  padding: 6px 8px;
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-secondary);
@@ -79,7 +81,7 @@
 }
 
 .leagueBtn {
-  padding: 3px 10px;
+  padding: 3px 8px;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -94,6 +96,62 @@
 }
 
 .leagueBtnActive {
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+}
+
+/* Locked league button (e.g. LMB) */
+.leagueBtnLocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 6px;
+  color: var(--text-faint);
+  cursor: default;
+  pointer-events: none;
+}
+
+.navLockBadge {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-amber);
+  background: var(--accent-amber-dim);
+  border-radius: var(--radius-full);
+  padding: 2px 5px;
+  flex-shrink: 0;
+}
+
+/* Language toggle */
+.langToggle {
+  display: flex;
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.langBtn {
+  padding: 3px 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: none;
+  border: none;
+  transition: color var(--transition-fast), background var(--transition-fast);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.langBtn:hover {
+  color: var(--text-secondary);
+}
+
+.langBtnActive {
   background: var(--bg-highlight);
   color: var(--text-primary);
 }

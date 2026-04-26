@@ -5,6 +5,7 @@ import { getLmbGameDetail } from '@/api/lmb/endpoints/gameDetail'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { getLmbTeamMeta } from '@/data/lmbTeams'
 import CardBgLayers from '@/features/live-game/CardBgLayers'
+import { useT } from '@/i18n/useT'
 import type { LmbGameDetail, LmbDetailTeam, LmbProbablePitcher } from '@/api/lmb/types'
 import styles from './LmbGamePage.module.css'
 
@@ -32,12 +33,14 @@ export default function LmbGamePage() {
     staleTime: 86_400_000,
   })
 
+  const t = useT()
+
   return (
     <div className={styles.page}>
-      <button className={styles.backBtn} onClick={() => navigate(-1)}>← Back</button>
+      <button className={styles.backBtn} onClick={() => navigate(-1)}>{t('back')}</button>
 
-      {detailQuery.isLoading && <p className={styles.loading}>Cargando…</p>}
-      {detailQuery.error && <p className={styles.loading}>No se pudo cargar el juego.</p>}
+      {detailQuery.isLoading && <p className={styles.loading}>{t('loading')}</p>}
+      {detailQuery.error && <p className={styles.loading}>{t('couldNotLoadGame')}</p>}
 
       {game && (
         <LmbGameView

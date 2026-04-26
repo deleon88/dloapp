@@ -10,6 +10,7 @@ import { type StatPeriod } from '@/utils/period'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import GameCard from './GameCard'
 import DateNav from './DateNav'
+import { useT } from '@/i18n/useT'
 import styles from './SchedulePage.module.css'
 
 export default function SchedulePage() {
@@ -90,12 +91,14 @@ export default function SchedulePage() {
   const lineupOffense = lineupOffenseQuery.data
   const pitcherStatsMap = pitcherStatsQuery.data
 
+  const t = useT()
+
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.heading}>MLB Games</h1>
-          <p className={styles.sub}>Stats &amp; Lineups · DloPicks</p>
+          <h1 className={styles.heading}>{t('mlbGames')}</h1>
+          <p className={styles.sub}>{t('statsLineups')}</p>
         </div>
         <PeriodSelect value={_period} onChange={_setPeriod} />
       </div>
@@ -110,15 +113,15 @@ export default function SchedulePage() {
 
       {scheduleQuery.error && (
         <div className={styles.stateCard}>
-          <p className={styles.stateMsg}>Could not load games</p>
-          <p className={styles.stateDetail}>Check your connection and try again</p>
+          <p className={styles.stateMsg}>{t('couldNotLoadGames')}</p>
+          <p className={styles.stateDetail}>{t('checkConnection')}</p>
         </div>
       )}
 
       {!scheduleQuery.isLoading && !scheduleQuery.error && games.length === 0 && (
         <div className={styles.stateCard}>
-          <p className={styles.stateMsg}>No games scheduled</p>
-          <p className={styles.stateDetail}>Try a different date</p>
+          <p className={styles.stateMsg}>{t('noGamesScheduled')}</p>
+          <p className={styles.stateDetail}>{t('tryDifferentDate')}</p>
         </div>
       )}
 
@@ -153,7 +156,7 @@ export default function SchedulePage() {
       </div>
 
       <footer className={styles.footer}>
-        Data from MLB Stats API · DloPicks
+        {t('mlbData')}
       </footer>
     </div>
   )

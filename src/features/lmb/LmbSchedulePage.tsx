@@ -5,6 +5,7 @@ import { getLmbSchedule } from '@/api/lmb/endpoints/schedule'
 import { getLmbGameDetail } from '@/api/lmb/endpoints/gameDetail'
 import DateNav from '@/features/schedule/DateNav'
 import LmbGameCard from './LmbGameCard'
+import { useT } from '@/i18n/useT'
 import styles from './LmbSchedulePage.module.css'
 
 export default function LmbSchedulePage() {
@@ -35,12 +36,14 @@ export default function LmbSchedulePage() {
     }
   }, [scheduleQuery.data, scheduleQuery.isLoading])
 
+  const t = useT()
+
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.heading}>LMB Games</h1>
-          <p className={styles.sub}>Liga Mexicana de Béisbol · DloPicks</p>
+          <h1 className={styles.heading}>{t('lmbGames')}</h1>
+          <p className={styles.sub}>{t('lmbSub')}</p>
         </div>
       </div>
 
@@ -54,15 +57,15 @@ export default function LmbSchedulePage() {
 
       {scheduleQuery.error && (
         <div className={styles.stateCard}>
-          <p className={styles.stateMsg}>No se pudieron cargar los juegos</p>
-          <p className={styles.stateDetail}>Verifica tu conexión e intenta de nuevo</p>
+          <p className={styles.stateMsg}>{t('couldNotLoadGames')}</p>
+          <p className={styles.stateDetail}>{t('checkConnection')}</p>
         </div>
       )}
 
       {!scheduleQuery.isLoading && !scheduleQuery.error && games.length === 0 && (
         <div className={styles.stateCard}>
-          <p className={styles.stateMsg}>Sin juegos programados</p>
-          <p className={styles.stateDetail}>Intenta otra fecha</p>
+          <p className={styles.stateMsg}>{t('noGamesScheduled')}</p>
+          <p className={styles.stateDetail}>{t('tryDifferentDate')}</p>
         </div>
       )}
 
@@ -80,7 +83,7 @@ export default function LmbSchedulePage() {
       </div>
 
       <footer className={styles.footer}>
-        Datos de LMB · DloPicks
+        {t('lmbData')}
       </footer>
     </div>
   )

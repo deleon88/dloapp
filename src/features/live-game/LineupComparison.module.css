@@ -73,7 +73,7 @@
 /* ── Comparison: column header ───────────────────────────────── */
 .compHeader {
   display: grid;
-  grid-template-columns: 16px 28px 1fr 96px 96px 1fr 28px 16px;
+  grid-template-columns: 12px 28px 1fr 96px 96px 1fr 28px 12px;
   align-items: center;
   padding: 5px 10px 2px;
   gap: 6px;
@@ -134,7 +134,7 @@
 /* # | photo | away-info | away-bar+val | val+home-bar | home-info | photo | # */
 .compRow {
   display: grid;
-  grid-template-columns: 16px 28px 1fr 96px 96px 1fr 28px 16px;
+  grid-template-columns: 12px 28px 1fr 96px 96px 1fr 28px 12px;
   align-items: center;
   padding: 5px 10px;
   gap: 6px;
@@ -332,7 +332,7 @@
 /* ── Totals row ──────────────────────────────────────────────── */
 .totalsRow {
   display: grid;
-  grid-template-columns: 16px 28px 1fr 96px 96px 1fr 28px 16px;
+  grid-template-columns: 12px 28px 1fr 96px 96px 1fr 28px 12px;
   grid-template-rows: auto auto;
   column-gap: 6px;
   row-gap: 6px;
@@ -465,14 +465,14 @@
 @media (max-width: 480px) {
   /* Comparison row narrow grid */
   .compRow {
-    grid-template-columns: 24px 1fr 76px 76px 1fr 24px;
+    grid-template-columns: 20px 1fr 76px 76px 1fr 20px;
     padding: 4px 8px;
     gap: 4px;
   }
 
   /* Comparison header: same narrow grid, hide first and last slot spans */
   .compHeader {
-    grid-template-columns: 24px 1fr 76px 76px 1fr 24px;
+    grid-template-columns: 20px 1fr 76px 76px 1fr 20px;
     padding: 5px 8px 2px;
     gap: 4px;
   }
@@ -493,7 +493,7 @@
 
   /* Totals row same narrow grid */
   .totalsRow {
-    grid-template-columns: 24px 1fr 76px 76px 1fr 24px;
+    grid-template-columns: 20px 1fr 76px 76px 1fr 20px;
     padding: 5px 8px 7px;
   }
   .totalsWrcAway  { grid-column: 1 / 2; }

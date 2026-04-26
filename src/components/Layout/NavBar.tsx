@@ -1,9 +1,22 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { useLangStore } from '@/stores/langStore'
+import { useT } from '@/i18n/useT'
 import styles from './NavBar.module.css'
+
+function LockIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  )
+}
 
 export default function NavBar() {
   const { pathname } = useLocation()
   const isLmb = pathname.startsWith('/lmb')
+  const { lang, setLang } = useLangStore()
+  const t = useT()
 
   return (
     <header className={styles.header}>
@@ -19,12 +32,10 @@ export default function NavBar() {
           >
             MLB
           </NavLink>
-          <NavLink
-            to="/lmb"
-            className={`${styles.leagueBtn} ${isLmb ? styles.leagueBtnActive : ''}`}
-          >
+          <span className={`${styles.leagueBtn} ${styles.leagueBtnLocked}`}>
             LMB
-          </NavLink>
+            <span className={styles.navLockBadge}><LockIcon /></span>
+          </span>
         </div>
 
         <ul className={styles.links}>
@@ -35,7 +46,7 @@ export default function NavBar() {
                   to="/schedule"
                   className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
                 >
-                  Games
+                  {t('games')}
                 </NavLink>
               </li>
               <li>
@@ -43,22 +54,27 @@ export default function NavBar() {
                   to="/standings"
                   className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
                 >
-                  Standings
+                  {t('standings')}
                 </NavLink>
               </li>
             </>
           )}
-          {isLmb && (
-            <li>
-              <NavLink
-                to="/lmb"
-                className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
-              >
-                Games
-              </NavLink>
-            </li>
-          )}
         </ul>
+
+        <div className={styles.langToggle}>
+          <button
+            className={`${styles.langBtn} ${lang === 'en' ? styles.langBtnActive : ''}`}
+            onClick={() => setLang('en')}
+          >
+            EN
+          </button>
+          <button
+            className={`${styles.langBtn} ${lang === 'es' ? styles.langBtnActive : ''}`}
+            onClick={() => setLang('es')}
+          >
+            ES
+          </button>
+        </div>
       </nav>
     </header>
   )

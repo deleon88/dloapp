@@ -1,5 +1,6 @@
 import type { ViewMode } from './LineupComparison'
 import CardBgLayers from './CardBgLayers'
+import { useT } from '@/i18n/useT'
 import styles from './WeatherCard.module.css'
 
 interface Weather {
@@ -30,10 +31,11 @@ function weatherIcon(condition: string | undefined): string {
 }
 
 export default function WeatherCard({ weather, awayColor, homeColor, mode }: Props) {
+  const t = useT()
   return (
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
-      <span className={styles.title}>Clima esperado</span>
+      <span className={styles.title}>{t('expectedWeather')}</span>
       <div className={styles.items}>
         <div className={styles.item}>
           <span className={styles.icon}>{weatherIcon(weather.condition)}</span>
@@ -42,7 +44,7 @@ export default function WeatherCard({ weather, awayColor, homeColor, mode }: Pro
         {weather.wind && (
           <div className={styles.item}>
             <span className={styles.icon}>💨</span>
-            <span className={styles.value}>Viento {weather.wind}</span>
+            <span className={styles.value}>{t('wind')} {weather.wind}</span>
           </div>
         )}
       </div>

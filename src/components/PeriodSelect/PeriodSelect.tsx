@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
+import { useT, type TKey } from '@/i18n/useT'
 import styles from './PeriodSelect.module.css'
 
 interface Props {
@@ -12,8 +13,9 @@ const FREE_PERIODS: StatPeriod[] = ['season']
 export default function PeriodSelect({ value, onChange }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const t = useT()
 
-  const selectedLabel = PERIOD_OPTIONS.find((o) => o.value === value)?.label ?? 'Season'
+  const selectedLabel = t(value as TKey)
 
   // Close on outside click
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function PeriodSelect({ value, onChange }: Props) {
 
       {open && (
         <ul className={styles.dropdown} role="listbox">
-          {PERIOD_OPTIONS.map(({ value: v, label }) => {
+          {PERIOD_OPTIONS.map(({ value: v }) => {
             const isFree = FREE_PERIODS.includes(v)
             const isSelected = v === value
             return (
@@ -65,7 +67,7 @@ export default function PeriodSelect({ value, onChange }: Props) {
                   setOpen(false)
                 }}
               >
-                <span className={styles.optionLabel}>{label}</span>
+                <span className={styles.optionLabel}>{t(v as TKey)}</span>
                 {!isFree && (
                   <span className={styles.lockBadge}>
                     <LockIcon />

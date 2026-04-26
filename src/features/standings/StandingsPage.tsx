@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getStandings } from '@/api/mlb/endpoints/standings'
 import type { TeamStandingRecord } from '@/api/mlb/types'
+import { useT } from '@/i18n/useT'
 import styles from './StandingsPage.module.css'
 
 export default function StandingsPage() {
@@ -10,12 +11,14 @@ export default function StandingsPage() {
     staleTime: 60_000,
   })
 
-  if (isLoading) return <p className={styles.message}>Loading standings…</p>
-  if (error) return <p className={styles.error}>Failed to load standings.</p>
+  const t = useT()
+
+  if (isLoading) return <p className={styles.message}>{t('loadingStandings')}</p>
+  if (error) return <p className={styles.error}>{t('failedStandings')}</p>
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.heading}>Standings</h1>
+      <h1 className={styles.heading}>{t('standings')}</h1>
       <div className={styles.columns}>
         {data?.records.map((record) => (
           <div key={`${record.league.id}-${record.division.id}`} className={styles.division}>
@@ -29,16 +32,17 @@ export default function StandingsPage() {
 }
 
 function StandingsTable({ teams }: { teams: TeamStandingRecord[] }) {
+  const t = useT()
   return (
     <table className={styles.table}>
       <thead>
         <tr>
-          <th className={styles.teamCol}>Team</th>
+          <th className={styles.teamCol}>{t('team')}</th>
           <th>W</th>
           <th>L</th>
           <th>PCT</th>
           <th>GB</th>
-          <th className={styles.streak}>Strk</th>
+          <th className={styles.streak}>{t('streak')}</th>
         </tr>
       </thead>
       <tbody>
