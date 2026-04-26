@@ -15,6 +15,8 @@ interface Props {
   homeOpsPlus?: number;
   awayFipPlus?: number;
   homeFipPlus?: number;
+  awayBullpenFipPlus?: number;
+  homeBullpenFipPlus?: number;
   awayPitchHand?: string;
   homePitchHand?: string;
   awayLineupStatus?: LineupStatus;
@@ -28,6 +30,8 @@ export default function GameCard({
   homeOpsPlus,
   awayFipPlus,
   homeFipPlus,
+  awayBullpenFipPlus,
+  homeBullpenFipPlus,
   awayPitchHand,
   homePitchHand,
   awayLineupStatus,
@@ -87,9 +91,11 @@ export default function GameCard({
 
       <StatBars
         awayFipPlus={awayFipPlus}
-        homeOpsPlus={homeOpsPlus}
-        awayOpsPlus={awayOpsPlus}
         homeFipPlus={homeFipPlus}
+        awayOpsPlus={awayOpsPlus}
+        homeOpsPlus={homeOpsPlus}
+        awayBullpenFipPlus={awayBullpenFipPlus}
+        homeBullpenFipPlus={homeBullpenFipPlus}
         acBar={acBar}
         hcBar={hcBar}
       />
@@ -159,9 +165,10 @@ function LineupStatusBadge({ status }: { status: LineupStatus }) {
   )
 }
 
-function StatBars({ awayFipPlus, homeFipPlus, awayOpsPlus, homeOpsPlus, acBar, hcBar }: {
+function StatBars({ awayFipPlus, homeFipPlus, awayOpsPlus, homeOpsPlus, awayBullpenFipPlus, homeBullpenFipPlus, acBar, hcBar }: {
   awayFipPlus?: number; homeFipPlus?: number
   awayOpsPlus?: number; homeOpsPlus?: number
+  awayBullpenFipPlus?: number; homeBullpenFipPlus?: number
   acBar: string; hcBar: string
 }) {
   const t = useT()
@@ -169,7 +176,7 @@ function StatBars({ awayFipPlus, homeFipPlus, awayOpsPlus, homeOpsPlus, acBar, h
     <div className={styles.statbars}>
       <StatBar label={t('starters')} aVal={awayFipPlus ?? null} hVal={homeFipPlus ?? null} ac={acBar} hc={hcBar} />
       <StatBar label={t('offense')} aVal={awayOpsPlus ?? null} hVal={homeOpsPlus ?? null} ac={acBar} hc={hcBar} />
-      <StatBar label={t('bullpen')} aVal={null} hVal={null} ac={acBar} hc={hcBar} />
+      <StatBar label={t('bullpen')} aVal={awayBullpenFipPlus ?? null} hVal={homeBullpenFipPlus ?? null} ac={acBar} hc={hcBar} />
     </div>
   )
 }

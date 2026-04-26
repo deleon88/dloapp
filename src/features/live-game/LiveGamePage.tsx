@@ -7,6 +7,7 @@ import { getGameLineup } from '@/api/mlb/endpoints/boxscore'
 import { fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchDepthChart } from '@/api/mlb/endpoints/teamRoster'
 import { fetchPredictedLineup } from '@/api/mlb/endpoints/predictedLineup'
+import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import type { StatPeriod } from '@/utils/period'
 import GameMatchupView from './GameMatchupView'
@@ -90,7 +91,21 @@ export default function LiveGamePage() {
   const awayLineupStatus = awayLineup.length === 0 ? undefined : confirmedAway.length > 0 ? 'confirmed' as const : 'projected' as const
   const homeLineupStatus = homeLineup.length === 0 ? undefined : confirmedHome.length > 0 ? 'confirmed' as const : 'projected' as const
 
-  // 5. wRC+ for each batter
+  // 5. Bullpen stats for both teams
+  const awayBullpenQuery = useQuery({
+    queryKey: ['bullpen', awayTeamId],
+    queryFn: () => fetchBullpenStats(awayTeamId!),
+    enabled: !!awayTeamId,
+    staleTime: 3_600_000,
+  })
+  const homeBullpenQuery = useQuery({
+    queryKey: ['bullpen', homeTeamId],
+    queryFn: () => fetchBullpenStats(homeTeamId!),
+    enabled: !!homeTeamId,
+    staleTime: 3_600_000,
+  })
+
+  // 6. wRC+ for each batter
   const allBatterIds = [
     ...awayLineup.map(p => p.id),
     ...homeLineup.map(p => p.id),
@@ -126,6 +141,9 @@ export default function LiveGamePage() {
           }
           awayLineupStatus={awayLineupStatus}
           homeLineupStatus={homeLineupStatus}
+          awayBullpen={awayBullpenQuery.data}
+          homeBullpen={homeBullpenQuery.data}
+          bullpenLoading={awayBullpenQuery.isLoading || homeBullpenQuery.isLoading}
         />
       )}
     </div>

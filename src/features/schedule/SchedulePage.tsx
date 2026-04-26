@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
 import { fetchTeamOpsPlus } from '@/api/mlb/endpoints/teamStats'
+import { fetchBullpenFipPlusMap } from '@/api/mlb/endpoints/bullpenStats'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
@@ -70,6 +71,14 @@ export default function SchedulePage() {
     staleTime: 3_600_000,
   })
 
+  const uniqueTeamIds = [...new Set(games.flatMap(g => [g.teams.away.team.id, g.teams.home.team.id]))]
+  const bullpenFipQuery = useQuery({
+    queryKey: ['bullpen-fip', uniqueTeamIds.slice().sort((a, b) => a - b).join(',')],
+    queryFn: () => fetchBullpenFipPlusMap(uniqueTeamIds),
+    enabled: uniqueTeamIds.length > 0,
+    staleTime: 3_600_000,
+  })
+
   // Fetch lineups for all games — lineups can be posted before game starts
   const allGamesForLineup = games.map(g => ({
     gamePk: g.gamePk,
@@ -87,6 +96,7 @@ export default function SchedulePage() {
   })
 
   const opsPlus = opsPlusQuery.data
+  const bullpenFipPlus = bullpenFipQuery.data
   const pitchHands = pitchHandQuery.data
   const lineupOffense = lineupOffenseQuery.data
   const pitcherStatsMap = pitcherStatsQuery.data
@@ -145,6 +155,8 @@ export default function SchedulePage() {
               homeOpsPlus={homeConfirmed ? (gameLineup!.homeWrc ?? undefined) : opsPlus?.get(game.teams.home.team.id)?.opsPlus}
               awayFipPlus={awayFipMinus ? fipPlus(awayFipMinus) : undefined}
               homeFipPlus={homeFipMinus ? fipPlus(homeFipMinus) : undefined}
+              awayBullpenFipPlus={bullpenFipPlus?.get(game.teams.away.team.id)}
+              homeBullpenFipPlus={bullpenFipPlus?.get(game.teams.home.team.id)}
               awayPitchHand={awayId ? pitchHands?.get(awayId) : undefined}
               homePitchHand={homeId ? pitchHands?.get(homeId) : undefined}
               awayLineupStatus={awayLineupStatus}

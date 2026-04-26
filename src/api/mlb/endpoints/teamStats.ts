@@ -1,26 +1,12 @@
 import { mlbApi } from '../client'
 
 interface TeamStatSplit {
-  stat: {
-    ops: string
-    obp: string
-    slg: string
-    avg: string
-    homeRuns: number
-    runs: number
-    strikeOuts: number
-    baseOnBalls: number
-  }
-  team: {
-    id: number
-    name: string
-  }
+  stat: Record<string, unknown>
+  team: { id: number; name: string }
 }
 
 interface TeamStatsResponse {
-  stats: Array<{
-    splits: TeamStatSplit[]
-  }>
+  stats: Array<{ splits: TeamStatSplit[] }>
 }
 
 export interface TeamOpsPlus {
@@ -48,19 +34,20 @@ export async function fetchTeamOpsPlus(season?: number): Promise<Map<number, Tea
   const splits = data.stats?.[0]?.splits ?? []
   if (!splits.length) return new Map()
 
-  const lgAvgOps = splits.reduce((sum, s) => sum + parseFloat(s.stat.ops), 0) / splits.length
+  const lgAvgOps = splits.reduce((sum, s) => sum + parseFloat(s.stat.ops as string), 0) / splits.length
 
   const map = new Map<number, TeamOpsPlus>()
   for (const s of splits) {
-    const teamOps = parseFloat(s.stat.ops)
+    const teamOps = parseFloat(s.stat.ops as string)
     map.set(s.team.id, {
       opsPlus: Math.round((teamOps / lgAvgOps) * 100),
-      ops: s.stat.ops,
-      avg: s.stat.avg,
-      obp: s.stat.obp,
-      slg: s.stat.slg,
+      ops:  s.stat.ops  as string,
+      avg:  s.stat.avg  as string,
+      obp:  s.stat.obp  as string,
+      slg:  s.stat.slg  as string,
     })
   }
 
   return map
 }
+

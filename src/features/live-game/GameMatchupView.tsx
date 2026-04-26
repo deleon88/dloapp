@@ -4,12 +4,14 @@ import type { ScheduledGame } from '@/api/mlb/types'
 import type { PitcherInfo } from '@/api/mlb/endpoints/pitcherStats'
 import type { GameLineup } from '@/api/mlb/endpoints/boxscore'
 import type { PlayerStats } from '@/api/mlb/endpoints/lineupStats'
+import type { BullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import { getTeamMeta, getBarColor, capLogoUrl } from '@/data/teams'
 import type { ViewMode, LineupStatus } from './LineupComparison'
 import CardBgLayers from './CardBgLayers'
 import PitcherMatchup from './PitcherMatchup'
 import WeatherCard from './WeatherCard'
 import LineupComparison from './LineupComparison'
+import BullpenCard from './BullpenCard'
 import styles from './GameMatchupView.module.css'
 
 interface HydratedGame extends ScheduledGame {
@@ -40,6 +42,9 @@ interface Props {
   lineupLoading?: boolean
   awayLineupStatus?: LineupStatus
   homeLineupStatus?: LineupStatus
+  awayBullpen?: BullpenStats
+  homeBullpen?: BullpenStats
+  bullpenLoading?: boolean
 }
 
 export default function GameMatchupView({
@@ -50,6 +55,9 @@ export default function GameMatchupView({
   lineupLoading,
   awayLineupStatus,
   homeLineupStatus,
+  awayBullpen,
+  homeBullpen,
+  bullpenLoading,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>('comparison')
 
@@ -149,6 +157,16 @@ export default function GameMatchupView({
 
       {/* ── Weather ────────────────────────────────────────── */}
       {g.weather?.condition && <WeatherCard weather={g.weather} awayColor={ac} homeColor={hc} mode={mode} />}
+
+      {/* ── Bullpen ────────────────────────────────────────── */}
+      <BullpenCard
+        away={awayBullpen}
+        home={homeBullpen}
+        awayColor={ac}
+        homeColor={hc}
+        mode={mode}
+        isLoading={bullpenLoading}
+      />
 
     </div>
   )
