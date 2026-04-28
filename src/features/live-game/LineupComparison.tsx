@@ -348,6 +348,9 @@ function SingleView({ lineup, color, wrcMap }: {
   const slots = lineup.length > 0 ? lineup : Array(9).fill(null)
   const t = useT()
 
+  const avg    = lineupAvgWrc(lineup, wrcMap)
+  const avgPct = avg != null ? barPct(avg) : 0
+
   return (
     <div>
       <div className={styles.singleHeader}>
@@ -385,6 +388,22 @@ function SingleView({ lineup, color, wrcMap }: {
           </div>
         )
       })}
+
+      {/* Totals row: matches comparison height — aggregate bar + 6 blank chips */}
+      <div className={styles.totalsRow}>
+        <div className={styles.singleTotalsBar}>
+          <div className={styles.barTrack} style={{ flex: 1 }}>
+            <div className={styles.barFillLeft} style={{ width: `${avgPct}%`, background: color }} />
+            <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
+          </div>
+          <span className={styles.wrc}>{avg ?? '—'}</span>
+        </div>
+        <div className={styles.singleTotalsChips}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className={styles.totalsChip} />
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

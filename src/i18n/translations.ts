@@ -35,8 +35,8 @@ export const translations = {
     starters: 'Starters',
     offense: 'Offense',
     bullpen: 'Bullpen',
-    lineupConfirmed: 'Lineup Confirmed',
-    lineupProjected: 'Lineup Projected',
+    lineupConfirmed: 'Confirmed Lineup',
+    lineupProjected: 'Projected Lineup',
     // Weather
     expectedWeather: 'Expected Weather',
     wind: 'Wind',

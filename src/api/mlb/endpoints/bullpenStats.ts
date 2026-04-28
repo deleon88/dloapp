@@ -11,7 +11,8 @@ export interface BullpenPitcher {
   eraMinus: number | null
   war: number | null
   pli: number | null
-  // full-season stats from /people
+  gmli: number | null
+  // RP-only stats from /people
   era: string | null
   whip: string | null
   ip: string | null
@@ -70,22 +71,22 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
   const season = new Date().getFullYear()
   const base = { group: 'pitching', season, sportIds: 1, gameType: 'R', sitCodes: 'rp' }
 
-  // Parallel: active roster (position filter) + sabermetrics per pitcher
+  // Parallel: depth chart (RP/CP only) + sabermetrics per pitcher
   const [rosterData, saberRes] = await Promise.all([
     mlbApi.get<{ roster: RosterEntry[] }>(`/teams/${teamId}/roster`, {
-      rosterType: 'active',
+      rosterType: 'depthChart',
       season,
       fields: 'roster,person,id,position,type,abbreviation,status,code',
     }),
     mlbApi.get<TeamStatResponse>(`/teams/${teamId}/stats`, { ...base, stats: 'sabermetrics' }),
   ])
 
-  // Include pitchers and two-way players; exclude position players pitching in emergencies
+  // P = reliever, CP = closer — exclude SP (starters) and position players
   const pitcherIdSet = new Set<number>(
     (rosterData.roster ?? [])
       .filter(e =>
         e.status.code === 'A' &&
-        (e.position.type === 'Pitcher' || e.position.abbreviation === 'TWP'),
+        (e.position.abbreviation === 'P' || e.position.abbreviation === 'CP'),
       )
       .map(e => e.person.id),
   )
@@ -95,11 +96,11 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
 
   if (!playerIds.length) return { pitchers: [], teamFipMinus: null, teamEra: null, teamWhip: null }
 
-  // /people gives per-pitcher season stats (IP, ERA, WHIP, saves, inheritedRunners, etc.) + handedness
+  // /people with sitCodes=[rp] gives RP-only stats (IP, ERA, WHIP, saves, etc.) + handedness
   const peopleData = await mlbApi.get<{ people: RawPerson[] }>('/people', {
     personIds: playerIds.join(','),
     season,
-    hydrate: `stats(group=[pitching],type=[season],season=${season})`,
+    hydrate: `stats(group=[pitching],type=[statSplits],sitCodes=[rp],season=${season})`,
     fields: [
       'people', 'id', 'fullName', 'pitchHand', 'code',
       'stats', 'type', 'displayName', 'splits', 'stat',
@@ -109,13 +110,12 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
     ].join(','),
   })
 
-  // inheritedRunners lives in the season stat (not seasonAdvanced)
-  type SeasonStat = {
+  type RpStat = {
     era?: string; whip?: string; inningsPitched?: string; strikeoutsPer9Inn?: string
     saves?: number; holds?: number; blownSaves?: number
     inheritedRunners?: number; inheritedRunnersScored?: number
   }
-  type PersonInfo = { fullName: string; hand: string; season: SeasonStat }
+  type PersonInfo = { fullName: string; hand: string; rp: RpStat }
 
   const personMap = new Map<number, PersonInfo>()
   for (const p of peopleData.people ?? []) {
@@ -123,7 +123,7 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
     personMap.set(p.id, {
       fullName: p.fullName,
       hand:     p.pitchHand?.code ?? '?',
-      season:   byType.get('season') as SeasonStat ?? {},
+      rp:       byType.get('statSplits') as RpStat ?? {},
     })
   }
 
@@ -133,8 +133,8 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
     const person = personMap.get(saber.player.id)
     if (!person) continue
 
-    const s  = saber.stat as { fip?: number; xfip?: number; fipMinus?: number; eraMinus?: number; war?: number; pli?: number }
-    const ss = person.season
+    const s  = saber.stat as { fip?: number; xfip?: number; fipMinus?: number; eraMinus?: number; war?: number; pli?: number; gmli?: number }
+    const ss = person.rp
 
     const ip = ss.inningsPitched ?? null
     if (ipToDecimal(ip) === 0) continue
@@ -152,6 +152,7 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
       eraMinus:   s.eraMinus   ?? null,
       war:        s.war        ?? null,
       pli:        s.pli        ?? null,
+      gmli:       s.gmli       ?? null,
       era:        ss.era       ?? null,
       whip:       ss.whip      ?? null,
       ip,
@@ -163,11 +164,12 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
     })
   }
 
+  // Sort by gmLI descending — closers/setup men first, long relievers last
   pitchers.sort((a, b) => {
-    if (a.fipMinus == null && b.fipMinus == null) return 0
-    if (a.fipMinus == null) return 1
-    if (b.fipMinus == null) return -1
-    return a.fipMinus - b.fipMinus
+    if (a.gmli == null && b.gmli == null) return 0
+    if (a.gmli == null) return 1
+    if (b.gmli == null) return -1
+    return b.gmli - a.gmli
   })
 
   const totalIP = pitchers.reduce((s, p) => s + ipToDecimal(p.ip), 0)
@@ -206,30 +208,48 @@ export async function fetchBullpenFipPlusMap(teamIds: number[]): Promise<Map<num
   const season = new Date().getFullYear()
   const base = { group: 'pitching', season, sportIds: 1, gameType: 'R', sitCodes: 'rp' }
 
-  // Step 1: sabermetrics for all teams in parallel
-  const saberResults = await Promise.all(
+  // Step 1: depth chart + sabermetrics for all teams in parallel
+  const rawResults = await Promise.all(
     teamIds.map(teamId =>
-      mlbApi.get<TeamStatResponse>(`/teams/${teamId}/stats`, { ...base, stats: 'sabermetrics' })
-        .then(res => ({ teamId, splits: res.stats?.[0]?.splits ?? [] })),
+      Promise.all([
+        mlbApi.get<{ roster: RosterEntry[] }>(`/teams/${teamId}/roster`, {
+          rosterType: 'depthChart',
+          season,
+          fields: 'roster,person,id,position,abbreviation,status,code',
+        }),
+        mlbApi.get<TeamStatResponse>(`/teams/${teamId}/stats`, { ...base, stats: 'sabermetrics' }),
+      ]).then(([rosterRes, saberRes]) => {
+        const relieverIds = new Set<number>(
+          (rosterRes.roster ?? [])
+            .filter(e =>
+              e.status.code === 'A' &&
+              (e.position.abbreviation === 'P' || e.position.abbreviation === 'CP'),
+            )
+            .map(e => e.person.id),
+        )
+        const splits = (saberRes.stats?.[0]?.splits ?? []).filter(s => relieverIds.has(s.player.id))
+        return { teamId, splits }
+      }),
     ),
   )
+  const saberResults = rawResults
 
   // Collect all unique player IDs across all teams
   const allPlayerIds = [...new Set(saberResults.flatMap(r => r.splits.map(s => s.player.id)))]
   if (!allPlayerIds.length) return new Map()
 
-  // Step 2: one bulk /people call for IP of every pitcher
+  // Step 2: one bulk /people call for RP-only IP of every pitcher
   const peopleData = await mlbApi.get<{ people: RawPerson[] }>('/people', {
     personIds: allPlayerIds.join(','),
     season,
-    hydrate: `stats(group=[pitching],type=[season],season=${season})`,
+    hydrate: `stats(group=[pitching],type=[statSplits],sitCodes=[rp],season=${season})`,
     fields: 'people,id,stats,type,displayName,splits,stat,inningsPitched',
   })
 
   const ipMap = new Map<number, number>()
   for (const p of peopleData.people ?? []) {
     const stat = (p.stats ?? [])
-      .find(s => s.type.displayName === 'season')
+      .find(s => s.type.displayName === 'statSplits')
       ?.splits?.[0]?.stat as { inningsPitched?: string } | undefined
     const ipDec = ipToDecimal(stat?.inningsPitched)
     if (ipDec > 0) ipMap.set(p.id, ipDec)

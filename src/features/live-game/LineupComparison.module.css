@@ -148,10 +148,10 @@
 /* ── Single view ─────────────────────────────────────────────── */
 .singleHeader {
   display: grid;
-  grid-template-columns: 16px 28px 1fr 34px 34px 110px;
+  grid-template-columns: 12px 28px 1fr 34px 34px 110px;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px 3px;
+  padding: 5px 10px 2px;
   min-height: 28px;
   font-size: 0.52rem;
   font-weight: 700;
@@ -162,10 +162,10 @@
 
 .singleRow {
   display: grid;
-  grid-template-columns: 16px 28px 1fr 34px 34px 110px;
+  grid-template-columns: 12px 28px 1fr 34px 34px 110px;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 5px 10px;
   border-top: 1px solid var(--border);
 }
 
@@ -357,6 +357,23 @@
 .totalsChipAway { grid-column: 1 / 5; grid-row: 2; }
 .totalsChipHome { grid-column: 5 / 9; grid-row: 2; }
 
+/* single-view totals: full-width bar + 6 blank chips */
+.singleTotalsBar {
+  grid-column: 1 / 9;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.singleTotalsChips {
+  grid-column: 1 / 9;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+}
+
 .totalsChipGrid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -373,6 +390,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 4px;
   padding: 3px 4px;
+  min-height: 25px;
 }
 
 .totalsChipLabel {
@@ -502,7 +520,20 @@
   .totalsWrcHome  { grid-column: 6 / 7; }
   .totalsChipAway { grid-column: 1 / 4; }
   .totalsChipHome { grid-column: 4 / 7; }
+  .singleTotalsBar   { grid-column: 1 / 7; }
+  .singleTotalsChips { grid-column: 1 / 7; }
 
   /* Photos smaller only inside comparison rows */
   .compRow .photoWrap { width: 24px; height: 24px; }
+
+  /* Single-view rows: hide slot column, photo-first to match comp alignment */
+  .singleRow .slotNum { display: none; }
+  .singleHeader > span:first-child { display: none; }
+  .singleHeader,
+  .singleRow {
+    grid-template-columns: 24px 1fr 30px 30px 90px;
+    padding: 4px 8px;
+    gap: 4px;
+  }
+  .singleRow .photoWrap { width: 24px; height: 24px; }
 }

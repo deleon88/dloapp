@@ -155,18 +155,23 @@ export default function GameMatchupView({
         homeLineupStatus={homeLineupStatus}
       />
 
-      {/* ── Weather ────────────────────────────────────────── */}
-      {g.weather?.condition && <WeatherCard weather={g.weather} awayColor={ac} homeColor={hc} mode={mode} />}
-
       {/* ── Bullpen ────────────────────────────────────────── */}
       <BullpenCard
         away={awayBullpen}
         home={homeBullpen}
         awayColor={ac}
         homeColor={hc}
-        mode={mode}
+        awayBarColor={acBar}
+        homeBarColor={hcBar}
+        awayLabel={away?.brief.toUpperCase() ?? 'AWAY'}
+        homeLabel={home?.brief.toUpperCase() ?? 'HOME'}
         isLoading={bullpenLoading}
+        mode={mode}
+        onModeChange={setMode}
       />
+
+      {/* ── Weather ────────────────────────────────────────── */}
+      {g.weather?.condition && <WeatherCard weather={g.weather} awayColor={ac} homeColor={hc} mode={mode} />}
 
     </div>
   )
