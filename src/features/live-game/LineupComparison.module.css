@@ -452,6 +452,14 @@
   min-height: 32px;
 }
 
+/* Comparison mode: 3-col grid matching the segment pill widths */
+.statusRowComparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  padding: 4px 10px 0px 10px;
+}
+
 .statusRowLeft {
   position: absolute;
   left: 10px;

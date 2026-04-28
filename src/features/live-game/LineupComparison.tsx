@@ -164,10 +164,10 @@ export default function LineupComparison({
         </div>
       )}
       {mode === 'comparison' && (awayLineupStatus || homeLineupStatus) && (
-        <div className={styles.statusRow}>
-          <StatusBadge status={awayLineupStatus} align="left" />
+        <div className={styles.statusRowComparison}>
+          <StatusBadge status={awayLineupStatus} align="center" />
           <span />
-          <StatusBadge status={homeLineupStatus} align="right" />
+          <StatusBadge status={homeLineupStatus} align="center" />
         </div>
       )}
 

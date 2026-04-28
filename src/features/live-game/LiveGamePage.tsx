@@ -6,7 +6,8 @@ import { fetchPitcherStats } from '@/api/mlb/endpoints/pitcherStats'
 import { getGameLineup } from '@/api/mlb/endpoints/boxscore'
 import { fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchDepthChart } from '@/api/mlb/endpoints/teamRoster'
-import { fetchPredictedLineup } from '@/api/mlb/endpoints/predictedLineup'
+import { fetchTeamPredictions } from '@/api/mlb/endpoints/predictedLineup'
+import { getCachedPredictions, setCachedPredictions } from '@/api/mlb/endpoints/lineupPredictionCache'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import type { StatPeriod } from '@/utils/period'
@@ -68,25 +69,47 @@ export default function LiveGamePage() {
     staleTime: 3_600_000,
   })
 
-  // Away batters face the HOME pitcher; home batters face the AWAY pitcher
+  // Predict both vsRHP and vsLHP in one call per team; serve from localStorage cache when fresh.
+  // No pitcher hand required to start — we default to vsRHP when hand is unknown.
   const awayPredictedQuery = useQuery({
-    queryKey: ['predicted-lineup', awayTeamId, homePitcherHand],
-    queryFn: () => fetchPredictedLineup(awayTeamId!, homePitcherHand!, awayDepthQuery.data!),
-    enabled: isPreview && !!awayTeamId && !!homePitcherHand && !!awayDepthQuery.data,
+    queryKey: ['team-predictions', awayTeamId],
+    queryFn: async () => {
+      const cached = getCachedPredictions(awayTeamId!)
+      if (cached) return cached
+      const result = await fetchTeamPredictions(awayTeamId!, awayDepthQuery.data!)
+      setCachedPredictions(awayTeamId!, result)
+      return result
+    },
+    enabled: isPreview && !!awayTeamId && !!awayDepthQuery.data,
     staleTime: 3_600_000,
   })
   const homePredictedQuery = useQuery({
-    queryKey: ['predicted-lineup', homeTeamId, awayPitcherHand],
-    queryFn: () => fetchPredictedLineup(homeTeamId!, awayPitcherHand!, homeDepthQuery.data!),
-    enabled: isPreview && !!homeTeamId && !!awayPitcherHand && !!homeDepthQuery.data,
+    queryKey: ['team-predictions', homeTeamId],
+    queryFn: async () => {
+      const cached = getCachedPredictions(homeTeamId!)
+      if (cached) return cached
+      const result = await fetchTeamPredictions(homeTeamId!, homeDepthQuery.data!)
+      setCachedPredictions(homeTeamId!, result)
+      return result
+    },
+    enabled: isPreview && !!homeTeamId && !!homeDepthQuery.data,
     staleTime: 3_600_000,
   })
+
+  // Pick the hand-specific prediction; default to vsRHP when pitcher hand is unknown
+  const awayPredicted = (homePitcherHand === 'L'
+    ? awayPredictedQuery.data?.vsLHP
+    : awayPredictedQuery.data?.vsRHP) ?? awayPredictedQuery.data?.vsRHP ?? null
+
+  const homePredicted = (awayPitcherHand === 'L'
+    ? homePredictedQuery.data?.vsLHP
+    : homePredictedQuery.data?.vsRHP) ?? homePredictedQuery.data?.vsRHP ?? null
 
   // Effective lineups: confirmed from boxscore, or predicted for Preview games
   const confirmedAway = lineupQuery.data?.away ?? []
   const confirmedHome = lineupQuery.data?.home ?? []
-  const awayLineup = confirmedAway.length > 0 ? confirmedAway : (awayPredictedQuery.data ?? [])
-  const homeLineup = confirmedHome.length > 0 ? confirmedHome : (homePredictedQuery.data ?? [])
+  const awayLineup = confirmedAway.length > 0 ? confirmedAway : (awayPredicted ?? [])
+  const homeLineup = confirmedHome.length > 0 ? confirmedHome : (homePredicted ?? [])
 
   const awayLineupStatus = awayLineup.length === 0 ? undefined : confirmedAway.length > 0 ? 'confirmed' as const : 'projected' as const
   const homeLineupStatus = homeLineup.length === 0 ? undefined : confirmedHome.length > 0 ? 'confirmed' as const : 'projected' as const
