@@ -1,5 +1,4 @@
 import { mlbApi } from '../client'
-import { fetchLineupSabermetrics } from './lineupStats'
 
 interface RawBoxscoreTeam {
   battingOrder: number[]
@@ -11,7 +10,7 @@ interface RawBoxscoreResponse {
 export interface GameOffense {
   awayWrc: number | null
   homeWrc: number | null
-  awayCount: number   // # of batters with data — 0 means no confirmed lineup
+  awayCount: number   // # of batters in confirmed batting order; 0 = no confirmed lineup
   homeCount: number
 }
 
@@ -20,6 +19,76 @@ interface GameTeamIds {
   awayTeamId: number
   homeTeamId: number
 }
+
+// ── Per-player wRC+ + PA (for PA-weighted averages) ───────────────────────────
+
+export interface PlayerWrcPa { wrc: number; pa: number }
+
+const WRC_PA_FIELDS = [
+  'people', 'id',
+  'stats', 'type', 'displayName', 'group',
+  'splits', 'stat', 'wRcPlus', 'plateAppearances',
+].join(',')
+
+async function fetchWrcPaChunk(ids: number[], season: number): Promise<Map<number, PlayerWrcPa>> {
+  const data = await mlbApi.get<{
+    people: Array<{
+      id: number
+      stats?: Array<{
+        type: { displayName: string }
+        group: { displayName: string }
+        splits: Array<{ stat: Record<string, unknown> }>
+      }>
+    }>
+  }>('/people', {
+    personIds: ids.join(','),
+    hydrate: `stats(group=[hitting],type=[season,sabermetrics],season=${season})`,
+    fields: WRC_PA_FIELDS,
+  })
+
+  const map = new Map<number, PlayerWrcPa>()
+  for (const person of data.people ?? []) {
+    const find = (t: string) =>
+      person.stats?.find(s => s.type.displayName === t && s.group.displayName === 'hitting')
+        ?.splits?.[0]?.stat ?? {}
+    const sea   = find('season')       as { plateAppearances?: number }
+    const saber = find('sabermetrics') as { wRcPlus?: number }
+    if (saber.wRcPlus != null) {
+      map.set(person.id, { wrc: Math.round(saber.wRcPlus), pa: sea.plateAppearances ?? 1 })
+    }
+  }
+  return map
+}
+
+/** Bulk-fetches wRC+ and PA for an arbitrary player list, chunked at 60. */
+export async function fetchWrcPaBulk(
+  playerIds: number[],
+  season = new Date().getFullYear(),
+): Promise<Map<number, PlayerWrcPa>> {
+  if (!playerIds.length) return new Map()
+  const CHUNK = 60
+  const chunks = Array.from({ length: Math.ceil(playerIds.length / CHUNK) }, (_, i) =>
+    playerIds.slice(i * CHUNK, (i + 1) * CHUNK)
+  )
+  const maps = await Promise.all(chunks.map(chunk => fetchWrcPaChunk(chunk, season)))
+  const merged = new Map<number, PlayerWrcPa>()
+  for (const m of maps) for (const [k, v] of m) merged.set(k, v)
+  return merged
+}
+
+/** PA-weighted average wRC+ for a list of player IDs. */
+export function weightedWrcAvg(ids: number[], wrcPaMap: Map<number, PlayerWrcPa>): number | null {
+  let sumWrcPa = 0, sumPa = 0
+  for (const id of ids) {
+    const d = wrcPaMap.get(id)
+    if (!d) continue
+    sumWrcPa += d.wrc * d.pa
+    sumPa    += d.pa
+  }
+  return sumPa === 0 ? null : Math.round(sumWrcPa / sumPa)
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
 
 /**
  * Returns Map<gamePk, GameOffense> so doubleheaders (same teamId, different
@@ -55,31 +124,18 @@ export async function fetchLineupOffenseMap(
 
   if (!allPlayerIds.size) return new Map()
 
-  // 3. Bulk sabermetrics — MLB API caps personIds at ~60, chunk if needed
-  const ids = [...allPlayerIds]
-  const CHUNK = 60
-  const chunks = Array.from({ length: Math.ceil(ids.length / CHUNK) }, (_, i) =>
-    ids.slice(i * CHUNK, (i + 1) * CHUNK)
-  )
-  const wrcMaps = await Promise.all(chunks.map(chunk => fetchLineupSabermetrics(chunk, season)))
-  const wrcMap = new Map<number, number>()
-  for (const m of wrcMaps) for (const [k, v] of m) wrcMap.set(k, v)
+  // 3. Bulk wRC+ + PA fetch
+  const wrcPaMap = await fetchWrcPaBulk([...allPlayerIds], season)
 
-  // 4. Average per game side, keyed by gamePk
+  // 4. PA-weighted avg per game side, keyed by gamePk
   const result = new Map<number, GameOffense>()
   for (const { gamePk, awayIds, homeIds } of gameData) {
     result.set(gamePk, {
-      awayWrc: avg(awayIds, wrcMap),
-      homeWrc: avg(homeIds, wrcMap),
+      awayWrc:   weightedWrcAvg(awayIds, wrcPaMap),
+      homeWrc:   weightedWrcAvg(homeIds, wrcPaMap),
       awayCount: awayIds.length,
       homeCount: homeIds.length,
     })
   }
   return result
-}
-
-function avg(ids: number[], wrcMap: Map<number, number>): number | null {
-  const vals = ids.map(id => wrcMap.get(id)).filter((v): v is number => v != null)
-  if (!vals.length) return null
-  return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length)
 }

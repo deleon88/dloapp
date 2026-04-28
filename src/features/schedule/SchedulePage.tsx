@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
-import { fetchTeamOpsPlus } from '@/api/mlb/endpoints/teamStats'
 import { fetchBullpenFipPlusMap } from '@/api/mlb/endpoints/bullpenStats'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
-import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
+import { fetchLineupOffenseMap, fetchWrcPaBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
+import { getGoToLineup } from '@/api/mlb/endpoints/goToLineupStore'
 import { type StatPeriod } from '@/utils/period'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import GameCard from './GameCard'
@@ -55,19 +55,13 @@ export default function SchedulePage() {
     queryKey: ['pitch-hands', pitcherIds],
     queryFn: () => getPitchHands(pitcherIds),
     enabled: pitcherIds.length > 0,
-    staleTime: 86_400_000, // 24h — handedness never changes
+    staleTime: 86_400_000,
   })
 
   const pitcherStatsQuery = useQuery({
     queryKey: ['pitcher-stats', ...pitcherIds],
     queryFn: () => fetchPitcherStats(pitcherIds),
     enabled: pitcherIds.length > 0,
-    staleTime: 3_600_000,
-  })
-
-  const opsPlusQuery = useQuery({
-    queryKey: ['ops-plus'],
-    queryFn: () => fetchTeamOpsPlus(),
     staleTime: 3_600_000,
   })
 
@@ -79,13 +73,12 @@ export default function SchedulePage() {
     staleTime: 3_600_000,
   })
 
-  // Fetch lineups for all games — lineups can be posted before game starts
+  // Confirmed lineup wRC+ from boxscores (PA-weighted)
   const allGamesForLineup = games.map(g => ({
     gamePk: g.gamePk,
     awayTeamId: g.teams.away.team.id,
     homeTeamId: g.teams.home.team.id,
   }))
-
   const allGamePks = allGamesForLineup.map(g => g.gamePk).join(',')
 
   const lineupOffenseQuery = useQuery({
@@ -95,11 +88,52 @@ export default function SchedulePage() {
     staleTime: 120_000,
   })
 
-  const opsPlus = opsPlusQuery.data
-  const bullpenFipPlus = bullpenFipQuery.data
-  const pitchHands = pitchHandQuery.data
-  const lineupOffense = lineupOffenseQuery.data
-  const pitcherStatsMap = pitcherStatsQuery.data
+  // Projected lineup wRC+ — read player IDs from go-to store for unconfirmed teams,
+  // pick vsRHP vs vsLHP based on opposing pitcher hand.
+  const projectedInfo = useMemo(() => {
+    const lineupOffense = lineupOffenseQuery.data
+    const pitchHands    = pitchHandQuery.data
+
+    // Map<teamId, number[]> of player IDs to fetch wRC+/PA for
+    const teamPlayerIds = new Map<number, number[]>()
+
+    for (const game of games) {
+      const gp = game as GameWithPitcher
+      const gl = lineupOffense?.get(game.gamePk)
+
+      if (!gl || gl.awayCount === 0) {
+        const homePitcherId = gp.teams.home.probablePitcher?.id
+        const hand = homePitcherId ? pitchHands?.get(homePitcherId) : undefined
+        const stored = getGoToLineup(game.teams.away.team.id)
+        const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
+        if (lineup?.length) teamPlayerIds.set(game.teams.away.team.id, lineup.map(p => p.id))
+      }
+
+      if (!gl || gl.homeCount === 0) {
+        const awayPitcherId = gp.teams.away.probablePitcher?.id
+        const hand = awayPitcherId ? pitchHands?.get(awayPitcherId) : undefined
+        const stored = getGoToLineup(game.teams.home.team.id)
+        const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
+        if (lineup?.length) teamPlayerIds.set(game.teams.home.team.id, lineup.map(p => p.id))
+      }
+    }
+
+    const allIds = [...new Set([...teamPlayerIds.values()].flat())]
+    return { teamPlayerIds, allIds }
+  }, [games, lineupOffenseQuery.data, pitchHandQuery.data])
+
+  const projectedWrcQuery = useQuery({
+    queryKey: ['projected-sched-wrc', projectedInfo.allIds.slice().sort().join(',')],
+    queryFn: () => fetchWrcPaBulk(projectedInfo.allIds),
+    enabled: projectedInfo.allIds.length > 0,
+    staleTime: 3_600_000,
+  })
+
+  const lineupOffense    = lineupOffenseQuery.data
+  const bullpenFipPlus   = bullpenFipQuery.data
+  const pitchHands       = pitchHandQuery.data
+  const pitcherStatsMap  = pitcherStatsQuery.data
+  const projectedWrcData = projectedWrcQuery.data
 
   const t = useT()
 
@@ -137,27 +171,44 @@ export default function SchedulePage() {
       <div className={styles.list}>
         {games.map((game, i) => {
           const gp = game as GameWithPitcher
-          const awayId = gp.teams.away.probablePitcher?.id
-          const homeId = gp.teams.home.probablePitcher?.id
-          const awayFipMinus = awayId ? pitcherStatsMap?.get(awayId)?.seasonStats?.fipMinus : undefined
-          const homeFipMinus = homeId ? pitcherStatsMap?.get(homeId)?.seasonStats?.fipMinus : undefined
-          const gameLineup = lineupOffense?.get(game.gamePk)
+          const awayPitcherId = gp.teams.away.probablePitcher?.id
+          const homePitcherId = gp.teams.home.probablePitcher?.id
+          const awayFipMinus = awayPitcherId ? pitcherStatsMap?.get(awayPitcherId)?.seasonStats?.fipMinus : undefined
+          const homeFipMinus = homePitcherId ? pitcherStatsMap?.get(homePitcherId)?.seasonStats?.fipMinus : undefined
+
+          const gameLineup   = lineupOffense?.get(game.gamePk)
           const awayConfirmed = (gameLineup?.awayCount ?? 0) > 0
           const homeConfirmed = (gameLineup?.homeCount ?? 0) > 0
-          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : awayId ? 'projected' as const : undefined
-          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : homeId ? 'projected' as const : undefined
+          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : awayPitcherId ? 'projected' as const : undefined
+          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : homePitcherId ? 'projected' as const : undefined
+
+          // Offense: confirmed → use PA-weighted wRC+ from boxscore
+          //          projected → use PA-weighted wRC+ from go-to lineup store
+          //          neither   → omit (no value shown)
+          const awayWrc: number | undefined = awayConfirmed
+            ? (gameLineup!.awayWrc ?? undefined)
+            : projectedWrcData
+              ? (weightedWrcAvg(projectedInfo.teamPlayerIds.get(game.teams.away.team.id) ?? [], projectedWrcData) ?? undefined)
+              : undefined
+
+          const homeWrc: number | undefined = homeConfirmed
+            ? (gameLineup!.homeWrc ?? undefined)
+            : projectedWrcData
+              ? (weightedWrcAvg(projectedInfo.teamPlayerIds.get(game.teams.home.team.id) ?? [], projectedWrcData) ?? undefined)
+              : undefined
+
           return (
             <GameCard
               key={game.gamePk}
               game={game}
-              awayOpsPlus={awayConfirmed ? (gameLineup!.awayWrc ?? undefined) : opsPlus?.get(game.teams.away.team.id)?.opsPlus}
-              homeOpsPlus={homeConfirmed ? (gameLineup!.homeWrc ?? undefined) : opsPlus?.get(game.teams.home.team.id)?.opsPlus}
+              awayWrc={awayWrc}
+              homeWrc={homeWrc}
               awayFipPlus={awayFipMinus ? fipPlus(awayFipMinus) : undefined}
               homeFipPlus={homeFipMinus ? fipPlus(homeFipMinus) : undefined}
               awayBullpenFipPlus={bullpenFipPlus?.get(game.teams.away.team.id)}
               homeBullpenFipPlus={bullpenFipPlus?.get(game.teams.home.team.id)}
-              awayPitchHand={awayId ? pitchHands?.get(awayId) : undefined}
-              homePitchHand={homeId ? pitchHands?.get(homeId) : undefined}
+              awayPitchHand={awayPitcherId ? pitchHands?.get(awayPitcherId) : undefined}
+              homePitchHand={homePitcherId ? pitchHands?.get(homePitcherId) : undefined}
               awayLineupStatus={awayLineupStatus}
               homeLineupStatus={homeLineupStatus}
               animDelay={i * 60}
@@ -173,7 +224,6 @@ export default function SchedulePage() {
   )
 }
 
-// Hydrated type for probablePitcher with id
 interface GameWithPitcher {
   teams: {
     away: { probablePitcher?: { id: number; fullName: string } }

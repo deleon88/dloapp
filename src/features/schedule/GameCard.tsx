@@ -11,8 +11,8 @@ export type LineupStatus = 'confirmed' | 'projected'
 
 interface Props {
   game: ScheduledGame;
-  awayOpsPlus?: number;
-  homeOpsPlus?: number;
+  awayWrc?: number;
+  homeWrc?: number;
   awayFipPlus?: number;
   homeFipPlus?: number;
   awayBullpenFipPlus?: number;
@@ -26,8 +26,8 @@ interface Props {
 
 export default function GameCard({
   game,
-  awayOpsPlus,
-  homeOpsPlus,
+  awayWrc,
+  homeWrc,
   awayFipPlus,
   homeFipPlus,
   awayBullpenFipPlus,
@@ -92,8 +92,8 @@ export default function GameCard({
       <StatBars
         awayFipPlus={awayFipPlus}
         homeFipPlus={homeFipPlus}
-        awayOpsPlus={awayOpsPlus}
-        homeOpsPlus={homeOpsPlus}
+        awayWrc={awayWrc}
+        homeWrc={homeWrc}
         awayBullpenFipPlus={awayBullpenFipPlus}
         homeBullpenFipPlus={homeBullpenFipPlus}
         acBar={acBar}
@@ -165,40 +165,46 @@ function LineupStatusBadge({ status }: { status: LineupStatus }) {
   )
 }
 
-function StatBars({ awayFipPlus, homeFipPlus, awayOpsPlus, homeOpsPlus, awayBullpenFipPlus, homeBullpenFipPlus, acBar, hcBar }: {
+function StatBars({ awayFipPlus, homeFipPlus, awayWrc, homeWrc, awayBullpenFipPlus, homeBullpenFipPlus, acBar, hcBar }: {
   awayFipPlus?: number; homeFipPlus?: number
-  awayOpsPlus?: number; homeOpsPlus?: number
+  awayWrc?: number; homeWrc?: number
   awayBullpenFipPlus?: number; homeBullpenFipPlus?: number
   acBar: string; hcBar: string
 }) {
   const t = useT()
   return (
     <div className={styles.statbars}>
-      <StatBar label={t('starters')} aVal={awayFipPlus ?? null} hVal={homeFipPlus ?? null} ac={acBar} hc={hcBar} />
-      <StatBar label={t('offense')} aVal={awayOpsPlus ?? null} hVal={homeOpsPlus ?? null} ac={acBar} hc={hcBar} />
-      <StatBar label={t('bullpen')} aVal={awayBullpenFipPlus ?? null} hVal={homeBullpenFipPlus ?? null} ac={acBar} hc={hcBar} />
+      <StatBar label={t('starters')} aVal={awayFipPlus ?? null} hVal={homeFipPlus ?? null} ac={acBar} hc={hcBar} barFn={fipBarWidth} />
+      <StatBar label={t('offense')} aVal={awayWrc ?? null} hVal={homeWrc ?? null} ac={acBar} hc={hcBar} barFn={wrcBarWidth} />
+      <StatBar label={t('bullpen')} aVal={awayBullpenFipPlus ?? null} hVal={homeBullpenFipPlus ?? null} ac={acBar} hc={hcBar} barFn={fipBarWidth} />
     </div>
   )
 }
 
-function StatBar({ label, aVal, hVal, ac, hc }: {
-  label: string; aVal: number | null; hVal: number | null; ac: string; hc: string;
+function StatBar({ label, aVal, hVal, ac, hc, barFn }: {
+  label: string; aVal: number | null; hVal: number | null; ac: string; hc: string
+  barFn: (v: number) => number
 }) {
   return (
     <MatchupBar
       label={label}
       aDisplay={aVal != null ? String(aVal) : "—"}
       hDisplay={hVal != null ? String(hVal) : "—"}
-      aw={aVal != null ? opsBarWidth(aVal) : 0}
-      hw={hVal != null ? opsBarWidth(hVal) : 0}
+      aw={aVal != null ? barFn(aVal) : 0}
+      hw={hVal != null ? barFn(hVal) : 0}
       ac={ac}
       hc={hc}
     />
   );
 }
 
-/** OPS+ scale 70–130, value 100 → 50% (avg line). */
-function opsBarWidth(v: number): number {
+/** wRC+ scale 40–160; value 100 → 50% (matches LineupComparison). */
+function wrcBarWidth(v: number): number {
+  return ((Math.max(40, Math.min(160, v)) - 40) / 120) * 100;
+}
+
+/** FIP+/OPS+ scale 70–130; value 100 → 50%. */
+function fipBarWidth(v: number): number {
   return ((Math.max(70, Math.min(130, v)) - 70) / 60) * 100;
 }
 
