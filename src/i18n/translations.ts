@@ -2,7 +2,6 @@ export const translations = {
   en: {
     // Nav
     games: 'Games',
-    standings: 'Standings',
     // Lineup comparison
     comparison: 'Comparison',
     fieldingAlignment: 'Fielding Alignment',
@@ -26,11 +25,6 @@ export const translations = {
     couldNotLoadGame: 'Failed to load game.',
     loading: 'Loading…',
     back: '← Back',
-    // Standings
-    loadingStandings: 'Loading standings…',
-    failedStandings: 'Failed to load standings.',
-    team: 'Team',
-    streak: 'Strk',
     // GameCard stat bars
     starters: 'Starters',
     offense: 'Offense',
@@ -50,7 +44,6 @@ export const translations = {
   es: {
     // Nav
     games: 'Juegos',
-    standings: 'Tabla',
     // Lineup comparison
     comparison: 'Comparación',
     fieldingAlignment: 'Alineación',
@@ -74,11 +67,6 @@ export const translations = {
     couldNotLoadGame: 'No se pudo cargar el juego.',
     loading: 'Cargando…',
     back: '← Atrás',
-    // Standings
-    loadingStandings: 'Cargando tabla…',
-    failedStandings: 'Error al cargar la tabla.',
-    team: 'Equipo',
-    streak: 'Rac.',
     // GameCard stat bars
     starters: 'Abridores',
     offense: 'Ofensiva',

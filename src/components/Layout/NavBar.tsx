@@ -49,14 +49,6 @@ export default function NavBar() {
                   {t('games')}
                 </NavLink>
               </li>
-              <li>
-                <NavLink
-                  to="/standings"
-                  className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
-                >
-                  {t('standings')}
-                </NavLink>
-              </li>
             </>
           )}
         </ul>
