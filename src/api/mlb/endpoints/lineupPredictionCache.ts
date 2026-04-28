@@ -1,7 +1,7 @@
 import { format } from 'date-fns'
 import type { TeamPredictions } from './predictedLineup'
 
-const PREFIX = 'dlp-lineup-pred'
+const PREFIX = 'dlp-lineup-pred-v5'
 const TTL_MS = 20 * 60 * 60 * 1000  // 20 hours — covers same calendar day safely
 
 interface CacheEntry {

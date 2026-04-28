@@ -29,9 +29,9 @@ interface Props {
   homeProbablePitcher?: ProbablePitcher
 }
 
-const WRC_MIN = 60
+const WRC_MIN = 40
 const WRC_MAX = 160
-const AVG_MARK_PCT = ((100 - WRC_MIN) / (WRC_MAX - WRC_MIN)) * 100 // 40%
+const AVG_MARK_PCT = ((100 - WRC_MIN) / (WRC_MAX - WRC_MIN)) * 100 // 50%
 
 function barPct(wrc: number): number {
   return Math.max(0, Math.min(100, ((wrc - WRC_MIN) / (WRC_MAX - WRC_MIN)) * 100))
@@ -435,11 +435,11 @@ function SingleView({ lineup, color, wrcMap }: {
         )
       })}
 
-      {/* Totals row — bar spans from HR col to end so avgMark is near center */}
+      {/* Totals row — bar spans from HR col to end (desktop) / full width (mobile) */}
       <div className={styles.singleTotalsRow}>
         <span />
         <span />
-        <span className={styles.singleTotalsLabel}>LINEUP</span>
+        <span className={styles.singleTotalsLabel}>Wtd. wRC+ Avg</span>
         <div className={`${styles.singleBarWrap} ${styles.singleTotalsBarWrap}`}>
           <div className={styles.barTrack}>
             <div className={styles.barFillLeft} style={{ '--bar-width': `${avgPct}%`, background: color } as CSSProperties} />

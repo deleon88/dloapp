@@ -3,23 +3,24 @@ import { mlbApi } from '../client'
 import type { LineupSlot } from './boxscore'
 import { getPitchHands } from './people'
 import type { DepthChartData } from './teamRoster'
+import { getGoToLineup, setGoToLineup, goToIdSet } from './goToLineupStore'
 
-// ── Public types ────────────────────────────────────────────────────────────────
+// ── Public types ─────────────────────────────────────────────────────────────
 
 export interface PlayerPrediction extends LineupSlot {
-  battingSpot: number   // 1-based
-  confidence: number    // 0-100; how consistently they bat here vs this hand
-  recentStarts: number  // starts across all recent games (~21 days)
-  status: 'active' | 'returning'  // 'returning' = few recent starts, likely just back
+  battingSpot: number
+  confidence: number    // 0-100; frequency of appearing in this spot vs this hand
+  recentStarts: number  // total starts in the ~21-day window
+  status: 'active' | 'returning'
 }
 
 export interface TeamPredictions {
   vsRHP: PlayerPrediction[] | null
   vsLHP: PlayerPrediction[] | null
-  generatedAt: number  // Date.now()
+  generatedAt: number
 }
 
-// ── Internal types ───────────────────────────────────────────────────────────────
+// ── Internal types ────────────────────────────────────────────────────────────
 
 interface RecentGame {
   gamePk: number
@@ -37,20 +38,17 @@ interface PredictionBoxscore {
   opposingStarterId: number | null
 }
 
-type GameResult = RecentGame & { bs: PredictionBoxscore | null }
+type GameResult  = RecentGame & { bs: PredictionBoxscore | null }
+type PlayerEntry = PredictionBoxscore['players'][string]
 
-interface RecentStats {
-  avg: string
-  obp: string
-  pa: number
-}
+interface RecentStats { avg: string; obp: string; pa: number }
 
-// ── Fetchers (same logic, unchanged) ────────────────────────────────────────────
+// ── Fetchers ──────────────────────────────────────────────────────────────────
 
 async function getRecentCompletedGames(teamId: number): Promise<RecentGame[]> {
   const season = new Date().getFullYear()
   const today = new Date()
-  const endDate = format(subDays(today, 1), 'yyyy-MM-dd')
+  const endDate   = format(subDays(today, 1),  'yyyy-MM-dd')
   const startDate = format(subDays(today, 21), 'yyyy-MM-dd')
 
   const data = await mlbApi.get<{
@@ -62,12 +60,7 @@ async function getRecentCompletedGames(teamId: number): Promise<RecentGame[]> {
       }>
     }>
   }>('/schedule', {
-    teamId,
-    sportId: 1,
-    gameType: 'R',
-    season,
-    startDate,
-    endDate,
+    teamId, sportId: 1, gameType: 'R', season, startDate, endDate,
     fields: 'dates,games,gamePk,status,abstractGameState,teams,away,home,team,id',
   })
 
@@ -96,7 +89,7 @@ async function getPredictionBoxscore(
       teams: Record<string, {
         battingOrder: number[]
         pitchers: number[]
-        players: Record<string, PredictionBoxscore['players'][string]>
+        players: Record<string, PlayerEntry>
       }>
     }>(`/game/${gamePk}/boxscore`, {
       fields: [
@@ -109,8 +102,8 @@ async function getPredictionBoxscore(
       ].join(','),
     })
     return {
-      battingOrder: data.teams[ourSide]?.battingOrder ?? [],
-      players:      data.teams[ourSide]?.players      ?? {},
+      battingOrder:      data.teams[ourSide]?.battingOrder ?? [],
+      players:           data.teams[ourSide]?.players      ?? {},
       opposingStarterId: data.teams[oppSide]?.pitchers?.[0] ?? null,
     }
   } catch {
@@ -118,11 +111,7 @@ async function getPredictionBoxscore(
   }
 }
 
-/** Season stats keyed by player ID from recent boxscores; first occurrence = freshest. */
-function buildStatsPool(
-  results: GameResult[],
-  limit = 10,
-): Map<number, RecentStats> {
+function buildStatsPool(results: GameResult[], limit = 10): Map<number, RecentStats> {
   const pool = new Map<number, RecentStats>()
   for (const { bs } of results.slice(0, limit)) {
     if (!bs) continue
@@ -136,14 +125,112 @@ function buildStatsPool(
   return pool
 }
 
-// ── Prediction builder ───────────────────────────────────────────────────────────
+// ── Frequency maps ────────────────────────────────────────────────────────────
+
+const NON_STARTER_POS = new Set(['PH', 'PR'])
+
+interface SpotMaps {
+  freq:    Array<Map<number, number>>  // bySpot[spot] → playerId → appearances
+  spotPos: Array<Map<number, string>>  // bySpot[spot] → playerId → position THEY PLAYED at that spot
+}
 
 /**
- * Builds a predicted lineup using frequency analysis across recent games that
- * had an opposing pitcher of the given `hand`.
+ * Builds per-spot frequency and per-spot position maps from a game list,
+ * excluding PH/PR entries.
  *
- * Falls back to all recent games when fewer than 2 hand-specific games exist.
- * IL players are replaced with the top active depth-chart player at their position.
+ * `spotPos` captures what defensive position each player actually played
+ * when batting at each slot — critical for platoon players like Rojas who
+ * bats 9th as 2B (not SS), or Tucker who bats 4th as RF vs RHP but 5th as LF.
+ */
+function buildSpotMaps(games: GameResult[]): SpotMaps {
+  const freq:    Array<Map<number, number>> = Array.from({ length: 9 }, () => new Map())
+  const spotPos: Array<Map<number, string>> = Array.from({ length: 9 }, () => new Map())
+
+  for (const { bs } of games) {
+    if (!bs?.battingOrder.length) continue
+    for (let i = 0; i < Math.min(9, bs.battingOrder.length); i++) {
+      const pid = bs.battingOrder[i]
+      const pos = bs.players[`ID${pid}`]?.position.abbreviation ?? ''
+      if (NON_STARTER_POS.has(pos)) continue
+      freq[i].set(pid, (freq[i].get(pid) ?? 0) + 1)
+      if (!spotPos[i].has(pid)) spotPos[i].set(pid, pos)  // most recent game wins
+    }
+  }
+  return { freq, spotPos }
+}
+
+// ── Resolver ──────────────────────────────────────────────────────────────────
+
+/**
+ * Finds the best available player for batting `spot`.
+ *
+ * Critically uses the position the candidate PLAYED AT THIS SPOT (not their
+ * "global" position) for the usedPositions check. This means Rojas appearing
+ * at spot 9 as 2B won't conflict with Kim at spot 8 as SS, even though Rojas's
+ * global position is SS.
+ *
+ * Search order: hand-filtered maps → all-games maps.
+ */
+function resolveStarter(
+  spot: number,
+  hand: SpotMaps,
+  all: SpotMaps,
+  playerData: Map<number, PlayerEntry>,
+  ilSet: Set<number>,
+  usedIds: Set<number>,
+  usedPositions: Set<string>,
+  goToIds: Set<number>,
+): { id: number; p: PlayerEntry; pos: string } | null {
+  for (const maps of [hand, all]) {
+    const freqMap = maps.freq[spot]
+    if (!freqMap?.size) continue
+    // Primary sort: descending frequency. Tiebreaker: go-to lineup wins.
+    const sorted = [...freqMap.entries()].sort((a, b) => {
+      const diff = b[1] - a[1]
+      if (diff !== 0) return diff
+      return (goToIds.has(b[0]) ? 1 : 0) - (goToIds.has(a[0]) ? 1 : 0)
+    })
+    for (const [cid] of sorted) {
+      if (usedIds.has(cid) || ilSet.has(cid)) continue
+      const cp = playerData.get(cid)
+      if (!cp) continue
+      // Position at this spot (e.g. 2B for Rojas at spot 9) overrides global position (SS)
+      const cpos = maps.spotPos[spot]?.get(cid) ?? all.spotPos[spot]?.get(cid) ?? cp.position.abbreviation
+      if (cpos === 'DH' || !usedPositions.has(cpos)) {
+        return { id: cid, p: cp, pos: cpos }
+      }
+    }
+  }
+  return null
+}
+
+/** Most common defensive position seen at `spot` — used to drive depth-chart fallback. */
+function expectedPosition(spot: number, all: SpotMaps): string {
+  const freqMap = all.freq[spot]
+  if (!freqMap?.size) return 'DH'
+  const posFreq = new Map<string, number>()
+  for (const [pid, count] of freqMap) {
+    const pos = all.spotPos[spot]?.get(pid) ?? ''
+    if (pos && !NON_STARTER_POS.has(pos)) posFreq.set(pos, (posFreq.get(pos) ?? 0) + count)
+  }
+  if (!posFreq.size) return 'DH'
+  return [...posFreq.entries()].sort((a, b) => b[1] - a[1])[0][0]
+}
+
+// ── Main builder ──────────────────────────────────────────────────────────────
+
+/**
+ * Builds a predicted lineup for one pitcher hand using per-spot frequency.
+ *
+ * Platoon splits (Kim at SS vs RHP, Rojas at SS vs LHP) surface naturally
+ * because each hand-specific bySpot independently tallies who appeared there.
+ *
+ * Position uniqueness is enforced using each player's SPOT-SPECIFIC position
+ * (not their global position), so Rojas batting 9th as 2B never conflicts
+ * with Kim batting 8th as SS even though both are listed as SS globally.
+ *
+ * Depth-chart fallback covers the case where the frequency maps have no
+ * usable candidate (starter just got injured, no backup history at that slot).
  */
 function buildLineupForHand(
   results: GameResult[],
@@ -151,6 +238,7 @@ function buildLineupForHand(
   hand: 'R' | 'L',
   depthData: DepthChartData,
   statsPool: Map<number, RecentStats>,
+  goToLineup: PlayerPrediction[] | null | undefined,
 ): PlayerPrediction[] | null {
   const { ilSet, depthByPosition } = depthData
 
@@ -158,25 +246,16 @@ function buildLineupForHand(
     const id = r.bs?.opposingStarterId
     return id != null && handMap.get(id) === hand
   })
-
-  // Use hand-specific games if we have enough; otherwise fall back to all recent games
   const source = matching.length >= 2 ? matching : results
+  const valid  = source.filter(r => (r.bs?.battingOrder.length ?? 0) > 0)
+  if (!valid.length) return null
 
-  // bySpot[0..8] = Map<playerId, count>
-  const bySpot: Array<Map<number, number>> = Array.from({ length: 9 }, () => new Map())
-  for (const { bs } of source) {
-    if (!bs?.battingOrder.length) continue
-    for (let i = 0; i < Math.min(9, bs.battingOrder.length); i++) {
-      const pid = bs.battingOrder[i]
-      bySpot[i].set(pid, (bySpot[i].get(pid) ?? 0) + 1)
-    }
-  }
+  const handMaps = buildSpotMaps(valid)
+  const allMaps  = buildSpotMaps(results.filter(r => (r.bs?.battingOrder.length ?? 0) > 0))
+  const totalGames = valid.length
 
-  const gamesUsed = source.filter(r => r.bs?.battingOrder.length).length
-  if (gamesUsed === 0) return null
-
-  // Consolidate all player data across all results for name/position lookup
-  const playerData = new Map<number, PredictionBoxscore['players'][string]>()
+  // Consolidated player data for name/stats fallback
+  const playerData = new Map<number, PlayerEntry>()
   for (const { bs } of results) {
     if (!bs) continue
     for (const [key, p] of Object.entries(bs.players)) {
@@ -185,70 +264,66 @@ function buildLineupForHand(
     }
   }
 
-  const usedIds = new Set<number>()
+  const usedIds       = new Set<number>()
+  const usedPositions = new Set<string>()
   const lineup: PlayerPrediction[] = []
+  const goToIds       = goToIdSet(goToLineup)
 
   for (let spot = 0; spot < 9; spot++) {
-    const freqMap = bySpot[spot]
+    const resolved = resolveStarter(spot, handMaps, allMaps, playerData, ilSet, usedIds, usedPositions, goToIds)
 
-    // Most frequent non-IL, non-duplicate player in this spot
-    const candidates = [...freqMap.entries()].sort((a, b) => b[1] - a[1])
-    let chosen: { id: number; count: number } | null = null
-    for (const [id, count] of candidates) {
-      if (!usedIds.has(id) && !ilSet.has(id)) { chosen = { id, count }; break }
-    }
+    if (resolved) {
+      const { id, p, pos } = resolved
+      usedIds.add(id)
+      usedPositions.add(pos)
 
-    if (chosen) {
-      const p = playerData.get(chosen.id)
-      if (!p) continue
-
-      usedIds.add(chosen.id)
-      const stats = statsPool.get(chosen.id)
-      const confidence = Math.min(100, Math.round((chosen.count / gamesUsed) * 100))
-      const recentStarts = results.filter(r => r.bs?.battingOrder.includes(chosen!.id)).length
+      const spotCount    = handMaps.freq[spot]?.get(id) ?? 0
+      const confidence   = Math.min(100, Math.round((spotCount / totalGames) * 100))
+      const recentStarts = results.filter(r => r.bs?.battingOrder.includes(id)).length
+      const stats        = statsPool.get(id)
 
       lineup.push({
-        id: chosen.id,
-        fullName: p.person.fullName,
-        pos: p.position.abbreviation,
-        avg: stats?.avg ?? p.seasonStats.batting.avg ?? '.---',
-        obp: stats?.obp ?? p.seasonStats.batting.obp ?? '.---',
-        pa: stats?.pa ?? p.seasonStats.batting.plateAppearances ?? null,
+        id,
+        fullName:     p.person.fullName,
+        pos,                          // position they played at THIS spot, not global
+        avg:          stats?.avg ?? p.seasonStats.batting.avg ?? '.---',
+        obp:          stats?.obp ?? p.seasonStats.batting.obp ?? '.---',
+        pa:           stats?.pa  ?? p.seasonStats.batting.plateAppearances ?? null,
         jerseyNumber: p.jerseyNumber ?? '',
-        battingSpot: spot + 1,
+        battingSpot:  spot + 1,
         confidence,
         recentStarts,
-        status: recentStarts < 3 ? 'returning' : 'active',
+        status:       recentStarts < 3 ? 'returning' : 'active',
       })
     } else {
-      // IL replacement: find the most common position for this batting spot,
-      // then use the first available active depth-chart player
-      let posAbbr = 'DH'
-      for (const [id] of candidates) {
-        const p = playerData.get(id)
-        if (p) { posAbbr = p.position.abbreviation; break }
-      }
+      // Frequency maps exhausted — depth-chart fallback using the most common
+      // defensive position historically seen at this batting slot
+      const pos       = expectedPosition(spot, allMaps)
+      const depthList = depthByPosition.get(pos) ?? depthByPosition.get('DH') ?? []
+      const repl      = depthList.find(d =>
+        !ilSet.has(d.id) &&
+        !usedIds.has(d.id) &&
+        (d.posAbbr === 'DH' || !usedPositions.has(d.posAbbr))
+      )
+      if (!repl) continue
 
-      const depthList = depthByPosition.get(posAbbr) ?? depthByPosition.get('DH') ?? []
-      const replacement = depthList.find(d => !ilSet.has(d.id) && !usedIds.has(d.id))
-      if (!replacement) continue
-
-      usedIds.add(replacement.id)
-      const stats = statsPool.get(replacement.id)
-      const recentStarts = results.filter(r => r.bs?.battingOrder.includes(replacement.id)).length
+      usedIds.add(repl.id)
+      usedPositions.add(repl.posAbbr)
+      const stats     = statsPool.get(repl.id)
+      const repStarts = results.filter(r => r.bs?.battingOrder.includes(repl.id)).length
 
       lineup.push({
-        id: replacement.id,
-        fullName: replacement.fullName,
-        pos: replacement.posAbbr,
-        avg: stats?.avg ?? '.---',
-        obp: stats?.obp ?? '.---',
-        pa: stats?.pa ?? null,
-        jerseyNumber: replacement.jerseyNumber,
-        battingSpot: spot + 1,
-        confidence: recentStarts >= 3 ? 50 : 35,
-        recentStarts,
-        status: 'returning',
+        id:           repl.id,
+        fullName:     repl.fullName,
+        pos:          repl.posAbbr,
+        avg:          stats?.avg ?? '.---',
+        obp:          stats?.obp ?? '.---',
+        pa:           stats?.pa  ?? null,
+        jerseyNumber: repl.jerseyNumber,
+        battingSpot:  spot + 1,
+        confidence:   repStarts >= 3 ? 50 : 35,
+        recentStarts: repStarts,
+        status:       'returning',
       })
     }
   }
@@ -256,14 +331,8 @@ function buildLineupForHand(
   return lineup.length > 0 ? lineup : null
 }
 
-// ── Public API ───────────────────────────────────────────────────────────────────
+// ── Public API ────────────────────────────────────────────────────────────────
 
-/**
- * Fetches and returns predicted lineups for both vsRHP and vsLHP in a single
- * shot, reusing the same recent-game data for both predictions.
- *
- * Results are computed fresh each call; cache them at the call site.
- */
 export async function fetchTeamPredictions(
   teamId: number,
   depthData: DepthChartData,
@@ -285,26 +354,30 @@ export async function fetchTeamPredictions(
       results.map(r => r.bs?.opposingStarterId).filter((id): id is number => id != null)
     ),
   ]
-  const handMap = await getPitchHands(starterIds)
+  const handMap   = await getPitchHands(starterIds)
   const statsPool = buildStatsPool(results)
 
-  return {
-    vsRHP: buildLineupForHand(results, handMap, 'R', depthData, statsPool),
-    vsLHP: buildLineupForHand(results, handMap, 'L', depthData, statsPool),
+  // Load previous go-to lineup as tiebreaker; on first run this is null (pure frequency).
+  // After each run we persist the result, so the lineup stabilises over time.
+  const prevGoTo = getGoToLineup(teamId)
+
+  const preds: TeamPredictions = {
+    vsRHP: buildLineupForHand(results, handMap, 'R', depthData, statsPool, prevGoTo?.vsRHP),
+    vsLHP: buildLineupForHand(results, handMap, 'L', depthData, statsPool, prevGoTo?.vsLHP),
     generatedAt: Date.now(),
   }
+
+  setGoToLineup(teamId, preds)
+  return preds
 }
 
-/**
- * Single-hand convenience wrapper used by legacy call sites.
- * Defaults to vsRHP when `opposingPitcherHand` is unknown or absent.
- */
+/** Single-hand wrapper; defaults to vsRHP when hand is unknown. */
 export async function fetchPredictedLineup(
   teamId: number,
   opposingPitcherHand: string | undefined,
   depthData: DepthChartData,
 ): Promise<LineupSlot[] | null> {
   const preds = await fetchTeamPredictions(teamId, depthData)
-  const hand = opposingPitcherHand === 'L' ? preds.vsLHP : preds.vsRHP
+  const hand  = opposingPitcherHand === 'L' ? preds.vsLHP : preds.vsRHP
   return hand ?? preds.vsRHP ?? null
 }
