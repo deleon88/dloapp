@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import type { PlayerStats } from '@/api/mlb/endpoints/lineupStats'
 import { getTeamMeta, getBarColor } from '@/data/teams'
@@ -251,7 +251,7 @@ function ComparisonView({
             {/* Away bar (right-anchored) + wRC+ value */}
             <div className={styles.barBlockAway}>
               <div className={styles.barTrack}>
-                <div className={styles.barFillRight} style={{ width: `${aPct}%`, background: awayColor }} />
+                <div className={styles.barFillRight} style={{ '--bar-width': `${aPct}%`, background: awayColor } as CSSProperties} />
                 <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
               </div>
               <span className={styles.wrc}>{aWrc ?? '—'}</span>
@@ -261,7 +261,7 @@ function ComparisonView({
             <div className={styles.barBlockHome}>
               <span className={styles.wrc}>{hWrc ?? '—'}</span>
               <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ width: `${hPct}%`, background: homeColor }} />
+                <div className={styles.barFillLeft} style={{ '--bar-width': `${hPct}%`, background: homeColor } as CSSProperties} />
                 <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
               </div>
             </div>
@@ -289,14 +289,14 @@ function ComparisonView({
 
         <div className={styles.totalsBarAway}>
           <div className={styles.barTrack} style={{ width: '100%', flex: 'none' }}>
-            <div className={styles.barFillRight} style={{ width: `${aAvg != null ? barPct(aAvg) : 0}%`, background: awayColor }} />
+            <div className={styles.barFillRight} style={{ '--bar-width': `${aAvg != null ? barPct(aAvg) : 0}%`, background: awayColor } as CSSProperties} />
             <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
           </div>
         </div>
 
         <div className={styles.totalsBarHome}>
           <div className={styles.barTrack} style={{ width: '100%', flex: 'none' }}>
-            <div className={styles.barFillLeft} style={{ width: `${hAvg != null ? barPct(hAvg) : 0}%`, background: homeColor }} />
+            <div className={styles.barFillLeft} style={{ '--bar-width': `${hAvg != null ? barPct(hAvg) : 0}%`, background: homeColor } as CSSProperties} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
         </div>
@@ -380,7 +380,7 @@ function SingleView({ lineup, color, wrcMap }: {
             <span className={styles.statVal}>{ps?.woba ?? '—'}</span>
             <div className={styles.singleBarWrap}>
               <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ width: `${pct}%`, background: color }} />
+                <div className={styles.barFillLeft} style={{ '--bar-width': `${pct}%`, background: color } as CSSProperties} />
                 <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
               </div>
               <span className={styles.wrc}>{wrc ?? '—'}</span>
@@ -393,7 +393,7 @@ function SingleView({ lineup, color, wrcMap }: {
       <div className={styles.totalsRow}>
         <div className={styles.singleTotalsBar}>
           <div className={styles.barTrack} style={{ flex: 1 }}>
-            <div className={styles.barFillLeft} style={{ width: `${avgPct}%`, background: color }} />
+            <div className={styles.barFillLeft} style={{ '--bar-width': `${avgPct}%`, background: color } as CSSProperties} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
           <span className={styles.wrc}>{avg ?? '—'}</span>

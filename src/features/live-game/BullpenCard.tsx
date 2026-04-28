@@ -1,3 +1,4 @@
+import { type CSSProperties } from 'react'
 import type { BullpenStats, BullpenPitcher } from '@/api/mlb/endpoints/bullpenStats'
 import type { ViewMode } from './LineupComparison'
 import CardBgLayers from './CardBgLayers'
@@ -183,7 +184,7 @@ function ComparisonView({
 
             <div className={styles.barBlockAway}>
               <div className={styles.barTrack}>
-                <div className={styles.barFillRight} style={{ width: `${aPct}%`, background: awayColor }} />
+                <div className={styles.barFillRight} style={{ '--bar-width': `${aPct}%`, background: awayColor } as CSSProperties} />
                 <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
               </div>
               <span className={styles.fipVal}>
@@ -196,7 +197,7 @@ function ComparisonView({
                 {hFip ?? '—'}
               </span>
               <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ width: `${hPct}%`, background: homeColor }} />
+                <div className={styles.barFillLeft} style={{ '--bar-width': `${hPct}%`, background: homeColor } as CSSProperties} />
                 <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
               </div>
             </div>
@@ -221,13 +222,13 @@ function ComparisonView({
         <div className={styles.totalsAway}>
           <span className={styles.totalsVal}>{aFipPlus ?? '—'}</span>
           <div className={styles.barTrack}>
-            <div className={styles.barFillRight} style={{ width: `${aAggPct}%`, background: awayColor }} />
+            <div className={styles.barFillRight} style={{ '--bar-width': `${aAggPct}%`, background: awayColor } as CSSProperties} />
             <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
           </div>
         </div>
         <div className={styles.totalsHome}>
           <div className={styles.barTrack}>
-            <div className={styles.barFillLeft} style={{ width: `${hAggPct}%`, background: homeColor }} />
+            <div className={styles.barFillLeft} style={{ '--bar-width': `${hAggPct}%`, background: homeColor } as CSSProperties} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
           <span className={styles.totalsVal}>{hFipPlus ?? '—'}</span>
@@ -271,7 +272,7 @@ function SingleView({ stats, color }: { stats?: BullpenStats; color: string }) {
             <span className={styles.statVal}>{p.ip ?? '—'}</span>
             <div className={styles.singleBarWrap}>
               <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ width: `${pct}%`, background: color }} />
+                <div className={styles.barFillLeft} style={{ '--bar-width': `${pct}%`, background: color } as CSSProperties} />
                 <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
               </div>
               <span className={styles.fipVal}>{fp ?? '—'}</span>

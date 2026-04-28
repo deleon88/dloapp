@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import styles from './MatchupBar.module.css'
 
 interface Props {
@@ -18,14 +19,14 @@ export default function MatchupBar({ label, aDisplay, hDisplay, aw, hw, ac, hc }
       <div className={styles.sideAway}>
         <span className={styles.val}>{aDisplay}</span>
         <div className={styles.trackHalf}>
-          <div className={styles.fillAway} style={{ width: `${aw}%`, background: ac }} />
+          <div className={styles.fillAway} style={{ '--bar-width': `${aw}%`, background: ac } as CSSProperties} />
           <div className={styles.avgLine} />
         </div>
       </div>
       <span className={styles.label}>{label}</span>
       <div className={styles.sideHome}>
         <div className={styles.trackHalf}>
-          <div className={styles.fillHome} style={{ width: `${hw}%`, background: hc }} />
+          <div className={styles.fillHome} style={{ '--bar-width': `${hw}%`, background: hc } as CSSProperties} />
           <div className={styles.avgLine} />
         </div>
         <span className={styles.val}>{hDisplay}</span>

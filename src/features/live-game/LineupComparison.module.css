@@ -293,7 +293,7 @@
   height: 100%;
   border-radius: 3px;
   opacity: 0.85;
-  transition: width 0.4s ease;
+  animation: barFill 0.55s ease-out forwards;
 }
 
 /* Home/single fill: anchored to left */
@@ -304,7 +304,12 @@
   height: 100%;
   border-radius: 3px;
   opacity: 0.85;
-  transition: width 0.4s ease;
+  animation: barFill 0.55s ease-out forwards;
+}
+
+@keyframes barFill {
+  from { width: 0 }
+  to   { width: var(--bar-width) }
 }
 
 /* League-average marker line at wRC+ 100 */
