@@ -1,0 +1,22 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/mlb-v11/:path*",
+      "destination": "https://statsapi.mlb.com/api/v1.1/:path*"
+    },
+    {
+      "source": "/api/mlb/:path*",
+      "destination": "https://statsapi.mlb.com/api/v1/:path*"
+    },
+    {
+      "source": "/api/lmb/:path*",
+      "destination": "https://lmb.com.mx/juegos/api/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
