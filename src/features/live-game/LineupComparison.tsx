@@ -5,11 +5,14 @@ import { getTeamMeta, getBarColor } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import CardBgLayers from './CardBgLayers'
 import FieldingAlignmentModal from './FieldingAlignmentModal'
+import VsPitcherModal from './VsPitcherModal'
 import styles from './LineupComparison.module.css'
 
 export type ViewMode = 'away' | 'comparison' | 'home'
 
 export type LineupStatus = 'confirmed' | 'projected'
+
+interface ProbablePitcher { id: number; fullName: string }
 
 interface Props {
   awayTeamId: number
@@ -22,6 +25,8 @@ interface Props {
   onModeChange: (m: ViewMode) => void
   awayLineupStatus?: LineupStatus
   homeLineupStatus?: LineupStatus
+  awayProbablePitcher?: ProbablePitcher
+  homeProbablePitcher?: ProbablePitcher
 }
 
 const WRC_MIN = 60
@@ -86,6 +91,7 @@ export default function LineupComparison({
   wrcMap, isLoading,
   mode, onModeChange,
   awayLineupStatus, homeLineupStatus,
+  awayProbablePitcher, homeProbablePitcher,
 }: Props) {
   const awayMeta = getTeamMeta(awayTeamId)
   const homeMeta = getTeamMeta(homeTeamId)
@@ -101,6 +107,7 @@ export default function LineupComparison({
   const pillColor = mode === 'away' ? awayColor : mode === 'home' ? homeColor : null
 
   const [fieldingOpen, setFieldingOpen] = useState(false)
+  const [vsPitcherOpen, setVsPitcherOpen] = useState(false)
   const t = useT()
 
   const activeSide    = mode as 'away' | 'home'
@@ -108,6 +115,8 @@ export default function LineupComparison({
   const activeColor   = mode === 'home' ? homeBarColor : awayBarColor
   const activeBgColor = mode === 'home' ? homeColor    : awayColor
   const activeLabel   = mode === 'home' ? homeLabel    : awayLabel
+  const activeStatus  = mode === 'home' ? homeLineupStatus : awayLineupStatus
+  const opposingPitcher = mode === 'home' ? awayProbablePitcher : homeProbablePitcher
 
   return (
     <div className={styles.card}>
@@ -136,21 +145,29 @@ export default function LineupComparison({
         >{homeLabel}</button>
       </div>
 
-      {/* ── Lineup status row ── */}
-      {(awayLineupStatus || homeLineupStatus) && (
+      {/* ── Status / action row ── */}
+      {mode !== 'comparison' && (
         <div className={styles.statusRow}>
-          <StatusBadge status={mode !== 'home' ? awayLineupStatus : undefined} align="left" />
-          {mode !== 'comparison' ? (
-            <button
-              className={styles.fieldingChip}
-              onClick={() => setFieldingOpen(true)}
-            >
-              {t('fieldingAlignment')}
-            </button>
-          ) : (
-            <span />
-          )}
-          <StatusBadge status={mode !== 'away' ? homeLineupStatus : undefined} align="right" />
+          {mode === 'away'
+            ? <button className={`${styles.fieldingChip} ${styles.statusRowLeft}`} onClick={() => setFieldingOpen(true)}>{t('fieldingAlignment')}</button>
+            : opposingPitcher
+              ? <button className={`${styles.rivalChip} ${styles.statusRowLeft}`} onClick={() => setVsPitcherOpen(true)}>VS {lastName(opposingPitcher.fullName)}</button>
+              : null
+          }
+          <StatusBadge status={activeStatus} />
+          {mode === 'home'
+            ? <button className={`${styles.fieldingChip} ${styles.statusRowRight}`} onClick={() => setFieldingOpen(true)}>{t('fieldingAlignment')}</button>
+            : opposingPitcher
+              ? <button className={`${styles.rivalChip} ${styles.statusRowRight}`} onClick={() => setVsPitcherOpen(true)}>VS {lastName(opposingPitcher.fullName)}</button>
+              : null
+          }
+        </div>
+      )}
+      {mode === 'comparison' && (awayLineupStatus || homeLineupStatus) && (
+        <div className={styles.statusRow}>
+          <StatusBadge status={awayLineupStatus} align="left" />
+          <span />
+          <StatusBadge status={homeLineupStatus} align="right" />
         </div>
       )}
 
@@ -184,6 +201,20 @@ export default function LineupComparison({
         side={activeSide}
         label={activeLabel}
       />
+
+      {/* ── vs Pitcher inline overlay ── */}
+      {opposingPitcher && (
+        <VsPitcherModal
+          isOpen={vsPitcherOpen}
+          onClose={() => setVsPitcherOpen(false)}
+          lineup={activeLineup}
+          pitcherId={opposingPitcher.id}
+          pitcherName={opposingPitcher.fullName}
+          bgColor={activeBgColor}
+          side={activeSide}
+          teamLabel={activeLabel}
+        />
+      )}
     </div>
   )
 }
@@ -351,12 +382,24 @@ function SingleView({ lineup, color, wrcMap }: {
   const avg    = lineupAvgWrc(lineup, wrcMap)
   const avgPct = avg != null ? barPct(avg) : 0
 
+  let totalHr = 0, totalRbi = 0, totalSb = 0
+  for (const p of lineup) {
+    const ps = wrcMap.get(p.id)
+    if (!ps) continue
+    totalHr  += ps.hr  ?? 0
+    totalRbi += ps.rbi ?? 0
+    totalSb  += ps.sb  ?? 0
+  }
+
   return (
     <div>
       <div className={styles.singleHeader}>
         <span>#</span>
         <span />
         <span>{t('batter')}</span>
+        <span style={{ textAlign: 'center' }}>HR</span>
+        <span style={{ textAlign: 'center' }}>RBI</span>
+        <span style={{ textAlign: 'center' }}>SB</span>
         <span style={{ textAlign: 'center' }}>OPS</span>
         <span style={{ textAlign: 'center' }}>wOBA</span>
         <div className={styles.singleBarWrap}><div style={{ flex: 1 }} /><span style={{ minWidth: '22px', textAlign: 'center' }}>wRC+</span></div>
@@ -376,6 +419,9 @@ function SingleView({ lineup, color, wrcMap }: {
                 ? <><span className={styles.name}>{fmtName(p.fullName)}</span><span className={styles.meta}>{p.pos}</span></>
                 : <span className={styles.empty}>—</span>}
             </div>
+            <span className={styles.statVal}>{ps?.hr  ?? '—'}</span>
+            <span className={styles.statVal}>{ps?.rbi ?? '—'}</span>
+            <span className={styles.statVal}>{ps?.sb  ?? '—'}</span>
             <span className={styles.statVal}>{ps?.ops ?? '—'}</span>
             <span className={styles.statVal}>{ps?.woba ?? '—'}</span>
             <div className={styles.singleBarWrap}>
@@ -389,32 +435,31 @@ function SingleView({ lineup, color, wrcMap }: {
         )
       })}
 
-      {/* Totals row: matches comparison height — aggregate bar + 6 blank chips */}
-      <div className={styles.totalsRow}>
-        <div className={styles.singleTotalsBar}>
-          <div className={styles.barTrack} style={{ flex: 1 }}>
+      {/* Totals row — bar spans from HR col to end so avgMark is near center */}
+      <div className={styles.singleTotalsRow}>
+        <span />
+        <span />
+        <span className={styles.singleTotalsLabel}>LINEUP</span>
+        <div className={`${styles.singleBarWrap} ${styles.singleTotalsBarWrap}`}>
+          <div className={styles.barTrack}>
             <div className={styles.barFillLeft} style={{ '--bar-width': `${avgPct}%`, background: color } as CSSProperties} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
           <span className={styles.wrc}>{avg ?? '—'}</span>
-        </div>
-        <div className={styles.singleTotalsChips}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={styles.totalsChip} />
-          ))}
         </div>
       </div>
     </div>
   )
 }
 
-function StatusBadge({ status, align }: { status?: LineupStatus; align: 'left' | 'right' }) {
+function StatusBadge({ status, align = 'center' }: { status?: LineupStatus; align?: 'left' | 'center' | 'right' }) {
   const t = useT()
-  if (!status) return <span />
+  if (!status) return null
+  const justifySelf = align === 'left' ? 'start' : align === 'right' ? 'end' : 'center'
   return (
     <span
       className={status === 'confirmed' ? styles.statusConfirmed : styles.statusProjected}
-      style={{ justifySelf: align === 'left' ? 'start' : 'end' }}
+      style={{ justifySelf }}
     >
       {status === 'confirmed' ? t('confirmed') : t('projected')}
     </span>

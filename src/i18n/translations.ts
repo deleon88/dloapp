@@ -11,12 +11,12 @@ export const translations = {
     projected: 'Projected',
     // Schedule
     mlbGames: 'MLB Games',
-    statsLineups: 'Stats & Lineups · DloPicks',
-    mlbData: 'Data from MLB Stats API · DloPicks',
+    statsLineups: 'Dlo',
+    mlbData: 'Data from MLB Stats API · Dlo',
     // LMB
     lmbGames: 'LMB Games',
-    lmbSub: 'Liga Mexicana de Béisbol · DloPicks',
-    lmbData: 'LMB Data · DloPicks',
+    lmbSub: 'Liga Mexicana de Béisbol · Dlo',
+    lmbData: 'LMB Data · Dlo',
     // State messages
     couldNotLoadGames: 'Could not load games',
     checkConnection: 'Check your connection and try again',
@@ -53,12 +53,12 @@ export const translations = {
     projected: 'Proyectado',
     // Schedule
     mlbGames: 'Juegos MLB',
-    statsLineups: 'Stats & Lineups · DloPicks',
-    mlbData: 'Datos de MLB Stats API · DloPicks',
+    statsLineups: 'Stats & Lineups · Dlo',
+    mlbData: 'Datos de MLB Stats API · Dlo',
     // LMB
     lmbGames: 'Juegos LMB',
-    lmbSub: 'Liga Mexicana de Béisbol · DloPicks',
-    lmbData: 'Datos de LMB · DloPicks',
+    lmbSub: 'Liga Mexicana de Béisbol · Dlo',
+    lmbData: 'Datos de LMB · Dlo',
     // State messages
     couldNotLoadGames: 'No se pudieron cargar los juegos',
     checkConnection: 'Verifica tu conexión e intenta de nuevo',

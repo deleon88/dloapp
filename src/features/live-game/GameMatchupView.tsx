@@ -153,6 +153,8 @@ export default function GameMatchupView({
         onModeChange={setMode}
         awayLineupStatus={awayLineupStatus}
         homeLineupStatus={homeLineupStatus}
+        awayProbablePitcher={teams.away.probablePitcher}
+        homeProbablePitcher={teams.home.probablePitcher}
       />
 
       {/* ── Bullpen ────────────────────────────────────────── */}

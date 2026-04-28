@@ -108,7 +108,6 @@ export default function SchedulePage() {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.heading}>{t('mlbGames')}</h1>
-          <p className={styles.sub}>{t('statsLineups')}</p>
         </div>
         <PeriodSelect value={_period} onChange={_setPeriod} />
       </div>

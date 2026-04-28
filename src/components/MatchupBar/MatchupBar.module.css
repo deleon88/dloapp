@@ -45,7 +45,8 @@
   text-transform: uppercase;
   text-align: center;
   white-space: nowrap;
-  min-width: 38px;
+  width: 62px;
+  flex-shrink: 0;
 }
 
 .trackHalf {

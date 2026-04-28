@@ -148,7 +148,7 @@
 /* ── Single view ─────────────────────────────────────────────── */
 .singleHeader {
   display: grid;
-  grid-template-columns: 12px 28px 1fr 34px 34px 110px;
+  grid-template-columns: 12px 28px 1fr 28px 28px 28px 34px 34px 110px;
   align-items: center;
   gap: 6px;
   padding: 5px 10px 2px;
@@ -162,7 +162,7 @@
 
 .singleRow {
   display: grid;
-  grid-template-columns: 12px 28px 1fr 34px 34px 110px;
+  grid-template-columns: 12px 28px 1fr 28px 28px 28px 34px 34px 110px;
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
@@ -362,21 +362,32 @@
 .totalsChipAway { grid-column: 1 / 5; grid-row: 2; }
 .totalsChipHome { grid-column: 5 / 9; grid-row: 2; }
 
-/* single-view totals: full-width bar + 6 blank chips */
-.singleTotalsBar {
-  grid-column: 1 / 9;
-  grid-row: 1;
-  display: flex;
+/* single-view totals row: same grid as singleRow so bars align */
+.singleTotalsRow {
+  display: grid;
+  grid-template-columns: 12px 28px 1fr 28px 28px 28px 34px 34px 110px;
   align-items: center;
   gap: 6px;
+  padding: 5px 10px 7px;
+  border-top: 1px solid var(--border-active);
 }
 
-.singleTotalsChips {
-  grid-column: 1 / 9;
-  grid-row: 2;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 3px;
+.singleTotalsBarWrap {
+  grid-column: 4 / -1;
+}
+
+.singleTotalsLabel {
+  font-size: 0.50rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.singleTotalsVal {
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .totalsChipGrid {
@@ -432,10 +443,23 @@
 
 /* ── Lineup status row ───────────────────────────────────────── */
 .statusRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 4px 10px 0px 10px;
+  position: relative;
+  min-height: 32px;
+}
+
+.statusRowLeft {
+  position: absolute;
+  left: 10px;
+}
+
+.statusRowRight {
+  position: absolute;
+  right: 10px;
 }
 
 .fieldingChip {
@@ -460,6 +484,31 @@
 
 .fieldingChip:hover {
   background: rgba(255, 255, 255, 0.09);
+  border-color: var(--border-active);
+  color: var(--text-secondary);
+}
+
+.rivalChip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.57rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.rivalChip:hover {
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-active);
   color: var(--text-secondary);
 }
@@ -525,20 +574,25 @@
   .totalsWrcHome  { grid-column: 6 / 7; }
   .totalsChipAway { grid-column: 1 / 4; }
   .totalsChipHome { grid-column: 4 / 7; }
-  .singleTotalsBar   { grid-column: 1 / 7; }
-  .singleTotalsChips { grid-column: 1 / 7; }
-
   /* Photos smaller only inside comparison rows */
   .compRow .photoWrap { width: 24px; height: 24px; }
 
-  /* Single-view rows: hide slot column, photo-first to match comp alignment */
+  /* Single-view rows: hide slot#, hide OPS+wOBA cols */
   .singleRow .slotNum { display: none; }
   .singleHeader > span:first-child { display: none; }
   .singleHeader,
-  .singleRow {
-    grid-template-columns: 24px 1fr 30px 30px 90px;
+  .singleRow,
+  .singleTotalsRow {
+    grid-template-columns: 24px 1fr 26px 26px 26px 90px;
     padding: 4px 8px;
     gap: 4px;
   }
+  /* hide OPS and wOBA on mobile (cols 7 & 8) */
+  .singleHeader > :nth-child(7),
+  .singleHeader > :nth-child(8),
+  .singleRow > :nth-child(7),
+  .singleRow > :nth-child(8),
+  .singleTotalsRow > :nth-child(7),
+  .singleTotalsRow > :nth-child(8) { display: none; }
   .singleRow .photoWrap { width: 24px; height: 24px; }
 }

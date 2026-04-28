@@ -22,7 +22,7 @@ export default function NavBar() {
     <header className={styles.header}>
       <nav className={styles.nav}>
         <NavLink to="/" className={styles.brand}>
-          <span className={styles.brandName}>DloPicks</span>
+          <span className={styles.brandName}>Dloapp</span>
         </NavLink>
 
         <div className={styles.leagueToggle}>

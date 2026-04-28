@@ -13,6 +13,6 @@ export const useLangStore = create<LangStore>()(
       lang: 'en',
       setLang: (lang) => set({ lang }),
     }),
-    { name: 'dlopicks-lang' },
+    { name: 'dloapp-lang' },
   ),
 )

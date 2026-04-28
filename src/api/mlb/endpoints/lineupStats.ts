@@ -6,6 +6,9 @@ export interface PlayerStats {
   woba: string | null   // formatted as ".348"
   xwoba: string | null  // formatted as ".443"
   pa: number | null
+  hr: number | null
+  rbi: number | null
+  sb: number | null
 }
 
 interface StatSplit {
@@ -49,16 +52,19 @@ export async function fetchLineupStats(
     const find = (type: string) =>
       person.stats?.find(s => s.type?.displayName === type)?.splits?.[0]?.stat ?? {}
 
-    const s  = find('season')           as { ops?: string; plateAppearances?: number }
-    const sb = find('sabermetrics')     as { wRcPlus?: number; woba?: number }
+    const s  = find('season')             as { ops?: string; plateAppearances?: number; homeRuns?: number; rbi?: number; stolenBases?: number }
+    const sb = find('sabermetrics')       as { wRcPlus?: number; woba?: number }
     const xs = find('expectedStatistics') as { woba?: string }
 
     map.set(person.id, {
       wRcPlus: sb.wRcPlus != null ? Math.round(sb.wRcPlus) : null,
       ops:     s.ops ?? null,
       woba:    sb.woba != null ? fmtRate(sb.woba) : null,
-      xwoba:   xs.woba ?? null,   // API already returns ".443" format
+      xwoba:   xs.woba ?? null,
       pa:      s.plateAppearances ?? null,
+      hr:      s.homeRuns    ?? null,
+      rbi:     s.rbi         ?? null,
+      sb:      s.stolenBases ?? null,
     })
   }
 
