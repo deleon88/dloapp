@@ -371,6 +371,16 @@ export async function fetchTeamPredictions(
   return preds
 }
 
+/**
+ * Like fetchTeamPredictions but requires no depth chart data.
+ * The depth-chart fallback may leave some batting slots empty, but the
+ * frequency-based slots are complete — sufficient for schedule-page offense bars.
+ */
+export async function fetchTeamPredictionsNoDepth(teamId: number): Promise<TeamPredictions> {
+  const emptyDepth: DepthChartData = { ilSet: new Set(), depthByPosition: new Map() }
+  return fetchTeamPredictions(teamId, emptyDepth)
+}
+
 /** Single-hand wrapper; defaults to vsRHP when hand is unknown. */
 export async function fetchPredictedLineup(
   teamId: number,
