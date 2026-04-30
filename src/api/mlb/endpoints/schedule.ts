@@ -53,7 +53,11 @@ export async function getGame(gamePk: number): Promise<ScheduleResponse['dates']
     hydrate: 'probablePitcher,linescore,weather,venue(location),team(league)',
     fields: GAME_FIELDS,
   })
-  return res.dates?.[0]?.games?.[0] ?? null
+  // Rescheduled make-up games appear in two dates[] entries: the original postponed
+  // date first, then the actual new date. Skip Postponed entries to get the real game.
+  const allGames = (res.dates ?? []).flatMap(d => d.games)
+  const activeGame = allGames.find(g => g.status?.detailedState !== 'Postponed')
+  return activeGame ?? allGames[allGames.length - 1] ?? null
 }
 
 export function getTodaySchedule(): Promise<ScheduleResponse> {
