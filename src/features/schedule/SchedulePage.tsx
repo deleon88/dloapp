@@ -206,8 +206,8 @@ export default function SchedulePage() {
           const gameLineup    = lineupOffense?.get(game.gamePk)
           const awayConfirmed = (gameLineup?.awayCount ?? 0) > 0
           const homeConfirmed = (gameLineup?.homeCount ?? 0) > 0
-          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : awayPitcherId ? 'projected' as const : undefined
-          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : homePitcherId ? 'projected' as const : undefined
+          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.away.team.id) ? 'projected' as const : undefined
+          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.home.team.id) ? 'projected' as const : undefined
 
           // Offense: confirmed → PA-weighted wRC+ from boxscore
           //          projected → PA-weighted per-hand wRC+ (vs RHP or vs LHP)

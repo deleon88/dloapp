@@ -43,7 +43,7 @@ export async function fetchDepthChart(
       continue
     }
 
-    if (!BATTER_POS_CODES.has(position.code)) continue
+    if (!BATTER_POS_CODES.has(position.code) || position.abbreviation === 'P') continue
 
     const list = depthByPosition.get(position.abbreviation) ?? []
     list.push({ id: person.id, fullName: person.fullName, jerseyNumber: jerseyNumber ?? '', posAbbr: position.abbreviation })
