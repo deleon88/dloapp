@@ -163,14 +163,6 @@ export default function LineupComparison({
           }
         </div>
       )}
-      {mode === 'comparison' && (awayLineupStatus || homeLineupStatus) && (
-        <div className={styles.statusRowComparison}>
-          <StatusBadge status={awayLineupStatus} align="center" />
-          <span />
-          <StatusBadge status={homeLineupStatus} align="center" />
-        </div>
-      )}
-
       {isLoading && <p className={styles.loading}>{t('loadingLineup')}</p>}
 
       {!isLoading && mode === 'comparison' && (
@@ -180,6 +172,8 @@ export default function LineupComparison({
           awayColor={awayBarColor}
           homeColor={homeBarColor}
           wrcMap={wrcMap}
+          awayLineupStatus={awayLineupStatus}
+          homeLineupStatus={homeLineupStatus}
         />
       )}
 
@@ -225,10 +219,13 @@ function ComparisonView({
   awayLineup, homeLineup,
   awayColor, homeColor,
   wrcMap,
+  awayLineupStatus, homeLineupStatus,
 }: {
   awayLineup: LineupSlot[]; homeLineup: LineupSlot[]
   awayColor: string; homeColor: string
   wrcMap: Map<number, PlayerStats>
+  awayLineupStatus?: LineupStatus
+  homeLineupStatus?: LineupStatus
 }) {
   const slots = Math.max(awayLineup.length, homeLineup.length, 9)
   const aAvg = lineupAvgWrc(awayLineup, wrcMap)
@@ -238,23 +235,21 @@ function ComparisonView({
 
   return (
     <div>
-      {/* Column header: mirrors compRow grid exactly */}
+      {/* Combined status + column header row */}
       <div className={styles.compHeader}>
-        <span /><span /><span />
-        {/* away: [guide track] [wRC+ where value would be] */}
-        <div className={styles.barBlockAway}>
-          <div className={styles.barTrackGuide}>
-            <span className={styles.compBarSide} style={{ left: `${100 - AVG_MARK_PCT}%` }}>100</span>
-          </div>
-          <span className={styles.compBarLabel}>wRC+</span>
+        <span /><span />
+        <div className={styles.playerAway}>
+          <StatusBadge status={awayLineupStatus} align="right" />
         </div>
-        <div className={styles.barBlockHome}>
+        <div className={styles.compBarHeader}>
+          <span className={styles.comp100Away}>100</span>
           <span className={styles.compBarLabel}>wRC+</span>
-          <div className={styles.barTrackGuide}>
-            <span className={styles.compBarSide} style={{ left: `${AVG_MARK_PCT}%` }}>100</span>
-          </div>
+          <span className={styles.comp100Home}>100</span>
         </div>
-        <span /><span /><span />
+        <div className={styles.playerHome}>
+          <StatusBadge status={homeLineupStatus} align="left" />
+        </div>
+        <span /><span />
       </div>
 
       {/* Player rows */}
@@ -416,7 +411,7 @@ function SingleView({ lineup, color, wrcMap }: {
             <PlayerPhoto id={p?.id} name={p?.fullName} />
             <div className={styles.singleInfo}>
               {p
-                ? <><span className={styles.name}>{fmtName(p.fullName)}</span><span className={styles.meta}>{p.pos}</span></>
+                ? <><span className={styles.name}>{fmtName(p.fullName)}</span><span className={styles.meta}>{p.pos}{p.pa != null ? ` · ${p.pa} PA` : ''}</span></>
                 : <span className={styles.empty}>—</span>}
             </div>
             <span className={styles.statVal}>{ps?.hr  ?? '—'}</span>

@@ -75,12 +75,6 @@
   min-height: 26px;
 }
 
-.barTrackGuide {
-  flex: 1;
-  position: relative;
-  height: 12px;
-}
-
 .compBarLabel {
   font-size: 0.54rem;
   font-weight: 700;
@@ -91,15 +85,29 @@
   flex-shrink: 0;
 }
 
-.compBarSide {
+/* Single centered FIP+ header spanning both bar columns */
+.fipHeader {
+  grid-column: 3 / 5;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fip100Away,
+.fip100Home {
   position: absolute;
   top: 50%;
-  transform: translate(-50%, -50%);
   font-size: 0.52rem;
   font-family: var(--font-mono);
   font-weight: 600;
   color: rgba(255, 255, 255, 0.28);
+  transform: translate(-50%, -50%);
 }
+
+/* barTrack = 96px - 26px(fipVal) - 5px(gap) = 65px; center = 32.5px from col edge */
+.fip100Away { left: calc((96px - 26px - 5px) / 2); }
+.fip100Home { left: calc(96px + 6px + 26px + 5px + (96px - 26px - 5px) / 2); }
 
 /* ── Comparison rows ─────────────────────────────────────────── */
 .compRow {
@@ -344,6 +352,86 @@
   text-align: center;
 }
 
+/* ── Recent usage rows ───────────────────────────────────────── */
+
+/* Comparison: mirrors the compRow grid */
+.compUsageRow {
+  display: grid;
+  grid-template-columns: 28px 1fr 96px 96px 1fr 28px;
+  gap: 6px;
+  padding: 2px 10px 8px;
+}
+
+.compUsageAway {
+  grid-column: 1 / 4;
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.compUsageHome {
+  grid-column: 4 / 7;
+  display: flex;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+/* Single: spans full row width */
+.singleUsageRow {
+  display: flex;
+  gap: 4px;
+  padding: 2px 12px 8px;
+}
+
+/* Individual day column (dot + date label) */
+.usageDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  cursor: default;
+}
+
+.usageDot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.usageDotBg {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.usageDotNum {
+  position: relative;
+  z-index: 1;
+  font-size: 0.5rem;
+  font-family: var(--font-mono);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+}
+
+.usageDate {
+  font-size: 0.42rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
 /* ── Narrow screens ──────────────────────────────────────────── */
 @media (max-width: 480px) {
   .compHeader {
@@ -371,4 +459,21 @@
   }
 
   .singleRow .photoWrap { width: 24px; height: 24px; }
+
+  /* barTrack = 76px - 26px - 5px = 45px; center = 22.5px */
+  .fip100Away { left: calc((76px - 26px - 5px) / 2); }
+  .fip100Home { left: calc(76px + 4px + 26px + 5px + (76px - 26px - 5px) / 2); }
+
+  .compUsageRow {
+    grid-template-columns: 24px 1fr 76px 76px 1fr 24px;
+    gap: 4px;
+    padding: 2px 8px 6px;
+  }
+
+  .singleUsageRow {
+    padding: 2px 8px 6px;
+    gap: 3px;
+  }
+
+  .usageDot { width: 18px; height: 18px; }
 }

@@ -55,18 +55,22 @@ export async function getGameLineup(gamePk: number): Promise<GameLineup> {
 }
 
 function buildLineup(team: RawBoxscoreTeam): LineupSlot[] {
-  return (team.battingOrder ?? []).map((id) => {
-    const p = team.players[`ID${id}`]
-    if (!p) return null
-    const b = p.seasonStats?.batting ?? {}
-    return {
-      id,
-      fullName: p.person.fullName,
-      pos: p.position.abbreviation,
-      avg: b.avg ?? '.---',
-      obp: b.obp ?? '.---',
-      pa: b.plateAppearances ?? null,
-      jerseyNumber: p.jerseyNumber ?? '',
-    }
-  }).filter((s): s is LineupSlot => s !== null)
+  // Iterate team.players (not team.battingOrder) because the battingOrder array only
+  // holds the *current* occupant of each slot — substitutes replace the original starter.
+  // Players with battingOrder "100","200",…,"900" are the starters; "101","201",… are subs.
+  return Object.values(team.players)
+    .filter(p => p.battingOrder != null && parseInt(p.battingOrder) % 100 === 0)
+    .sort((a, b) => parseInt(a.battingOrder!) - parseInt(b.battingOrder!))
+    .map(p => {
+      const b = p.seasonStats?.batting ?? {}
+      return {
+        id: p.person.id,
+        fullName: p.person.fullName,
+        pos: p.position.abbreviation,
+        avg: b.avg ?? '.---',
+        obp: b.obp ?? '.---',
+        pa: b.plateAppearances ?? null,
+        jerseyNumber: p.jerseyNumber ?? '',
+      }
+    })
 }

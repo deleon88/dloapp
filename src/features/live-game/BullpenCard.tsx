@@ -1,5 +1,8 @@
 import { type CSSProperties } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { BullpenStats, BullpenPitcher } from '@/api/mlb/endpoints/bullpenStats'
+import { fetchBullpenUsage } from '@/api/mlb/endpoints/bullpenUsage'
+import type { BullpenUsage, UsageDay } from '@/api/mlb/endpoints/bullpenUsage'
 import type { ViewMode } from './LineupComparison'
 import CardBgLayers from './CardBgLayers'
 import styles from './BullpenCard.module.css'
@@ -45,9 +48,45 @@ function PlayerPhoto({ id }: { id: number }) {
   )
 }
 
+/* ── Usage strip ─────────────────────────────────────────────── */
+
+function UsageDayBox({ day, pitches, color }: { day: UsageDay; pitches: number; color: string }) {
+  const opacity = pitches <= 14 ? 0.35 : pitches <= 24 ? 0.65 : 0.92
+  return (
+    <div className={styles.usageDay}>
+      <div className={styles.usageDot}>
+        {pitches > 0 && (
+          <div className={styles.usageDotBg} style={{ background: color, opacity }} />
+        )}
+        {pitches > 0 && (
+          <span className={styles.usageDotNum}>{pitches}</span>
+        )}
+      </div>
+      <span className={styles.usageDate}>{day.label}</span>
+    </div>
+  )
+}
+
+function UsageDays({ pitcherId, usage, color }: {
+  pitcherId: number
+  usage: BullpenUsage
+  color: string
+}) {
+  const counts = usage.pitchMap.get(pitcherId) ?? Array(usage.days.length).fill(0)
+  return (
+    <>
+      {usage.days.map((day, i) => (
+        <UsageDayBox key={day.date} day={day} pitches={counts[i]} color={color} />
+      ))}
+    </>
+  )
+}
+
 interface Props {
   away?: BullpenStats
   home?: BullpenStats
+  awayTeamId?: number
+  homeTeamId?: number
   awayColor: string
   homeColor: string
   awayBarColor?: string
@@ -61,6 +100,7 @@ interface Props {
 
 export default function BullpenCard({
   away, home,
+  awayTeamId, homeTeamId,
   awayColor, homeColor,
   awayBarColor, homeBarColor,
   awayLabel, homeLabel,
@@ -73,6 +113,19 @@ export default function BullpenCard({
 
   const pillIndex = mode === 'away' ? 0 : mode === 'comparison' ? 1 : 2
   const pillColor  = mode === 'away' ? awayColor : mode === 'home' ? homeColor : null
+
+  const awayUsageQuery = useQuery({
+    queryKey: ['bullpen-usage', awayTeamId],
+    queryFn: () => fetchBullpenUsage(awayTeamId!),
+    enabled: !!awayTeamId,
+    staleTime: 5 * 60_000,
+  })
+  const homeUsageQuery = useQuery({
+    queryKey: ['bullpen-usage', homeTeamId],
+    queryFn: () => fetchBullpenUsage(homeTeamId!),
+    enabled: !!homeTeamId,
+    staleTime: 5 * 60_000,
+  })
 
   return (
     <div className={styles.card}>
@@ -104,18 +157,31 @@ export default function BullpenCard({
 
       {!isLoading && (
         <div className={styles.viewStack}>
-          {/* Hidden comparison always holds the max height */}
           {away && home && (
             <div className={styles.viewSizer} aria-hidden="true">
-              <ComparisonView away={away} home={home} awayColor={ac} homeColor={hc} />
+              <ComparisonView
+                away={away} home={home}
+                awayColor={ac} homeColor={hc}
+                awayUsage={awayUsageQuery.data}
+                homeUsage={homeUsageQuery.data}
+              />
             </div>
           )}
           <div className={styles.viewContent}>
             {away && home && mode === 'comparison' && (
-              <ComparisonView away={away} home={home} awayColor={ac} homeColor={hc} />
+              <ComparisonView
+                away={away} home={home}
+                awayColor={ac} homeColor={hc}
+                awayUsage={awayUsageQuery.data}
+                homeUsage={homeUsageQuery.data}
+              />
             )}
             {mode !== 'comparison' && (
-              <SingleView stats={mode === 'away' ? away : home} color={mode === 'away' ? ac : hc} />
+              <SingleView
+                stats={mode === 'away' ? away : home}
+                color={mode === 'away' ? ac : hc}
+                usage={mode === 'away' ? awayUsageQuery.data : homeUsageQuery.data}
+              />
             )}
           </div>
         </div>
@@ -127,36 +193,31 @@ export default function BullpenCard({
 /* ── Comparison view ─────────────────────────────────────────── */
 
 function ComparisonView({
-  away, home, awayColor, homeColor,
+  away, home, awayColor, homeColor, awayUsage, homeUsage,
 }: {
   away: BullpenStats; home: BullpenStats; awayColor: string; homeColor: string
+  awayUsage?: BullpenUsage; homeUsage?: BullpenUsage
 }) {
   const rows     = Math.max(away.pitchers.length, home.pitchers.length)
   const aFipPlus = away.teamFipMinus != null ? toFipPlus(away.teamFipMinus) : null
   const hFipPlus = home.teamFipMinus != null ? toFipPlus(home.teamFipMinus) : null
   const aAggPct  = fipBarPct(away.teamFipMinus)
   const hAggPct  = fipBarPct(home.teamFipMinus)
+  const showUsage = (awayUsage?.days.length ?? 0) > 0 || (homeUsage?.days.length ?? 0) > 0
 
   return (
     <div>
       {/* Column header */}
       <div className={styles.compHeader}>
-        <span /> {/* photo */}
-        <span /> {/* playerAway */}
-        <div className={styles.barBlockAway}>
-          <div className={styles.barTrackGuide}>
-            <span className={styles.compBarSide} style={{ left: `${100 - AVG_MARK_PCT}%` }}>100</span>
-          </div>
+        <span />
+        <span />
+        <div className={styles.fipHeader}>
+          <span className={styles.fip100Away}>100</span>
           <span className={styles.compBarLabel}>FIP+</span>
+          <span className={styles.fip100Home}>100</span>
         </div>
-        <div className={styles.barBlockHome}>
-          <span className={styles.compBarLabel}>FIP+</span>
-          <div className={styles.barTrackGuide}>
-            <span className={styles.compBarSide} style={{ left: `${AVG_MARK_PCT}%` }}>100</span>
-          </div>
-        </div>
-        <span /> {/* playerHome */}
-        <span /> {/* photo */}
+        <span />
+        <span />
       </div>
 
       {/* Pitcher rows */}
@@ -169,50 +230,63 @@ function ComparisonView({
         const hFip = h?.fipMinus != null ? toFipPlus(h.fipMinus) : null
 
         return (
-          <div key={i} className={styles.compRow}>
-            {a ? <PlayerPhoto id={a.id} /> : <div className={styles.photoWrap} />}
+          <div key={i}>
+            <div className={styles.compRow}>
+              {a ? <PlayerPhoto id={a.id} /> : <div className={styles.photoWrap} />}
 
-            <div className={styles.playerAway}>
-              {a ? (
-                <>
-                  <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(a.name)}</span>
-                  <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(a.name)}</span>
-                  <span className={styles.meta}>{a.hand} · {a.era ?? '—'} ERA</span>
-                </>
-              ) : <span className={styles.empty}>—</span>}
-            </div>
-
-            <div className={styles.barBlockAway}>
-              <div className={styles.barTrack}>
-                <div className={styles.barFillRight} style={{ '--bar-width': `${aPct}%`, background: awayColor } as CSSProperties} />
-                <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
+              <div className={styles.playerAway}>
+                {a ? (
+                  <>
+                    <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(a.name)}</span>
+                    <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(a.name)}</span>
+                    <span className={styles.meta}>{a.hand} · {a.era ?? '—'} ERA</span>
+                  </>
+                ) : <span className={styles.empty}>—</span>}
               </div>
-              <span className={styles.fipVal}>
-                {aFip ?? '—'}
-              </span>
-            </div>
 
-            <div className={styles.barBlockHome}>
-              <span className={styles.fipVal}>
-                {hFip ?? '—'}
-              </span>
-              <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ '--bar-width': `${hPct}%`, background: homeColor } as CSSProperties} />
-                <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
+              <div className={styles.barBlockAway}>
+                <div className={styles.barTrack}>
+                  <div className={styles.barFillRight} style={{ '--bar-width': `${aPct}%`, background: awayColor } as CSSProperties} />
+                  <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
+                </div>
+                <span className={styles.fipVal}>{aFip ?? '—'}</span>
               </div>
+
+              <div className={styles.barBlockHome}>
+                <span className={styles.fipVal}>{hFip ?? '—'}</span>
+                <div className={styles.barTrack}>
+                  <div className={styles.barFillLeft} style={{ '--bar-width': `${hPct}%`, background: homeColor } as CSSProperties} />
+                  <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
+                </div>
+              </div>
+
+              <div className={styles.playerHome}>
+                {h ? (
+                  <>
+                    <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(h.name)}</span>
+                    <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(h.name)}</span>
+                    <span className={styles.meta}>{h.hand} · {h.era ?? '—'} ERA</span>
+                  </>
+                ) : <span className={styles.empty}>—</span>}
+              </div>
+
+              {h ? <PlayerPhoto id={h.id} /> : <div className={styles.photoWrap} />}
             </div>
 
-            <div className={styles.playerHome}>
-              {h ? (
-                <>
-                  <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(h.name)}</span>
-                  <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(h.name)}</span>
-                  <span className={styles.meta}>{h.hand} · {h.era ?? '—'} ERA</span>
-                </>
-              ) : <span className={styles.empty}>—</span>}
-            </div>
-
-            {h ? <PlayerPhoto id={h.id} /> : <div className={styles.photoWrap} />}
+            {showUsage && (
+              <div className={styles.compUsageRow}>
+                <div className={styles.compUsageAway}>
+                  {a && awayUsage && awayUsage.days.length > 0 && (
+                    <UsageDays pitcherId={a.id} usage={awayUsage} color={awayColor} />
+                  )}
+                </div>
+                <div className={styles.compUsageHome}>
+                  {h && homeUsage && homeUsage.days.length > 0 && (
+                    <UsageDays pitcherId={h.id} usage={homeUsage} color={homeColor} />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )
       })}
@@ -240,8 +314,11 @@ function ComparisonView({
 
 /* ── Single view ─────────────────────────────────────────────── */
 
-function SingleView({ stats, color }: { stats?: BullpenStats; color: string }) {
+function SingleView({ stats, color, usage }: {
+  stats?: BullpenStats; color: string; usage?: BullpenUsage
+}) {
   if (!stats) return <p className={styles.stateMsg}>—</p>
+  const showUsage = (usage?.days.length ?? 0) > 0
 
   return (
     <div>
@@ -260,23 +337,29 @@ function SingleView({ stats, color }: { stats?: BullpenStats; color: string }) {
         const fp  = p.fipMinus != null ? toFipPlus(p.fipMinus) : null
         const pct = fipBarPct(p.fipMinus)
         return (
-          <div key={p.id} className={styles.singleRow}>
-            <PlayerPhoto id={p.id} />
-            <div className={styles.singleInfo}>
-              <span className={styles.name}>{fmtName(p.name)}</span>
-              <span className={styles.meta}>
-                {p.hand}
-              </span>
-            </div>
-            <span className={styles.statVal}>{p.era ?? '—'}</span>
-            <span className={styles.statVal}>{p.ip ?? '—'}</span>
-            <div className={styles.singleBarWrap}>
-              <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ '--bar-width': `${pct}%`, background: color } as CSSProperties} />
-                <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
+          <div key={p.id}>
+            <div className={styles.singleRow}>
+              <PlayerPhoto id={p.id} />
+              <div className={styles.singleInfo}>
+                <span className={styles.name}>{fmtName(p.name)}</span>
+                <span className={styles.meta}>{p.hand}</span>
               </div>
-              <span className={styles.fipVal}>{fp ?? '—'}</span>
+              <span className={styles.statVal}>{p.era ?? '—'}</span>
+              <span className={styles.statVal}>{p.ip ?? '—'}</span>
+              <div className={styles.singleBarWrap}>
+                <div className={styles.barTrack}>
+                  <div className={styles.barFillLeft} style={{ '--bar-width': `${pct}%`, background: color } as CSSProperties} />
+                  <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
+                </div>
+                <span className={styles.fipVal}>{fp ?? '—'}</span>
+              </div>
             </div>
+
+            {showUsage && usage && (
+              <div className={styles.singleUsageRow}>
+                <UsageDays pitcherId={p.id} usage={usage} color={color} />
+              </div>
+            )}
           </div>
         )
       })}

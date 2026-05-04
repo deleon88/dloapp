@@ -80,12 +80,31 @@
   min-height: 28px;
 }
 
-/* Invisible guide bar — same flex:1 as barTrack, just for label positioning */
-.barTrackGuide {
-  flex: 1;
+/* Single bar header spanning both bar columns */
+.compBarHeader {
+  grid-column: 4 / 6;
   position: relative;
-  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+/* Positioned at the center of each bar track (mirrors avgMark placement).
+   barTrack = colWidth(96px) - wrc(22px) - gap(5px) = 69px → center = 34.5px from col edge.
+   Away "100": 34.5px from left of col4.
+   Home "100": col4(96) + gridGap(6) + wrc(22) + gap(5) + 34.5 = 163.5px from left. */
+.comp100Away,
+.comp100Home {
+  position: absolute;
+  top: 50%;
+  font-size: 0.52rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.28);
+  transform: translate(-50%, -50%);
+}
+.comp100Away { left: calc((96px - 22px - 5px) / 2); }
+.comp100Home { left: calc(96px + 6px + 22px + 5px + (96px - 22px - 5px) / 2); }
 
 /* sits in flex flow exactly where .wrc would be */
 .compBarLabel {
@@ -96,38 +115,6 @@
   min-width: 22px;
   text-align: center;
   flex-shrink: 0;
-}
-
-.compBarSide {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 0.52rem;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.28);
-}
-
-/* Wrapper that allows the "100" tick label to sit above the track */
-.barTrackWrap {
-  flex: 1;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-/* "100" label floats above the avgMark line, same x-position */
-.avgTickLabel {
-  position: absolute;
-  bottom: calc(100% + 3px);
-  font-size: 0.44rem;
-  font-family: var(--font-mono);
-  color: rgba(255, 255, 255, 0.30);
-  transform: translateX(-50%);
-  line-height: 1;
-  pointer-events: none;
-  white-space: nowrap;
 }
 
 /* ── Comparison row ──────────────────────────────────────────── */
@@ -175,8 +162,9 @@
 
 .singleInfo {
   display: flex;
-  align-items: baseline;
-  gap: 5px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
   min-width: 0;
 }
 
@@ -455,13 +443,6 @@
   min-height: 32px;
 }
 
-/* Comparison mode: 3-col grid matching the segment pill widths */
-.statusRowComparison {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-  padding: 4px 10px 0px 10px;
-}
 
 .statusRowLeft {
   position: absolute;
@@ -563,6 +544,10 @@
   .compHeader > span:last-child {
     display: none;
   }
+  .compBarHeader { grid-column: 3 / 5; }
+  /* barTrack = 76px - 22px - 5px = 49px → center = 24.5px from col edge */
+  .comp100Away { left: calc((76px - 22px - 5px) / 2); }
+  .comp100Home { left: calc(76px + 4px + 22px + 5px + (76px - 22px - 5px) / 2); }
 
   /* Hide slot numbers only in comparison rows */
   .compRow .slotNum { display: none; }
@@ -570,9 +555,6 @@
   /* Name switching */
   .nameDesktop { display: none; }
   .nameMobile { display: block; }
-
-  /* Hide position prefix in meta */
-  .posText { display: none; }
 
   /* Totals row same narrow grid */
   .totalsRow {
