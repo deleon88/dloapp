@@ -230,7 +230,7 @@ function ComparisonView({
         const hFip = h?.fipMinus != null ? toFipPlus(h.fipMinus) : null
 
         return (
-          <div key={i}>
+          <div key={i} className={styles.compGroup}>
             <div className={styles.compRow}>
               {a ? <PlayerPhoto id={a.id} /> : <div className={styles.photoWrap} />}
 

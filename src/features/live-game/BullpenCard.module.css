@@ -119,7 +119,8 @@
   border-top: 1px solid var(--border);
 }
 
-.compRow:hover { background: rgba(255, 255, 255, 0.03); }
+.compGroup:hover .compRow,
+.compGroup:hover .compUsageRow { background: rgba(255, 255, 255, 0.03); }
 
 /* ── Single view ─────────────────────────────────────────────── */
 .singleHeader {
