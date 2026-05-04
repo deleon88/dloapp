@@ -74,7 +74,7 @@ export default function FieldingAlignmentModal({ isOpen, onClose, lineup, color,
       {/* ── Header ── */}
       <div className={styles.header}>
         <span className={styles.teamLabel}>{label}</span>
-        <span className={styles.viewLabel}>Fielding Alignment</span>
+        <span className={styles.viewLabel}>Fielding</span>
         <button className={styles.closeBtn} onClick={() => setClosing(true)} aria-label="Cerrar">
           ✕
         </button>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { PitcherInfo, PitcherSeasonStats } from '@/api/mlb/endpoints/pitcherStats'
 import { fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import type { ViewMode } from './LineupComparison'
@@ -23,6 +23,8 @@ const HEADSHOT = (id: number) =>
 
 export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, mode }: Props) {
   const [view, setView] = useState(0)
+  const touchX = useRef<number | null>(null)
+  const touchY = useRef<number | null>(null)
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
   const as = awayPitcher?.seasonStats
@@ -84,11 +86,27 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
       </div>
 
       {/* ── Stat views (click left = prev, click right = next) ───── */}
-      <div className={styles.barsSection} onClick={(e) => {
-        const left = e.currentTarget.getBoundingClientRect().left
-        const mid  = e.currentTarget.offsetWidth / 2
-        setView(v => e.clientX - left < mid ? (v + 2) % 3 : (v + 1) % 3)
-      }}>
+      <div
+        className={styles.barsSection}
+        onClick={(e) => {
+          const left = e.currentTarget.getBoundingClientRect().left
+          const mid  = e.currentTarget.offsetWidth / 2
+          setView(v => e.clientX - left < mid ? (v + 2) % 3 : (v + 1) % 3)
+        }}
+        onTouchStart={(e) => {
+          touchX.current = e.touches[0].clientX
+          touchY.current = e.touches[0].clientY
+        }}
+        onTouchEnd={(e) => {
+          if (touchX.current === null) return
+          const dx = e.changedTouches[0].clientX - touchX.current
+          const dy = e.changedTouches[0].clientY - (touchY.current ?? 0)
+          touchX.current = null
+          touchY.current = null
+          if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return
+          setView(v => dx < 0 ? (v + 1) % 3 : (v + 2) % 3)
+        }}
+      >
 
         {view === 0 && (
           <div className={styles.bars}>

@@ -107,8 +107,7 @@ export default function VsPitcherModal({
         <span>AB</span>
         <span>HR</span>
         <span>RBI</span>
-        <span>BB</span>
-        <span>K</span>
+        <span>K/BB</span>
         <span>AVG</span>
         <span>SLG</span>
         <span>OBP</span>
@@ -142,8 +141,7 @@ export default function VsPitcherModal({
               <span className={c}>{d(s?.ab)}</span>
               <span className={c}>{d(s?.hr)}</span>
               <span className={c}>{d(s?.rbi)}</span>
-              <span className={c}>{d(s?.bb)}</span>
-              <span className={c}>{d(s?.k)}</span>
+              <span className={c}>{has ? `${s!.k}/${s!.bb}` : '—'}</span>
               <span className={c}>{d(s?.avg)}</span>
               <span className={c}>{d(s?.slg)}</span>
               <span className={c}>{d(s?.obp)}</span>
@@ -162,8 +160,7 @@ export default function VsPitcherModal({
               <span className={styles.stat}>{d(t.ab)}</span>
               <span className={styles.stat}>{d(t.hr)}</span>
               <span className={styles.stat}>{d(t.rbi)}</span>
-              <span className={styles.stat}>{d(t.bb)}</span>
-              <span className={styles.stat}>{d(t.k)}</span>
+              <span className={styles.stat}>{t.k}/{t.bb}</span>
               <span className={styles.stat}>{d(t.avg)}</span>
               <span className={styles.stat}>{d(t.slg)}</span>
               <span className={styles.stat}>{d(t.obp)}</span>

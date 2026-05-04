@@ -81,7 +81,7 @@
 /* ── Column headers ── */
 .colHeader {
   display: grid;
-  grid-template-columns: 26px 1fr 24px 24px 26px 24px 22px 30px 30px 30px 30px;
+  grid-template-columns: 26px 1fr 24px 24px 26px 34px 30px 30px 30px 30px;
   gap: 4px;
   padding: 4px 10px 3px;
   border-bottom: 1px solid var(--border);
@@ -106,7 +106,7 @@
 /* ── Player row ── */
 .row {
   display: grid;
-  grid-template-columns: 26px 1fr 24px 24px 26px 24px 22px 30px 30px 30px 30px;
+  grid-template-columns: 26px 1fr 24px 24px 26px 34px 30px 30px 30px 30px;
   gap: 4px;
   align-items: center;
   padding: 4px 10px;

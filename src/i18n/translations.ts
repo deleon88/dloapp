@@ -4,7 +4,7 @@ export const translations = {
     games: 'Games',
     // Lineup comparison
     comparison: 'Comparison',
-    fieldingAlignment: 'Fielding Alignment',
+    fieldingAlignment: 'Fielding',
     loadingLineup: 'Loading lineup…',
     batter: 'Batter',
     confirmed: 'Confirmed',
