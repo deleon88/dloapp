@@ -214,6 +214,7 @@ function resolveStarter(
   usedPositions: Set<string>,
   goToIds: Set<number>,
   depthPosMap: Map<number, string>,
+  primaryDcPos: Map<number, string>,
 ): { id: number; p: PlayerEntry; pos: string } | null {
   for (const maps of [hand, all]) {
     const freqMap = maps.freq[spot]
@@ -230,9 +231,15 @@ function resolveStarter(
       if (!cp) continue
       const freqPos = maps.spotPos[spot]?.get(cid) ?? all.spotPos[spot]?.get(cid) ?? cp.position.abbreviation
       const dcPos   = depthPosMap.get(cid)
-      // Prefer depth-chart position when freq data differs — keeps players at their
-      // natural slot so their actual position doesn't block another required spot.
-      const cpos = (dcPos && dcPos !== freqPos && !usedPositions.has(dcPos)) ? dcPos : freqPos
+      // Redirect to the depth-chart position only when the player is NOT the
+      // primary (first-listed) DC starter at their freq-mapped position.
+      // This prevents Jarren Duran (primary LF) from being pushed to CF just
+      // because CF is slightly scarcer — while still correcting fill-in cases
+      // like Bichette (backup 3B) being redirected back to his natural SS slot.
+      const isPrimaryAtFreqPos = primaryDcPos.get(cid) === freqPos
+      const cpos = (dcPos && dcPos !== freqPos && !usedPositions.has(dcPos) && !isPrimaryAtFreqPos)
+        ? dcPos
+        : freqPos
       if (!usedPositions.has(cpos)) {
         return { id: cid, p: cp, pos: cpos }
       }
@@ -301,9 +308,19 @@ function buildLineupForHand(
     }
   }
 
-  // Player ID → their scarcest depth-chart position (fewest active alternatives).
-  // A player listed at both SS (1 active) and 3B (4 active) maps to SS so they
-  // don't accidentally block the only coverage for that slot.
+  // primaryDcPos: player → position where they are the FIRST (primary) entry.
+  // Used to guard against redirecting a player away from their actual starting
+  // position just because a secondary position happens to be scarcer.
+  const primaryDcPos = new Map<number, string>()
+  for (const [pos, players] of depthByPosition) {
+    if (players.length > 0 && !primaryDcPos.has(players[0].id)) {
+      primaryDcPos.set(players[0].id, pos)
+    }
+  }
+
+  // depthPosMap: player → their scarcest depth-chart position (fewest active
+  // alternatives). A versatile player listed at SS (1 active) and 3B (4 active)
+  // maps to SS so they don't block the only SS coverage.
   const activePerPos = new Map<string, number>()
   for (const [pos, players] of depthByPosition) activePerPos.set(pos, players.length)
   const depthPosMap = new Map<number, string>()
@@ -323,7 +340,7 @@ function buildLineupForHand(
 
   // ── Pass 1: frequency maps + depth fallback per spot ─────────────
   for (let spot = 0; spot < 9; spot++) {
-    const resolved = resolveStarter(spot, handMaps, allMaps, playerData, ilSet, usedIds, usedPositions, goToIds, depthPosMap)
+    const resolved = resolveStarter(spot, handMaps, allMaps, playerData, ilSet, usedIds, usedPositions, goToIds, depthPosMap, primaryDcPos)
 
     if (resolved) {
       const { id, p, pos } = resolved

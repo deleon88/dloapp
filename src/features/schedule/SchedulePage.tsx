@@ -8,7 +8,7 @@ import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { getGoToLineup } from '@/api/mlb/endpoints/goToLineupStore'
 import { fetchTeamPredictionsNoDepth } from '@/api/mlb/endpoints/predictedLineup'
-import { fetchWrcByHandBulk, weightedWrcByHand } from '@/api/mlb/endpoints/wrcByHand'
+import { fetchWrcPaBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { type StatPeriod } from '@/utils/period'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import GameCard from './GameCard'
@@ -116,7 +116,6 @@ export default function SchedulePage() {
     const pitchHands    = pitchHandQuery.data
 
     const teamPlayerIds = new Map<number, number[]>()
-    const teamHands     = new Map<number, 'R' | 'L' | undefined>()
 
     for (const game of games) {
       const gp = game as GameWithPitcher
@@ -127,10 +126,7 @@ export default function SchedulePage() {
         const hand = homePitcherId ? pitchHands?.get(homePitcherId) as 'R' | 'L' | undefined : undefined
         const stored = getGoToLineup(game.teams.away.team.id)
         const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
-        if (lineup?.length) {
-          teamPlayerIds.set(game.teams.away.team.id, lineup.map(p => p.id))
-          teamHands.set(game.teams.away.team.id, hand)
-        }
+        if (lineup?.length) teamPlayerIds.set(game.teams.away.team.id, lineup.map(p => p.id))
       }
 
       if (!gl || gl.homeCount === 0) {
@@ -138,29 +134,26 @@ export default function SchedulePage() {
         const hand = awayPitcherId ? pitchHands?.get(awayPitcherId) as 'R' | 'L' | undefined : undefined
         const stored = getGoToLineup(game.teams.home.team.id)
         const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
-        if (lineup?.length) {
-          teamPlayerIds.set(game.teams.home.team.id, lineup.map(p => p.id))
-          teamHands.set(game.teams.home.team.id, hand)
-        }
+        if (lineup?.length) teamPlayerIds.set(game.teams.home.team.id, lineup.map(p => p.id))
       }
     }
 
     const allIds = [...new Set([...teamPlayerIds.values()].flat())]
-    return { teamPlayerIds, teamHands, allIds }
+    return { teamPlayerIds, allIds }
   }, [games, lineupOffenseQuery.data, pitchHandQuery.data, schedPredQuery.data])
 
   const projectedWrcQuery = useQuery({
-    queryKey: ['projected-sched-wrc-hand', projectedInfo.allIds.slice().sort().join(',')],
-    queryFn: () => fetchWrcByHandBulk(projectedInfo.allIds),
+    queryKey: ['projected-sched-wrc', projectedInfo.allIds.slice().sort().join(',')],
+    queryFn: () => fetchWrcPaBulk(projectedInfo.allIds),
     enabled: projectedInfo.allIds.length > 0,
     staleTime: 3_600_000,
   })
 
-  const lineupOffense      = lineupOffenseQuery.data
-  const bullpenFipPlus     = bullpenFipQuery.data
-  const pitchHands         = pitchHandQuery.data
-  const pitcherStatsMap    = pitcherStatsQuery.data
-  const projectedWrcByHand = projectedWrcQuery.data
+  const lineupOffense   = lineupOffenseQuery.data
+  const bullpenFipPlus  = bullpenFipQuery.data
+  const pitchHands      = pitchHandQuery.data
+  const pitcherStatsMap = pitcherStatsQuery.data
+  const projectedWrcMap = projectedWrcQuery.data
 
   const t = useT()
 
@@ -209,26 +202,24 @@ export default function SchedulePage() {
           const awayLineupStatus = awayConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.away.team.id) ? 'projected' as const : undefined
           const homeLineupStatus = homeConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.home.team.id) ? 'projected' as const : undefined
 
-          // Offense: confirmed → PA-weighted wRC+ from boxscore
-          //          projected → PA-weighted per-hand wRC+ (vs RHP or vs LHP)
+          // Offense: confirmed → PA-weighted wRC+ from boxscore (API sabermetrics)
+          //          projected → PA-weighted wRC+ from API sabermetrics for projected players
           //          neither   → omit (bar shows —)
           const awayWrc: number | undefined = awayConfirmed
             ? (gameLineup!.awayWrc ?? undefined)
-            : projectedWrcByHand
-              ? (weightedWrcByHand(
+            : projectedWrcMap
+              ? (weightedWrcAvg(
                   projectedInfo.teamPlayerIds.get(game.teams.away.team.id) ?? [],
-                  projectedWrcByHand,
-                  projectedInfo.teamHands.get(game.teams.away.team.id),
+                  projectedWrcMap,
                 ) ?? undefined)
               : undefined
 
           const homeWrc: number | undefined = homeConfirmed
             ? (gameLineup!.homeWrc ?? undefined)
-            : projectedWrcByHand
-              ? (weightedWrcByHand(
+            : projectedWrcMap
+              ? (weightedWrcAvg(
                   projectedInfo.teamPlayerIds.get(game.teams.home.team.id) ?? [],
-                  projectedWrcByHand,
-                  projectedInfo.teamHands.get(game.teams.home.team.id),
+                  projectedWrcMap,
                 ) ?? undefined)
               : undefined
 
