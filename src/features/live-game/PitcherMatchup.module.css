@@ -19,9 +19,37 @@
 
 /* ── Pitcher headers ─────────────────────────────────────────────── */
 .pitcherRow {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   border-bottom: 1px solid var(--border);
+}
+
+.glossaryBtn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.glossaryBtn:hover {
+  background: var(--border);
+  color: var(--text-primary);
 }
 
 .pitcherSide {
@@ -34,7 +62,6 @@
 
 .pitcherSideRight {
   justify-content: flex-end;
-  border-left: 1px solid var(--border);
 }
 
 .headshot {
@@ -82,47 +109,20 @@
   margin-top: 1px;
 }
 
-/* ── Stat views ───────────────────────────────────────────────────── */
-.barsSection {
-  cursor: pointer;
-  user-select: none;
-}
-
+/* ── Bars ─────────────────────────────────────────────────────────── */
 .bars {
-  padding: 10px 14px 4px;
+  padding: 10px 14px 6px;
   display: flex;
   flex-direction: column;
-  min-height: 74px;
 }
 
-/* ── View dots ────────────────────────────────────────────────────── */
-.viewDots {
-  display: flex;
-  justify-content: center;
-  gap: 5px;
-  padding: 6px 0 8px;
-}
-
-.viewDot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  transition: background 0.2s;
-}
-
-.viewDotActive {
-  background: rgba(255,255,255,0.6);
-}
-
-/* ── Chip view ────────────────────────────────────────────────────── */
+/* ── Chip strip (always visible) ─────────────────────────────────── */
 .chipView {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  padding: 10px 14px 4px;
-  min-height: 74px;
-  align-content: center;
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--border);
 }
 
 .chipGroup {
@@ -159,6 +159,59 @@
   font-weight: 600;
   color: #fff;
   font-family: var(--font-mono);
+}
+
+/* ── Glossary content (rendered inside CardModal) ────────────────── */
+.glossaryList {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.glossaryList::-webkit-scrollbar {
+  width: 3px;
+}
+
+.glossaryList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.glossaryList::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 9999px;
+}
+
+.glossaryList::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.22);
+}
+
+.glossaryItem {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 14px;
+}
+
+.glossaryItem:not(:last-child) {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.glossaryStat {
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+  min-width: 42px;
+  flex-shrink: 0;
+}
+
+.glossaryDesc {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
 }
 
 @media (max-width: 480px) {

@@ -1,4 +1,6 @@
 import { mlbApi } from '../client'
+import { fetchComputedWrcBulk } from './wrcComputed'
+export type { PlayerWrcData } from './wrcComputed'
 
 interface RawBoxscoreTeam {
   battingOrder: number[]
@@ -112,20 +114,21 @@ export async function fetchLineupOffenseMap(
   // 2. Collect all unique player IDs across all games
   const gameData: Array<{ gamePk: number; awayIds: number[]; homeIds: number[] }> = []
   const allPlayerIds = new Set<number>()
+  const playerHomeTeamMap = new Map<number, number>()
 
   boxscores.forEach((bs, i) => {
-    const { gamePk } = games[i]
+    const { gamePk, homeTeamId } = games[i]
     const awayIds = bs?.teams.away.battingOrder ?? []
     const homeIds = bs?.teams.home.battingOrder ?? []
     gameData.push({ gamePk, awayIds, homeIds })
-    awayIds.forEach(id => allPlayerIds.add(id))
-    homeIds.forEach(id => allPlayerIds.add(id))
+    awayIds.forEach(id => { allPlayerIds.add(id); playerHomeTeamMap.set(id, homeTeamId) })
+    homeIds.forEach(id => { allPlayerIds.add(id); playerHomeTeamMap.set(id, homeTeamId) })
   })
 
   if (!allPlayerIds.size) return new Map()
 
-  // 3. Bulk wRC+ + PA fetch
-  const wrcPaMap = await fetchWrcPaBulk([...allPlayerIds], season)
+  // 3. Park-adjusted wRC+ via computed formula
+  const wrcPaMap = await fetchWrcComputedBulk([...allPlayerIds], playerHomeTeamMap, undefined, season)
 
   // 4. PA-weighted avg per game side, keyed by gamePk
   const result = new Map<number, GameOffense>()
@@ -138,4 +141,26 @@ export async function fetchLineupOffenseMap(
     })
   }
   return result
+}
+
+/**
+ * Park-adjusted wRC+ drop-in replacement for fetchWrcPaBulk.
+ * Returns the same Map<playerId, PlayerWrcPa> shape so existing callers
+ * (SchedulePage, etc.) need no changes — they get the park-corrected number.
+ *
+ * @param homeTeamMap - playerId → homeTeamId (needed for park factor lookup)
+ * @param batterHandMap - optional playerId → 'L'|'R' (enables handedness park factors on vs splits)
+ */
+export async function fetchWrcComputedBulk(
+  playerIds: number[],
+  homeTeamMap: Map<number, number>,
+  batterHandMap?: Map<number, 'L' | 'R'>,
+  season = new Date().getFullYear(),
+): Promise<Map<number, PlayerWrcPa>> {
+  const computed = await fetchComputedWrcBulk(playerIds, homeTeamMap, batterHandMap, season)
+  const out = new Map<number, PlayerWrcPa>()
+  for (const [id, d] of computed) {
+    if (d.wrcPlus != null) out.set(id, { wrc: d.wrcPlus, pa: d.pa })
+  }
+  return out
 }

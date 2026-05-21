@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getGame } from '@/api/mlb/endpoints/schedule'
+import { fetchTeamRecentResults } from '@/api/mlb/endpoints/teamRecentResults'
 import { fetchPitcherStats } from '@/api/mlb/endpoints/pitcherStats'
 import { getGameLineup } from '@/api/mlb/endpoints/boxscore'
 import { fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
@@ -114,7 +115,16 @@ export default function LiveGamePage() {
   const awayLineupStatus = awayLineup.length === 0 ? undefined : confirmedAway.length > 0 ? 'confirmed' as const : 'projected' as const
   const homeLineupStatus = homeLineup.length === 0 ? undefined : confirmedHome.length > 0 ? 'confirmed' as const : 'projected' as const
 
-  // 5. Bullpen stats for both teams
+  // 5. Recent results (last 5 W/L per team)
+  const gameDate = game?.gameDate ? game.gameDate.split('T')[0] : undefined
+  const recentResultsQuery = useQuery({
+    queryKey: ['recent-results', gameDate],
+    queryFn: () => fetchTeamRecentResults(gameDate!),
+    enabled: !!gameDate,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // 6. Bullpen stats for both teams
   const awayBullpenQuery = useQuery({
     queryKey: ['bullpen', awayTeamId],
     queryFn: () => fetchBullpenStats(awayTeamId!),
@@ -128,7 +138,7 @@ export default function LiveGamePage() {
     staleTime: 3_600_000,
   })
 
-  // 6. wRC+ for each batter
+  // 7. wRC+ for each batter
   const allBatterIds = [
     ...awayLineup.map(p => p.id),
     ...homeLineup.map(p => p.id),
@@ -167,6 +177,8 @@ export default function LiveGamePage() {
           awayBullpen={awayBullpenQuery.data}
           homeBullpen={homeBullpenQuery.data}
           bullpenLoading={awayBullpenQuery.isLoading || homeBullpenQuery.isLoading}
+          awayLast5={awayTeamId ? recentResultsQuery.data?.get(awayTeamId) : undefined}
+          homeLast5={homeTeamId ? recentResultsQuery.data?.get(homeTeamId) : undefined}
         />
       )}
     </div>

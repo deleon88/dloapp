@@ -6,6 +6,7 @@ import PlayerPage from '@/features/player/PlayerPage'
 import TeamPage from '@/features/team/TeamPage'
 import LmbSchedulePage from '@/features/lmb/LmbSchedulePage'
 import LmbGamePage from '@/features/lmb/LmbGamePage'
+import NrfiPage from '@/features/nrfi/NrfiPage'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="game/:gamePk" element={<LiveGamePage />} />
           <Route path="player/:playerId" element={<PlayerPage />} />
           <Route path="team/:teamId" element={<TeamPage />} />
+          <Route path="nrfi" element={<NrfiPage />} />
           <Route path="lmb" element={<LmbSchedulePage />} />
           <Route path="lmb/game/:gameId" element={<LmbGamePage />} />
         </Route>

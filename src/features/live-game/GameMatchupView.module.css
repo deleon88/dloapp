@@ -32,12 +32,18 @@
 
 .teamBlock {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   flex: 1;
 }
 
-.teamBlockRight {
+.teamBlockInner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.teamBlockRight .teamBlockInner {
   justify-content: flex-end;
 }
 
@@ -61,6 +67,36 @@
   color: var(--text-muted);
   font-family: var(--font-mono);
   margin-top: 2px;
+}
+
+.last5 {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+}
+
+.last5Dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.52rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.last5Win {
+  color: #fff;
+}
+
+.last5Loss {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.35);
 }
 
 .gameInfo {
@@ -88,8 +124,9 @@
 
 @media (max-width: 480px) {
   .header { padding: 10px 12px; gap: 4px; }
-  .teamBlock { gap: 7px; }
-  .teamBlock img { width: 32px; height: 32px; }
+  .teamBlock { gap: 5px; }
+  .teamBlockInner { gap: 7px; }
+  .teamBlockInner img { width: 32px; height: 32px; }
   .teamCity { display: none; }
   .nickFull { display: none; }
   .nickAbbr { display: inline; }

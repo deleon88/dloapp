@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
-import CardBgLayers from './CardBgLayers'
+import CardModal from './CardModal'
 import styles from './FieldingAlignmentModal.module.css'
 
 // Player positions in SVG coordinate space (viewBox 0 0 300 340)
@@ -39,48 +38,13 @@ interface Props {
 }
 
 export default function FieldingAlignmentModal({ isOpen, onClose, lineup, color, bgColor, side, label }: Props) {
-  const [closing, setClosing] = useState(false)
-
-  useEffect(() => {
-    if (isOpen) setClosing(false)
-  }, [isOpen])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setClosing(true) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen])
-
-  useEffect(() => {
-    if (!closing) return
-    const t = setTimeout(onClose, 140)
-    return () => clearTimeout(t)
-  }, [closing, onClose])
-
-  if (!isOpen) return null
-
   const positioned = lineup.reduce<Record<string, LineupSlot>>((acc, slot) => {
     if (SVG_POSITIONS[slot.pos]) acc[slot.pos] = slot
     return acc
   }, {})
 
   return (
-    <div
-      className={`${styles.overlay} ${closing ? styles.overlayOut : ''}`}
-    >
-      <CardBgLayers awayColor={bgColor} homeColor={bgColor} mode={side} />
-
-      {/* ── Header ── */}
-      <div className={styles.header}>
-        <span className={styles.teamLabel}>{label}</span>
-        <span className={styles.viewLabel}>Fielding</span>
-        <button className={styles.closeBtn} onClick={() => setClosing(true)} aria-label="Cerrar">
-          ✕
-        </button>
-      </div>
-
-      {/* ── Diamond ── */}
+    <CardModal isOpen={isOpen} onClose={onClose} title={label} subtitle="Fielding" awayColor={bgColor} homeColor={bgColor} mode={side}>
       <div className={styles.diamond}>
         <svg
           viewBox="0 0 300 340"
@@ -100,16 +64,11 @@ export default function FieldingAlignmentModal({ isOpen, onClose, lineup, color,
             </filter>
           </defs>
 
-          {/* ── Field geometry (wireframe) ── */}
-
-          {/* Foul line extensions: 1B → RF corner, 3B → LF corner
-              Direction (home→1B): (83,-85) norm≈(0.699,-0.715)
-              From 1B(233,191) +60 units → (275,148); from 3B(67,191) +60 units → (25,148) */}
+          {/* Foul line extensions */}
           <line x1="233" y1="191" x2="275" y2="148" stroke="rgba(255,255,255,0.09)" strokeWidth="1" />
           <line x1="67"  y1="191" x2="25"  y2="148" stroke="rgba(255,255,255,0.09)" strokeWidth="1" />
 
-          {/* Outfield semicircle connecting the two foul line endpoints
-              Center(150,148) radius=125; sweep=0 goes up through CF (150,23) */}
+          {/* Outfield semicircle */}
           <path
             d="M 25,148 A 125,125 0 0,1 275,148"
             fill="none"
@@ -128,12 +87,7 @@ export default function FieldingAlignmentModal({ isOpen, onClose, lineup, color,
           />
 
           {/* Pitcher's mound */}
-          <circle
-            cx="150" cy="195" r="7"
-            fill="none"
-            stroke="rgba(255,255,255,0.09)"
-            strokeWidth="1"
-          />
+          <circle cx="150" cy="195" r="7" fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="1" />
 
           {/* Base markers */}
           <circle cx="150" cy="276" r="3.5" fill="rgba(255,255,255,0.28)" />
@@ -141,18 +95,14 @@ export default function FieldingAlignmentModal({ isOpen, onClose, lineup, color,
           <circle cx="150" cy="106" r="3"   fill="rgba(255,255,255,0.28)" />
           <circle cx="67"  cy="191" r="3"   fill="rgba(255,255,255,0.28)" />
 
-          {/* ── Player nodes ── */}
+          {/* Player nodes */}
           {Object.entries(SVG_POSITIONS).map(([pos, { x, y }]) => {
             const player = positioned[pos]
             if (!player) return null
             const name = truncate(lastName(player.fullName))
             return (
               <g key={pos}>
-                <circle
-                  cx={x} cy={y} r="5"
-                  fill={color}
-                  filter="url(#fa-glow)"
-                />
+                <circle cx={x} cy={y} r="5" fill={color} filter="url(#fa-glow)" />
                 <text
                   x={x} y={y + 14}
                   textAnchor="middle"
@@ -169,7 +119,6 @@ export default function FieldingAlignmentModal({ isOpen, onClose, lineup, color,
           })}
         </svg>
       </div>
-
-    </div>
+    </CardModal>
   )
 }

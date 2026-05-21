@@ -1,8 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import type { PitcherInfo, PitcherSeasonStats } from '@/api/mlb/endpoints/pitcherStats'
 import { fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import type { ViewMode } from './LineupComparison'
+import { useT } from '@/i18n/useT'
+import type { TKey } from '@/i18n/useT'
 import CardBgLayers from './CardBgLayers'
+import CardModal from './CardModal'
 import MatchupBar from '@/components/MatchupBar/MatchupBar'
 import styles from './PitcherMatchup.module.css'
 
@@ -22,9 +25,8 @@ const HEADSHOT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
 
 export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, mode }: Props) {
-  const [view, setView] = useState(0)
-  const touchX = useRef<number | null>(null)
-  const touchY = useRef<number | null>(null)
+  const [glossaryOpen, setGlossaryOpen] = useState(false)
+  const t = useT()
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
   const as = awayPitcher?.seasonStats
@@ -60,6 +62,8 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
           </div>
         </div>
 
+        <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
+
         {/* Home */}
         <div className={`${styles.pitcherSide} ${styles.pitcherSideRight}`}>
           <div className={styles.pitcherInfo} style={{ textAlign: 'right' }}>
@@ -85,95 +89,50 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
         </div>
       </div>
 
-      {/* ── Stat views (click left = prev, click right = next) ───── */}
-      <div
-        className={styles.barsSection}
-        onClick={(e) => {
-          const left = e.currentTarget.getBoundingClientRect().left
-          const mid  = e.currentTarget.offsetWidth / 2
-          setView(v => e.clientX - left < mid ? (v + 2) % 3 : (v + 1) % 3)
-        }}
-        onTouchStart={(e) => {
-          touchX.current = e.touches[0].clientX
-          touchY.current = e.touches[0].clientY
-        }}
-        onTouchEnd={(e) => {
-          if (touchX.current === null) return
-          const dx = e.changedTouches[0].clientX - touchX.current
-          const dy = e.changedTouches[0].clientY - (touchY.current ?? 0)
-          touchX.current = null
-          touchY.current = null
-          if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return
-          setView(v => dx < 0 ? (v + 1) % 3 : (v + 2) % 3)
-        }}
+      {/* ── Bars ──────────────────────────────────────────────────── */}
+      <div className={styles.bars}>
+        <PitchBar
+          label="FIP"
+          aVal={as?.fip ? as.fip.toFixed(2) : undefined}
+          hVal={hs?.fip ? hs.fip.toFixed(2) : undefined}
+          aw={as?.fipMinus ? fipPlusBarWidth(fipPlus(as.fipMinus)) : 0}
+          hw={hs?.fipMinus ? fipPlusBarWidth(fipPlus(hs.fipMinus)) : 0}
+          ac={ac}
+          hc={hc}
+        />
+        <PitchBar label="ERA"  aVal={as?.era}  hVal={hs?.era}  lowerIsBetter ac={ac} hc={hc} />
+        <PitchBar label="WHIP" aVal={as?.whip} hVal={hs?.whip} lowerIsBetter ac={ac} hc={hc} />
+      </div>
+
+      {/* ── Stat glossary overlay ─────────────────────────────────── */}
+      <CardModal
+        isOpen={glossaryOpen} onClose={() => setGlossaryOpen(false)}
+        title={t('statGlossary')}
+        awayColor={awayColor} homeColor={homeColor} mode="comparison"
       >
-
-        {view === 0 && (
-          <div className={styles.bars}>
-            <PitchBar
-              label="FIP"
-              aVal={as?.fip ? as.fip.toFixed(2) : undefined}
-              hVal={hs?.fip ? hs.fip.toFixed(2) : undefined}
-              aw={as?.fipMinus ? fipPlusBarWidth(fipPlus(as.fipMinus)) : 0}
-              hw={hs?.fipMinus ? fipPlusBarWidth(fipPlus(hs.fipMinus)) : 0}
-              ac={ac}
-              hc={hc}
-            />
-            <PitchBar
-              label="ERA"
-              aVal={as?.era}
-              hVal={hs?.era}
-              lowerIsBetter
-              ac={ac}
-              hc={hc}
-            />
-            <PitchBar
-              label="WHIP"
-              aVal={as?.whip}
-              hVal={hs?.whip}
-              lowerIsBetter
-              ac={ac}
-              hc={hc}
-            />
-          </div>
-        )}
-
-        {view === 1 && (
-          <PitcherChips
-            away={[
-              { label: 'K-BB%', val: kbbPct(as) },
-              { label: 'R/9',   val: as?.runsScoredPer9        ?? '—' },
-              { label: 'IP/G',  val: as?.inningsPitchedPerGame ?? '—' },
-            ]}
-            home={[
-              { label: 'K-BB%', val: kbbPct(hs) },
-              { label: 'R/9',   val: hs?.runsScoredPer9        ?? '—' },
-              { label: 'IP/G',  val: hs?.inningsPitchedPerGame ?? '—' },
-            ]}
-          />
-        )}
-
-        {view === 2 && (
-          <PitcherChips
-            away={[
-              { label: 'xFIP',  val: as?.xfip   ? as.xfip.toFixed(2)  : '—' },
-              { label: 'wOBA',  val: as?.woba   ?? '—' },
-              { label: 'xwOBA', val: as?.wobaCon ?? '—' },
-            ]}
-            home={[
-              { label: 'xFIP',  val: hs?.xfip   ? hs.xfip.toFixed(2)  : '—' },
-              { label: 'wOBA',  val: hs?.woba   ?? '—' },
-              { label: 'xwOBA', val: hs?.wobaCon ?? '—' },
-            ]}
-          />
-        )}
-
-        <div className={styles.viewDots}>
-          {[0, 1, 2].map(i => (
-            <div key={i} className={`${styles.viewDot} ${view === i ? styles.viewDotActive : ''}`} />
+        <div className={styles.glossaryList}>
+          {GLOSSARY.map(({ stat, descKey }) => (
+            <div key={stat} className={styles.glossaryItem}>
+              <span className={styles.glossaryStat}>{stat}</span>
+              <span className={styles.glossaryDesc}>{t(descKey)}</span>
+            </div>
           ))}
         </div>
-      </div>
+      </CardModal>
+
+      {/* ── Always-visible chips ───────────────────────────────────── */}
+      <PitcherChips
+        away={[
+          { label: 'K-BB%', val: kbbPct(as) },
+          { label: 'xFIP',  val: as?.xfip   ? as.xfip.toFixed(2) : '—' },
+          { label: 'xwOBA', val: as?.wobaCon ?? '—' },
+        ]}
+        home={[
+          { label: 'K-BB%', val: kbbPct(hs) },
+          { label: 'xFIP',  val: hs?.xfip   ? hs.xfip.toFixed(2) : '—' },
+          { label: 'xwOBA', val: hs?.wobaCon ?? '—' },
+        ]}
+      />
     </div>
   )
 }
@@ -207,6 +166,17 @@ function PitcherChips({
     </div>
   )
 }
+
+/* ── Glossary data ───────────────────────────────────────────────── */
+
+const GLOSSARY: Array<{ stat: string; descKey: TKey }> = [
+  { stat: 'ERA',   descKey: 'glossaryEraDesc' },
+  { stat: 'FIP',   descKey: 'glossaryFipDesc' },
+  { stat: 'WHIP',  descKey: 'glossaryWhipDesc' },
+  { stat: 'K-BB%', descKey: 'glossaryKbbDesc' },
+  { stat: 'xFIP',  descKey: 'glossaryXfipDesc' },
+  { stat: 'xwOBA', descKey: 'glossaryXwobaDesc' },
+]
 
 /* ── Bar helpers ─────────────────────────────────────────────────── */
 

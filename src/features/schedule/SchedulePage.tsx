@@ -8,7 +8,7 @@ import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { getGoToLineup } from '@/api/mlb/endpoints/goToLineupStore'
 import { fetchTeamPredictionsNoDepth } from '@/api/mlb/endpoints/predictedLineup'
-import { fetchWrcPaBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
+import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { type StatPeriod } from '@/utils/period'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import GameCard from './GameCard'
@@ -19,6 +19,7 @@ import styles from './SchedulePage.module.css'
 export default function SchedulePage() {
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [_period, _setPeriod] = useState<StatPeriod>('season')
+  const [glossaryOpen, setGlossaryOpen] = useState(false)
 
   const scheduleQuery = useQuery({
     queryKey: ['schedule', date],
@@ -68,6 +69,7 @@ export default function SchedulePage() {
   })
 
   const uniqueTeamIds = [...new Set(games.flatMap(g => [g.teams.away.team.id, g.teams.home.team.id]))]
+
   const bullpenFipQuery = useQuery({
     queryKey: ['bullpen-fip', uniqueTeamIds.slice().sort((a, b) => a - b).join(',')],
     queryFn: () => fetchBullpenFipPlusMap(uniqueTeamIds),
@@ -115,36 +117,46 @@ export default function SchedulePage() {
     const lineupOffense = lineupOffenseQuery.data
     const pitchHands    = pitchHandQuery.data
 
-    const teamPlayerIds = new Map<number, number[]>()
+    const teamPlayerIds     = new Map<number, number[]>()
+    const playerHomeTeamMap = new Map<number, number>()
 
     for (const game of games) {
-      const gp = game as GameWithPitcher
-      const gl = lineupOffense?.get(game.gamePk)
+      const gp         = game as GameWithPitcher
+      const gl         = lineupOffense?.get(game.gamePk)
+      const homeTeamId = game.teams.home.team.id
 
       if (!gl || gl.awayCount === 0) {
         const homePitcherId = gp.teams.home.probablePitcher?.id
         const hand = homePitcherId ? pitchHands?.get(homePitcherId) as 'R' | 'L' | undefined : undefined
         const stored = getGoToLineup(game.teams.away.team.id)
         const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
-        if (lineup?.length) teamPlayerIds.set(game.teams.away.team.id, lineup.map(p => p.id))
+        if (lineup?.length) {
+          const ids = lineup.map(p => p.id)
+          teamPlayerIds.set(game.teams.away.team.id, ids)
+          for (const id of ids) playerHomeTeamMap.set(id, homeTeamId)
+        }
       }
 
       if (!gl || gl.homeCount === 0) {
         const awayPitcherId = gp.teams.away.probablePitcher?.id
         const hand = awayPitcherId ? pitchHands?.get(awayPitcherId) as 'R' | 'L' | undefined : undefined
-        const stored = getGoToLineup(game.teams.home.team.id)
+        const stored = getGoToLineup(homeTeamId)
         const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
-        if (lineup?.length) teamPlayerIds.set(game.teams.home.team.id, lineup.map(p => p.id))
+        if (lineup?.length) {
+          const ids = lineup.map(p => p.id)
+          teamPlayerIds.set(homeTeamId, ids)
+          for (const id of ids) playerHomeTeamMap.set(id, homeTeamId)
+        }
       }
     }
 
     const allIds = [...new Set([...teamPlayerIds.values()].flat())]
-    return { teamPlayerIds, allIds }
+    return { teamPlayerIds, playerHomeTeamMap, allIds }
   }, [games, lineupOffenseQuery.data, pitchHandQuery.data, schedPredQuery.data])
 
   const projectedWrcQuery = useQuery({
     queryKey: ['projected-sched-wrc', projectedInfo.allIds.slice().sort().join(',')],
-    queryFn: () => fetchWrcPaBulk(projectedInfo.allIds),
+    queryFn: () => fetchWrcComputedBulk(projectedInfo.allIds, projectedInfo.playerHomeTeamMap),
     enabled: projectedInfo.allIds.length > 0,
     staleTime: 3_600_000,
   })
@@ -155,6 +167,7 @@ export default function SchedulePage() {
   const pitcherStatsMap = pitcherStatsQuery.data
   const projectedWrcMap = projectedWrcQuery.data
 
+
   const t = useT()
 
   return (
@@ -163,8 +176,13 @@ export default function SchedulePage() {
         <div>
           <h1 className={styles.heading}>{t('mlbGames')}</h1>
         </div>
-        <PeriodSelect value={_period} onChange={_setPeriod} />
+        <div className={styles.headerRight}>
+          <PeriodSelect value={_period} onChange={_setPeriod} />
+          <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
+        </div>
       </div>
+
+      {glossaryOpen && <StatBarsModal onClose={() => setGlossaryOpen(false)} />}
 
       <DateNav
         date={date}
@@ -267,6 +285,82 @@ function SkeletonList() {
           style={{ height: 180, animationDelay: `${i * 80}ms` }}
         />
       ))}
+    </div>
+  )
+}
+
+const FIP_RATINGS = [
+  { label: 'Excellent',     value: '≥ 130', tier: 'excellent' },
+  { label: 'Great',         value: '≥ 120', tier: 'great'     },
+  { label: 'Above Average', value: '≥ 110', tier: 'above'     },
+  { label: 'Average',       value: '100',   tier: 'avg'       },
+  { label: 'Below Average', value: '≤ 90',  tier: 'below'     },
+  { label: 'Poor',          value: '≤ 85',  tier: 'poor'      },
+  { label: 'Awful',         value: '≤ 75',  tier: 'awful'     },
+]
+
+const WRC_RATINGS = [
+  { label: 'Excellent',     value: '≥ 160', tier: 'excellent' },
+  { label: 'Great',         value: '≥ 140', tier: 'great'     },
+  { label: 'Above Average', value: '≥ 115', tier: 'above'     },
+  { label: 'Average',       value: '100',   tier: 'avg'       },
+  { label: 'Below Average', value: '≤ 80',  tier: 'below'     },
+  { label: 'Poor',          value: '≤ 75',  tier: 'poor'      },
+  { label: 'Awful',         value: '≤ 60',  tier: 'awful'     },
+]
+
+const TIER: Record<string, string> = {
+  excellent: styles.tierExcellent,
+  great:     styles.tierGreat,
+  above:     styles.tierAbove,
+  avg:       styles.tierAvg,
+  below:     styles.tierBelow,
+  poor:      styles.tierPoor,
+  awful:     styles.tierAwful,
+}
+
+function StatBarsModal({ onClose }: { onClose: () => void }) {
+  const t = useT()
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return (
+    <div className={styles.modalBackdrop} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <span className={styles.modalTitle}>{t('statBarsGuide')}</span>
+          <button className={styles.modalClose} onClick={onClose}>✕</button>
+        </div>
+        <div className={styles.modalBody}>
+          <StatPanel label={t('fipPlusLabel')} desc={t('fipPlusDesc')} ratings={FIP_RATINGS} />
+          <StatPanel label={t('wrcPlusLabel')} desc={t('wrcPlusDesc')} ratings={WRC_RATINGS} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StatPanel({ label, desc, ratings }: {
+  label: string
+  desc: string
+  ratings: { label: string; value: string; tier: string }[]
+}) {
+  return (
+    <div className={styles.statPanel}>
+      <div className={styles.statPanelLabel}>{label}</div>
+      <p className={styles.statPanelDesc}>{desc}</p>
+      <div className={styles.ratingTable}>
+        {ratings.map(r => (
+          <div key={r.label} className={`${styles.ratingRow} ${TIER[r.tier]}`}>
+            <span className={styles.ratingLabel}>{r.label}</span>
+            <span className={styles.ratingValue}>{r.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

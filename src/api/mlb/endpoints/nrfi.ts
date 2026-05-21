@@ -2,7 +2,7 @@ import { mlbApi } from '../client'
 import type { LineupSlot } from './boxscore'
 
 type HandCode = 'L' | 'R'
-type SplitCode = 'i01' | 'vl' | 'vr'
+type SplitCode = 'i01' | 'vl' | 'vr' | 'sp'
 
 export interface FirstInningHittingStats {
   runs: number
@@ -36,6 +36,10 @@ export interface StarterFirstInningStats extends FirstInningPitchingStats {
   fullName: string
   pitchHand?: HandCode
   gamesPlayed: number
+  // Season stats as starter (sp sitCode) — larger sample for K%/BB%
+  spKRate: number | null    // K per batter faced across all starts
+  spBBRate: number | null   // BB per batter faced across all starts
+  spGames: number           // starts this season
 }
 
 export interface LineupSplitStats {
@@ -137,6 +141,7 @@ interface RawPitcherResponse {
     pitchHand?: { code?: string }
     stats?: Array<{
       splits?: Array<{
+        split?: { code?: string }
         stat?: Record<string, unknown>
       }>
     }>
@@ -372,65 +377,55 @@ async function fetchStarterFirstInningStats(
   const data = await mlbApi.get<RawPitcherResponse>('/people', {
     personIds: personIds.join(','),
     season,
-    hydrate: `stats(group=[pitching],type=[statSplits],sitCodes=[i01],season=${season})`,
+    hydrate: `stats(group=[pitching],type=[statSplits],sitCodes=[i01,sp],season=${season})`,
     fields: [
-      'people',
-      'id',
-      'fullName',
-      'pitchHand',
-      'code',
-      'stats',
-      'splits',
-      'stat',
-      'era',
-      'whip',
-      'inningsPitched',
-      'hits',
-      'runs',
-      'earnedRuns',
-      'baseOnBalls',
-      'strikeOuts',
-      'homeRuns',
-      'battersFaced',
-      'gamesPlayed',
+      'people', 'id', 'fullName', 'pitchHand', 'code',
+      'stats', 'splits', 'split', 'stat',
+      'era', 'whip', 'inningsPitched',
+      'hits', 'runs', 'earnedRuns', 'baseOnBalls', 'strikeOuts', 'homeRuns',
+      'battersFaced', 'gamesPlayed',
     ].join(','),
   })
 
+  type RawStat = {
+    gamesPlayed?: number; runs?: number; homeRuns?: number
+    strikeOuts?: number; baseOnBalls?: number; hits?: number
+    era?: string; inningsPitched?: string; earnedRuns?: number
+    whip?: string; battersFaced?: number
+  }
+
   const map = new Map<number, StarterFirstInningStats>()
   for (const person of data.people ?? []) {
-    const stat = person.stats?.[0]?.splits?.[0]?.stat as
-      | {
-          gamesPlayed?: number
-          runs?: number
-          homeRuns?: number
-          strikeOuts?: number
-          baseOnBalls?: number
-          hits?: number
-          era?: string
-          inningsPitched?: string
-          earnedRuns?: number
-          whip?: string
-          battersFaced?: number
-        }
-      | undefined
+    const splits = person.stats?.[0]?.splits ?? []
+    const i01Split = splits.find(s => s.split?.code === 'i01')
+    const spSplit  = splits.find(s => s.split?.code === 'sp')
 
+    const stat = i01Split?.stat as RawStat | undefined
     if (!stat) continue
 
+    const spStat = spSplit?.stat as RawStat | undefined
+    const spBF   = spStat?.battersFaced ?? 0
+    const spK    = spStat?.strikeOuts   ?? 0
+    const spBB   = spStat?.baseOnBalls  ?? 0
+
     map.set(person.id, {
-      id: person.id,
-      fullName: person.fullName,
-      pitchHand: normalizeHandCode(person.pitchHand?.code),
-      gamesPlayed: stat.gamesPlayed ?? 0,
-      runs: stat.runs ?? 0,
-      hits: stat.hits ?? 0,
-      homeRuns: stat.homeRuns ?? 0,
-      strikeOuts: stat.strikeOuts ?? 0,
-      baseOnBalls: stat.baseOnBalls ?? 0,
-      earnedRuns: stat.earnedRuns ?? 0,
+      id:           person.id,
+      fullName:     person.fullName,
+      pitchHand:    normalizeHandCode(person.pitchHand?.code),
+      gamesPlayed:  stat.gamesPlayed  ?? 0,
+      runs:         stat.runs         ?? 0,
+      hits:         stat.hits         ?? 0,
+      homeRuns:     stat.homeRuns     ?? 0,
+      strikeOuts:   stat.strikeOuts   ?? 0,
+      baseOnBalls:  stat.baseOnBalls  ?? 0,
+      earnedRuns:   stat.earnedRuns   ?? 0,
       battersFaced: stat.battersFaced ?? 0,
       inningsPitched: stat.inningsPitched ?? '0.0',
-      era: stat.era ?? '-.--',
-      whip: stat.whip ?? '-.--',
+      era:          stat.era  ?? '-.--',
+      whip:         stat.whip ?? '-.--',
+      spKRate:  spBF > 0 ? spK  / spBF : null,
+      spBBRate: spBF > 0 ? spBB / spBF : null,
+      spGames:  spStat?.gamesPlayed ?? 0,
     })
   }
 
@@ -641,12 +636,10 @@ function toLineupSplit(
 
 function defaultSplitLabel(code: SplitCode): string {
   switch (code) {
-    case 'i01':
-      return 'First Inning'
-    case 'vl':
-      return 'vs Left'
-    case 'vr':
-      return 'vs Right'
+    case 'i01': return 'First Inning'
+    case 'vl':  return 'vs Left'
+    case 'vr':  return 'vs Right'
+    case 'sp':  return 'As Starter'
   }
 }
 

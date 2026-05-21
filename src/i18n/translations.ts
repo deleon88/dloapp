@@ -26,7 +26,7 @@ export const translations = {
     loading: 'Loading…',
     back: '← Back',
     // GameCard stat bars
-    starters: 'Starters',
+    starters: 'Starter',
     offense: 'Offense',
     bullpen: 'Bullpen',
     lineupConfirmed: 'Confirmed Lineup',
@@ -40,6 +40,23 @@ export const translations = {
     '30days': 'Last 30 Days',
     '14days': 'Last 14 Days',
     '7days': 'Last 7 Days',
+    // Game results
+    resultW: 'W',
+    resultL: 'L',
+    // Stat bars glossary (schedule page)
+    statBarsGuide: 'Stat Bars Guide',
+    fipPlusLabel: 'FIP+ — Starters & Bullpen',
+    fipPlusDesc: 'Park-adjusted pitcher quality. Higher is better — 100 is league average. Strips out defense and luck, keeping only strikeouts, walks, and home runs.',
+    wrcPlusLabel: 'wRC+ — Offense',
+    wrcPlusDesc: 'Park-adjusted lineup offense per plate appearance. Higher is better — 100 is league average. Accounts for ballpark effects and puts all hitters on equal footing.',
+    // Pitcher matchup glossary
+    statGlossary: 'Stat Glossary',
+    glossaryEraDesc: 'Earned runs allowed per 9 innings. Affected by defense and luck.',
+    glossaryFipDesc: 'Like ERA but built only from strikeouts, walks, and home runs — strips out defense.',
+    glossaryWhipDesc: 'Walks plus hits per inning pitched. Measures baserunners allowed.',
+    glossaryKbbDesc: 'Strikeout rate minus walk rate. Net command and swing-and-miss ability.',
+    glossaryXfipDesc: 'FIP with home run rate normalized to league average. Best predictor of future ERA.',
+    glossaryXwobaDesc: 'Expected wOBA on contact based on exit velocity and launch angle — removes luck and defense.',
   },
   es: {
     // Nav
@@ -68,7 +85,7 @@ export const translations = {
     loading: 'Cargando…',
     back: '← Atrás',
     // GameCard stat bars
-    starters: 'Abridores',
+    starters: 'Abridor',
     offense: 'Ofensiva',
     bullpen: 'Bullpen',
     lineupConfirmed: 'Lineup Confirmado',
@@ -82,6 +99,23 @@ export const translations = {
     '30days': 'Últ. 30 días',
     '14days': 'Últ. 14 días',
     '7days': 'Últ. 7 días',
+    // Game results
+    resultW: 'G',
+    resultL: 'P',
+    // Stat bars glossary (schedule page)
+    statBarsGuide: 'Guía de barras',
+    fipPlusLabel: 'FIP+ — Abridores y Bullpen',
+    fipPlusDesc: 'Calidad del lanzador ajustada por parque. Mayor es mejor — 100 es el promedio de la liga. Elimina la defensa y la suerte, usando solo ponches, bases y jonrones.',
+    wrcPlusLabel: 'wRC+ — Ofensiva',
+    wrcPlusDesc: 'Ofensiva del lineup por turno al bate, ajustada por parque. Mayor es mejor — 100 es el promedio de la liga. Pone a todos los bateadores en igualdad de condiciones.',
+    // Pitcher matchup glossary
+    statGlossary: 'Glosario',
+    glossaryEraDesc: 'Carreras ganadas permitidas por 9 entradas. Depende de la defensa y la suerte.',
+    glossaryFipDesc: 'Como el ERA pero solo con ponches, bases por bola y jonrones — elimina la defensa.',
+    glossaryWhipDesc: 'Bases por bola más hits por entrada. Mide los corredores permitidos.',
+    glossaryKbbDesc: 'Tasa de ponches menos tasa de bases por bola. Mide el control neto del lanzador.',
+    glossaryXfipDesc: 'FIP con la tasa de jonrones normalizada al promedio de la liga. Mejor predictor del ERA futuro.',
+    glossaryXwobaDesc: 'wOBA esperada en contacto según velocidad de salida y ángulo de lanzamiento — elimina la suerte y la defensa.',
   },
 } as const
 

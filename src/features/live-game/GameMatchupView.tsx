@@ -6,7 +6,9 @@ import type { GameLineup } from '@/api/mlb/endpoints/boxscore'
 import type { PlayerStats } from '@/api/mlb/endpoints/lineupStats'
 import type { BullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import { getTeamMeta, getBarColor, capLogoUrl } from '@/data/teams'
+import type { GameResult } from '@/api/mlb/endpoints/teamRecentResults'
 import type { ViewMode, LineupStatus } from './LineupComparison'
+import { useT } from '@/i18n/useT'
 import CardBgLayers from './CardBgLayers'
 import PitcherMatchup from './PitcherMatchup'
 import WeatherCard from './WeatherCard'
@@ -45,6 +47,8 @@ interface Props {
   awayBullpen?: BullpenStats
   homeBullpen?: BullpenStats
   bullpenLoading?: boolean
+  awayLast5?: GameResult[]
+  homeLast5?: GameResult[]
 }
 
 export default function GameMatchupView({
@@ -58,9 +62,11 @@ export default function GameMatchupView({
   awayBullpen,
   homeBullpen,
   bullpenLoading,
+  awayLast5,
+  homeLast5,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>('comparison')
-
+  const t = useT()
 
   const g = game as HydratedGame
   const { teams, gameDate, venue } = g
@@ -99,15 +105,30 @@ export default function GameMatchupView({
       <div className={styles.header}>
         <CardBgLayers awayColor={ac} homeColor={hc} mode={mode} />
         <div className={styles.teamBlock}>
-          <img src={capLogoUrl(teams.away.team.id)} alt={awayNick} width={44} height={44} />
-          <div>
-            <div className={styles.teamCity}>{awayCity}</div>
-            <div className={styles.teamNickname}>
-              <span className={styles.nickFull}>{awayNick.toUpperCase()}</span>
-              <span className={styles.nickAbbr}>{away?.abbr ?? awayNick.slice(0, 3).toUpperCase()}</span>
+          <div className={styles.teamBlockInner}>
+            <img src={capLogoUrl(teams.away.team.id)} alt={awayNick} width={44} height={44} />
+            <div>
+              <div className={styles.teamCity}>{awayCity}</div>
+              <div className={styles.teamNickname}>
+                <span className={styles.nickFull}>{awayNick.toUpperCase()}</span>
+                <span className={styles.nickAbbr}>{away?.abbr ?? awayNick.slice(0, 3).toUpperCase()}</span>
+              </div>
+              <div className={styles.teamRecord}>{awayW}-{awayL}</div>
             </div>
-            <div className={styles.teamRecord}>{awayW}-{awayL}</div>
           </div>
+          {awayLast5 && awayLast5.length > 0 && (
+            <div className={styles.last5}>
+              {awayLast5.map((r, i) => (
+                <span
+                  key={i}
+                  className={`${styles.last5Dot} ${r === 'W' ? styles.last5Win : styles.last5Loss}`}
+                  style={r === 'W' ? { backgroundColor: acBar, boxShadow: `0 0 6px ${acBar}88` } : undefined}
+                >
+                  {r === 'W' ? t('resultW') : t('resultL')}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={styles.gameInfo}>
@@ -116,15 +137,30 @@ export default function GameMatchupView({
         </div>
 
         <div className={`${styles.teamBlock} ${styles.teamBlockRight}`}>
-          <div style={{ textAlign: 'right' }}>
-            <div className={styles.teamCity}>{homeCity}</div>
-            <div className={styles.teamNickname}>
-              <span className={styles.nickFull}>{homeNick.toUpperCase()}</span>
-              <span className={styles.nickAbbr}>{home?.abbr ?? homeNick.slice(0, 3).toUpperCase()}</span>
+          <div className={styles.teamBlockInner}>
+            <div style={{ textAlign: 'right' }}>
+              <div className={styles.teamCity}>{homeCity}</div>
+              <div className={styles.teamNickname}>
+                <span className={styles.nickFull}>{homeNick.toUpperCase()}</span>
+                <span className={styles.nickAbbr}>{home?.abbr ?? homeNick.slice(0, 3).toUpperCase()}</span>
+              </div>
+              <div className={styles.teamRecord}>{homeW}-{homeL}</div>
             </div>
-            <div className={styles.teamRecord}>{homeW}-{homeL}</div>
+            <img src={capLogoUrl(teams.home.team.id)} alt={homeNick} width={44} height={44} />
           </div>
-          <img src={capLogoUrl(teams.home.team.id)} alt={homeNick} width={44} height={44} />
+          {homeLast5 && homeLast5.length > 0 && (
+            <div className={styles.last5}>
+              {homeLast5.map((r, i) => (
+                <span
+                  key={i}
+                  className={`${styles.last5Dot} ${r === 'W' ? styles.last5Win : styles.last5Loss}`}
+                  style={r === 'W' ? { backgroundColor: hcBar, boxShadow: `0 0 6px ${hcBar}88` } : undefined}
+                >
+                  {r === 'W' ? t('resultW') : t('resultL')}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

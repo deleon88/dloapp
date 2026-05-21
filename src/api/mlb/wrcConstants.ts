@@ -13,7 +13,7 @@ const CONSTANTS: Record<number, WobaConstants> = {
   2023: { wBB:0.697, wHBP:0.728, w1B:0.895, w2B:1.267, w3B:1.594, wHR:2.058, lgwOBA:0.320, wOBAScale:1.157, lgRPA:0.119 },
   2024: { wBB:0.689, wHBP:0.720, w1B:0.881, w2B:1.248, w3B:1.571, wHR:2.005, lgwOBA:0.317, wOBAScale:1.155, lgRPA:0.118 },
   2025: { wBB:0.688, wHBP:0.720, w1B:0.882, w2B:1.247, w3B:1.570, wHR:2.010, lgwOBA:0.316, wOBAScale:1.155, lgRPA:0.118 },
-  2026: { wBB:0.708, wHBP:0.739, w1B:0.902, w2B:1.278, w3B:1.617, wHR:2.076, lgwOBA:0.320, wOBAScale:1.254, lgRPA:0.118 },
+  2026: { wBB:0.706, wHBP:0.738, w1B:0.901, w2B:1.278, w3B:1.617, wHR:2.078, lgwOBA:0.319, wOBAScale:1.256, lgRPA:0.118 },
 }
 
 function getConstants(season: number): WobaConstants {
@@ -39,10 +39,15 @@ const MIN_PA = 15
 
 /**
  * Derives wRC+ from raw batting counts using FanGraphs linear weights.
- * Accuracy: within ~3-4 points of the "true" wRC+ (park factor omitted).
+ * parkFactor defaults to 1.00 (neutral); pass FanGraphs 1yr/100 for park-adjusted result.
+ * Formula: (wRAA/PA / lgR/PA + (2 - parkFactor)) × 100
  * Returns null when the sample is too small (< MIN_PA) or denominator is zero.
  */
-export function computeWrcPlus(raw: RawBattingStat, season: number): number | null {
+export function computeWrcPlus(
+  raw: RawBattingStat,
+  season: number,
+  parkFactor = 1.00,
+): number | null {
   if ((raw.plateAppearances ?? 0) < MIN_PA) return null
   const c = getConstants(season)
   const singles = raw.hits - raw.doubles - raw.triples - raw.homeRuns
@@ -51,5 +56,6 @@ export function computeWrcPlus(raw: RawBattingStat, season: number): number | nu
   if (denom === 0) return null
   const woba = (c.wBB*uBB + c.wHBP*raw.hitByPitch + c.w1B*singles +
                 c.w2B*raw.doubles + c.w3B*raw.triples + c.wHR*raw.homeRuns) / denom
-  return Math.round(((woba - c.lgwOBA) / c.wOBAScale / c.lgRPA + 1) * 100)
+  const wRaa = (woba - c.lgwOBA) / c.wOBAScale * raw.plateAppearances
+  return Math.round((wRaa / raw.plateAppearances / c.lgRPA + (2 - parkFactor)) * 100)
 }

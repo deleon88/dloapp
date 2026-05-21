@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import { getVsPlayerStats } from '@/api/mlb/endpoints/vsPlayer'
-import CardBgLayers from './CardBgLayers'
+import CardModal from './CardModal'
 import styles from './VsPitcherModal.module.css'
 
 function playerPhoto(id: number) {
@@ -41,24 +41,6 @@ export default function VsPitcherModal({
   lineup, pitcherId, pitcherName,
   bgColor, side, teamLabel,
 }: Props) {
-  const [closing, setClosing] = useState(false)
-
-  useEffect(() => {
-    if (isOpen) setClosing(false)
-  }, [isOpen])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setClosing(true) }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [isOpen])
-
-  useEffect(() => {
-    if (!closing) return
-    const t = setTimeout(onClose, 140)
-    return () => clearTimeout(t)
-  }, [closing, onClose])
 
   const playerIds = lineup.map(p => p.id)
 
@@ -88,19 +70,12 @@ export default function VsPitcherModal({
     return { ab, hr, rbi, bb, k, avg, slg, obp, ops }
   }, [statsMap])
 
-  if (!isOpen) return null
-
   return (
-    <div className={`${styles.overlay} ${closing ? styles.overlayOut : ''}`}>
-      <CardBgLayers awayColor={bgColor} homeColor={bgColor} mode={side} />
-
-      {/* ── Header ── */}
-      <div className={styles.header}>
-        <span className={styles.teamLabel}>{teamLabel}</span>
-        <span className={styles.viewLabel}>vs {lastName(pitcherName)}</span>
-        <button className={styles.closeBtn} onClick={() => setClosing(true)} aria-label="Close">✕</button>
-      </div>
-
+    <CardModal
+      isOpen={isOpen} onClose={onClose}
+      title={teamLabel} subtitle={`vs ${lastName(pitcherName)}`}
+      awayColor={bgColor} homeColor={bgColor} mode={side}
+    >
       {/* ── Column headers ── */}
       <div className={styles.colHeader}>
         <span /><span />
@@ -169,6 +144,6 @@ export default function VsPitcherModal({
           )
         })()}
       </div>
-    </div>
+    </CardModal>
   )
 }
