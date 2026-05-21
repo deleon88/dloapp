@@ -25,8 +25,8 @@ export default function App() {
           <Route path="lmb/game/:gameId" element={<LmbGamePage />} />
         </Route>
       </Routes>
+      <Analytics />
+      <SpeedInsights />
     </BrowserRouter>
-    <Analytics />
-    <SpeedInsights />
   )
 }
