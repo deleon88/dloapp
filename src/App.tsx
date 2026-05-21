@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import Layout from '@/components/Layout/Layout'
 import SchedulePage from '@/features/schedule/SchedulePage'
 import LiveGamePage from '@/features/live-game/LiveGamePage'
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="lmb/game/:gameId" element={<LmbGamePage />} />
         </Route>
       </Routes>
+      <Analytics />
     </BrowserRouter>
   )
 }
