@@ -1,0 +1,108 @@
+# .github/workflows/refresh-constants.yml
+#
+# Runs daily at 09:15 UTC (05:15 ET) — well before first pitch.
+# Refreshes public/data/linear_weights_{year}.json and commits the result;
+# Vercel picks up the commit and redeploys, so the app always serves fresh
+# constants.
+#
+# Primary source: real FanGraphs Guts page, scraped via Bright Data Web
+# Unlocker (scripts/fetch_fangraphs_brightdata.py — validated against
+# manually-verified 2025 constants, see scripts/test_brightdata_fangraphs.py).
+# Fallback: if Bright Data is unavailable for any reason (missing repo
+# secrets, Cloudflare block, zone quota, network error), falls back to the
+# RE24 play-by-play approximation (scripts/compute_linear_weights.py) so the
+# app always has *some* current-season constants, just possibly less
+# accurate ones — never a hard failure.
+#
+# Requires repo secrets BRIGHTDATA_API_KEY and (optionally) BRIGHTDATA_ZONE
+# for the primary path. Without them, this silently runs the RE24 fallback
+# every day.
+#
+# Also runnable manually via workflow_dispatch.
+
+name: Refresh wOBA Constants
+
+on:
+  schedule:
+    - cron: '15 9 * * *'   # 09:15 UTC = 05:15 ET, before any games start
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season year (leave blank for current year)'
+        required: false
+        default: ''
+
+jobs:
+  compute:
+    name: Refresh wOBA constants
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need write access to push the updated JSON
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Determine season
+        id: season
+        run: |
+          if [ -n "${{ github.event.inputs.season }}" ]; then
+            echo "year=${{ github.event.inputs.season }}" >> $GITHUB_OUTPUT
+          else
+            echo "year=$(date +%Y)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch real FanGraphs constants via Bright Data
+        id: brightdata
+        continue-on-error: true
+        env:
+          BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+          BRIGHTDATA_ZONE:    ${{ secrets.BRIGHTDATA_ZONE }}
+        run: |
+          mkdir -p public/data
+          python scripts/fetch_fangraphs_brightdata.py \
+            --season ${{ steps.season.outputs.year }} \
+            --out public/data
+
+      - name: Fallback — RE24 approximation (Bright Data unavailable)
+        if: steps.brightdata.outcome == 'failure'
+        run: |
+          echo "Bright Data fetch failed or BRIGHTDATA_API_KEY not set — falling back to RE24 approximation."
+          mkdir -p public/data
+          python scripts/compute_linear_weights.py \
+            --season ${{ steps.season.outputs.year }} \
+            --out public/data \
+            --workers 20
+
+      - name: Verify output
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+          f = pathlib.Path("public/data/linear_weights_${{ steps.season.outputs.year }}.json")
+          if not f.exists():
+            print("ERROR: output file not found"); sys.exit(1)
+          d = json.loads(f.read_text())
+          required = {"wBB", "wHBP", "w1B", "w2B", "w3B", "wHR", "lgwOBA", "wOBAScale", "lgRPA"}
+          missing = required - d.keys()
+          if missing:
+            print(f"ERROR: missing keys {missing}"); sys.exit(1)
+          print(f"OK — source={d.get('source')}  season={d.get('season')}  "
+                f"lgRPA={d['lgRPA']}  lgwOBA={d['lgwOBA']}  wOBAScale={d['wOBAScale']}")
+          EOF
+
+      - name: Commit updated constants
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/linear_weights_${{ steps.season.outputs.year }}.json
+          if git diff --cached --quiet; then
+            echo "No changes — constants unchanged since last run."
+          else
+            git commit -m "chore: update ${{ steps.season.outputs.year }} wOBA constants [skip ci]"
+            git push
+          fi

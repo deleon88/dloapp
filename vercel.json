@@ -15,6 +15,10 @@
       "destination": "https://lmb.com.mx/juegos/api/:path*"
     },
     {
+      "source": "/api/savant/:path*",
+      "destination": "https://baseballsavant.mlb.com/:path*"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

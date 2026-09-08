@@ -36,10 +36,22 @@ export const translations = {
     wind: 'Wind',
     // Stat periods
     season: '2026 Season',
+    season2025: '2025 Season',
     '60days': 'Last 60 Days',
     '30days': 'Last 30 Days',
     '14days': 'Last 14 Days',
     '7days': 'Last 7 Days',
+    // Hand-splits filter
+    handFilterLabel: 'Handedness filter',
+    handGroupBatters: 'Batters',
+    handGroupPitchers: 'Pitchers',
+    handAll: 'All',
+    handVsLHP: 'vs LHP',
+    handVsRHP: 'vs RHP',
+    handVsStarter: 'vs Starter Hand',
+    handVsLHB: 'vs LHB',
+    handVsRHB: 'vs RHB',
+    handComingSoon: 'Coming soon',
     // Game results
     resultW: 'W',
     resultL: 'L',
@@ -57,6 +69,7 @@ export const translations = {
     glossaryKbbDesc: 'Strikeout rate minus walk rate. Net command and swing-and-miss ability.',
     glossaryXfipDesc: 'FIP with home run rate normalized to league average. Best predictor of future ERA.',
     glossaryXwobaDesc: 'Expected wOBA on contact based on exit velocity and launch angle — removes luck and defense.',
+    glossaryWobaAgainstDesc: 'Actual wOBA allowed vs this batter hand — shown in place of xwOBA, which has no batter-hand filter available.',
   },
   es: {
     // Nav
@@ -95,10 +108,22 @@ export const translations = {
     wind: 'Viento',
     // Stat periods
     season: 'Temp. 2026',
+    season2025: 'Temp. 2025',
     '60days': 'Últ. 60 días',
     '30days': 'Últ. 30 días',
     '14days': 'Últ. 14 días',
     '7days': 'Últ. 7 días',
+    // Hand-splits filter
+    handFilterLabel: 'Filtro de mano',
+    handGroupBatters: 'Bateadores',
+    handGroupPitchers: 'Pitchers',
+    handAll: 'Todas',
+    handVsLHP: 'vs LHP',
+    handVsRHP: 'vs RHP',
+    handVsStarter: 'vs Mano del Abridor',
+    handVsLHB: 'vs LHB',
+    handVsRHB: 'vs RHB',
+    handComingSoon: 'Próximamente',
     // Game results
     resultW: 'G',
     resultL: 'P',
@@ -116,6 +141,7 @@ export const translations = {
     glossaryKbbDesc: 'Tasa de ponches menos tasa de bases por bola. Mide el control neto del lanzador.',
     glossaryXfipDesc: 'FIP con la tasa de jonrones normalizada al promedio de la liga. Mejor predictor del ERA futuro.',
     glossaryXwobaDesc: 'wOBA esperada en contacto según velocidad de salida y ángulo de lanzamiento — elimina la suerte y la defensa.',
+    glossaryWobaAgainstDesc: 'wOBA real permitida vs esta mano de bateador — se muestra en vez de xwOBA, que no tiene filtro por mano de bateador disponible.',
   },
 } as const
 

@@ -1,10 +1,10 @@
 /**
- * Park factors sourced from Baseball Savant (2024-2026, 3-year rolling composite).
- * https://baseballsavant.mlb.com/leaderboard/park-factors
+ * Park factors sourced from FanGraphs "Park Factors" table, 2025 season, "Basic" (5yr) column.
+ * https://www.fangraphs.com/guts.aspx?type=pf&teamid=0&season=2025
  *
- * Values are already halved for full-season use (same convention as FanGraphs).
- * factor = Savant_value / 100.  1.00 = league average.
+ * factor = FanGraphs_Basic / 100.  1.00 = league average.
  * > 1.00 = hitter-friendly, < 1.00 = pitcher-friendly.
+ * These are the same factors FanGraphs uses to compute wRC+ and ERA-.
  *
  * isDome = true for controlled environments (dome or retractable usually closed).
  */
@@ -15,41 +15,83 @@ export interface ParkInfo {
 }
 
 const PARK_BY_TEAM: Record<number, ParkInfo> = {
-  108: { factor: 1.00, isDome: false, name: 'Angel Stadium' },           // LAA
-  109: { factor: 1.05, isDome: true,  name: 'Chase Field' },             // ARI
-  110: { factor: 1.04, isDome: false, name: 'Camden Yards' },            // BAL
-  111: { factor: 1.02, isDome: false, name: 'Fenway Park' },             // BOS
-  112: { factor: 0.95, isDome: false, name: 'Wrigley Field' },           // CHC
-  113: { factor: 1.03, isDome: false, name: 'Great American Ball Park' },// CIN
-  114: { factor: 0.98, isDome: false, name: 'Progressive Field' },       // CLE
-  115: { factor: 1.12, isDome: false, name: 'Coors Field' },             // COL
-  116: { factor: 1.01, isDome: false, name: 'Comerica Park' },           // DET
-  117: { factor: 1.01, isDome: true,  name: 'Daikin Park' },             // HOU
-  118: { factor: 1.00, isDome: false, name: 'Kauffman Stadium' },        // KC
-  119: { factor: 1.02, isDome: false, name: 'Dodger Stadium' },          // LAD
-  120: { factor: 1.01, isDome: false, name: 'Nationals Park' },          // WSH
-  121: { factor: 0.99, isDome: false, name: 'Citi Field' },              // NYM
-  133: { factor: 1.00, isDome: false, name: 'Sutter Health Park' },      // OAK (temp — no Savant data)
-  134: { factor: 1.00, isDome: false, name: 'PNC Park' },                // PIT
-  135: { factor: 0.97, isDome: false, name: 'Petco Park' },              // SD
-  136: { factor: 0.92, isDome: true,  name: 'T-Mobile Park' },           // SEA
-  137: { factor: 0.98, isDome: false, name: 'Oracle Park' },             // SF
+  108: { factor: 1.01, isDome: false, name: 'Angel Stadium' },           // LAA
+  109: { factor: 1.01, isDome: true,  name: 'Chase Field' },             // ARI
+  110: { factor: 0.99, isDome: false, name: 'Camden Yards' },            // BAL
+  111: { factor: 1.04, isDome: false, name: 'Fenway Park' },             // BOS
+  112: { factor: 0.98, isDome: false, name: 'Wrigley Field' },           // CHC
+  113: { factor: 1.05, isDome: false, name: 'Great American Ball Park' },// CIN
+  114: { factor: 0.99, isDome: false, name: 'Progressive Field' },       // CLE
+  115: { factor: 1.13, isDome: false, name: 'Coors Field' },             // COL
+  116: { factor: 1.00, isDome: false, name: 'Comerica Park' },           // DET
+  117: { factor: 0.99, isDome: true,  name: 'Daikin Park' },             // HOU
+  118: { factor: 1.03, isDome: false, name: 'Kauffman Stadium' },        // KC
+  119: { factor: 0.99, isDome: false, name: 'Dodger Stadium' },          // LAD
+  120: { factor: 1.00, isDome: false, name: 'Nationals Park' },          // WSH
+  121: { factor: 0.96, isDome: false, name: 'Citi Field' },              // NYM
+  133: { factor: 1.03, isDome: false, name: 'Sutter Health Park' },      // OAK
+  134: { factor: 1.02, isDome: false, name: 'PNC Park' },                // PIT
+  135: { factor: 0.96, isDome: false, name: 'Petco Park' },              // SD
+  136: { factor: 0.94, isDome: true,  name: 'T-Mobile Park' },           // SEA
+  137: { factor: 0.97, isDome: false, name: 'Oracle Park' },             // SF
   138: { factor: 0.98, isDome: false, name: 'Busch Stadium' },           // STL
-  139: { factor: 0.95, isDome: false, name: 'Steinbrenner Field' },      // TB (temp 2026; Savant: Tropicana 95)
-  140: { factor: 0.92, isDome: true,  name: 'Globe Life Field' },        // TEX
-  141: { factor: 1.01, isDome: true,  name: 'Rogers Centre' },           // TOR
-  142: { factor: 1.04, isDome: false, name: 'Target Field' },            // MIN
-  143: { factor: 1.02, isDome: false, name: 'Citizens Bank Park' },      // PHI
+  139: { factor: 1.01, isDome: false, name: 'Steinbrenner Field' },      // TB (temp 2026)
+  140: { factor: 0.99, isDome: true,  name: 'Globe Life Field' },        // TEX
+  141: { factor: 0.99, isDome: true,  name: 'Rogers Centre' },           // TOR
+  142: { factor: 1.01, isDome: false, name: 'Target Field' },            // MIN
+  143: { factor: 1.01, isDome: false, name: 'Citizens Bank Park' },      // PHI
   144: { factor: 1.00, isDome: false, name: 'Truist Park' },             // ATL
-  145: { factor: 0.98, isDome: false, name: 'Guaranteed Rate Field' },   // CWS
-  146: { factor: 1.00, isDome: false, name: 'LoanDepot Park' },          // MIA
-  147: { factor: 1.02, isDome: false, name: 'Yankee Stadium' },          // NYY
-  158: { factor: 0.97, isDome: true,  name: 'American Family Field' },   // MIL
+  145: { factor: 1.00, isDome: false, name: 'Guaranteed Rate Field' },   // CWS
+  146: { factor: 1.01, isDome: false, name: 'LoanDepot Park' },          // MIA
+  147: { factor: 0.99, isDome: false, name: 'Yankee Stadium' },          // NYY
+  158: { factor: 0.99, isDome: true,  name: 'American Family Field' },   // MIL
 }
 
 /** Returns park info for the HOME team. Defaults to neutral if unknown. */
 export function getParkInfo(homeTeamId: number): ParkInfo {
   return PARK_BY_TEAM[homeTeamId] ?? { factor: 1.00, isDome: false, name: 'Unknown Venue' }
+}
+
+// ── FIP park factors ──────────────────────────────────────────────────────────
+// Source: FanGraphs "Park Factors" table, 2025 season, "FIP" column ÷ 100.
+// Derived from HR/SO/BB park effects — distinct from the run park factor above.
+// Used for FIP- and FIP+ to match FanGraphs' published pitcher ratings.
+const FIP_PF_BY_TEAM: Record<number, number> = {
+  108: 1.01, // LAA
+  109: 0.97, // ARI
+  110: 0.99, // BAL
+  111: 1.00, // BOS
+  112: 0.98, // CHC
+  113: 1.05, // CIN
+  114: 0.99, // CLE
+  115: 1.05, // COL
+  116: 1.00, // DET
+  117: 1.00, // HOU
+  118: 1.00, // KC
+  119: 1.03, // LAD
+  120: 1.00, // WSH
+  121: 0.99, // NYM
+  133: 1.02, // OAK
+  134: 1.00, // PIT
+  135: 0.99, // SD
+  136: 0.96, // SEA
+  137: 0.96, // SF
+  138: 0.98, // STL
+  139: 1.02, // TB
+  140: 1.01, // TEX
+  141: 1.01, // TOR
+  142: 1.00, // MIN
+  143: 1.02, // PHI
+  144: 0.98, // ATL
+  145: 1.03, // CWS
+  146: 1.00, // MIA
+  147: 1.02, // NYY
+  158: 1.00, // MIL
+}
+
+/** FIP-specific park factor for FIP- / FIP+ computation. */
+export function getFipParkFactor(homeTeamId: number): number {
+  return FIP_PF_BY_TEAM[homeTeamId] ?? 1.00
 }
 
 // ── Handedness park factors ───────────────────────────────────────────────────

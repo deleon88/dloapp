@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "refresh-go-to-lineups": "tsx scripts/refresh-go-to-lineups.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.0",
@@ -22,6 +23,7 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^7.17.0",
@@ -30,6 +32,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "tsx": "^4.23.12",
     "typescript": "^5.5.3",
     "vite": "^5.3.4"
   }

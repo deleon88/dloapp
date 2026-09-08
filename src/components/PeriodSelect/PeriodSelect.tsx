@@ -8,7 +8,7 @@ interface Props {
   onChange: (v: StatPeriod) => void
 }
 
-const FREE_PERIODS: StatPeriod[] = ['season']
+const FREE_PERIODS: StatPeriod[] = ['season', 'season2025', '60days', '30days', '14days', '7days']
 
 export default function PeriodSelect({ value, onChange }: Props) {
   const [open, setOpen] = useState(false)

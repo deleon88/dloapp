@@ -49,6 +49,7 @@ interface Props {
   bullpenLoading?: boolean
   awayLast5?: GameResult[]
   homeLast5?: GameResult[]
+  isPitcherHandFiltered?: boolean
 }
 
 export default function GameMatchupView({
@@ -64,6 +65,7 @@ export default function GameMatchupView({
   bullpenLoading,
   awayLast5,
   homeLast5,
+  isPitcherHandFiltered,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>('comparison')
   const t = useT()
@@ -175,6 +177,7 @@ export default function GameMatchupView({
         awayPitcherName={teams.away.probablePitcher?.fullName}
         homePitcherName={teams.home.probablePitcher?.fullName}
         mode={mode}
+        isPitcherHandFiltered={isPitcherHandFiltered}
       />
 
       {/* ── Lineup comparison ──────────────────────────────── */}
@@ -183,6 +186,8 @@ export default function GameMatchupView({
         homeTeamId={teams.home.team.id}
         awayLineup={lineup?.away ?? []}
         homeLineup={lineup?.home ?? []}
+        awayFielders={lineup?.awayFielders ?? lineup?.away ?? []}
+        homeFielders={lineup?.homeFielders ?? lineup?.home ?? []}
         wrcMap={wrcMap ?? new Map()}
         isLoading={lineupLoading}
         mode={mode}

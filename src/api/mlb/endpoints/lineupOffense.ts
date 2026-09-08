@@ -1,5 +1,6 @@
 import { mlbApi } from '../client'
 import { fetchComputedWrcBulk } from './wrcComputed'
+import type { RollingPeriod } from './handSplitsRollup'
 export type { PlayerWrcData } from './wrcComputed'
 
 interface RawBoxscoreTeam {
@@ -16,15 +17,26 @@ export interface GameOffense {
   homeCount: number
 }
 
-interface GameTeamIds {
+export interface GameTeamIds {
   gamePk: number
   awayTeamId: number
   homeTeamId: number
+  // Resolved hand for each side's wRC+ split — away batters vs the (home)
+  // starter, home batters vs the (away) starter. Independent per side so
+  // "vs Starter Hand" mode (each side resolves to whatever that game's actual
+  // opposing starter throws) works, not just a single hand applied to both
+  // sides of every game. null/undefined → unfiltered (season/period) value.
+  awayHand?: 'L' | 'R' | null
+  homeHand?: 'L' | 'R' | null
 }
 
 // ── Per-player wRC+ + PA (for PA-weighted averages) ───────────────────────────
 
-export interface PlayerWrcPa { wrc: number; pa: number }
+export interface PlayerWrcPa {
+  wrc: number; pa: number
+  vsL?: number | null; paVsL?: number
+  vsR?: number | null; paVsR?: number
+}
 
 const WRC_PA_FIELDS = [
   'people', 'id',
@@ -78,14 +90,24 @@ export async function fetchWrcPaBulk(
   return merged
 }
 
-/** PA-weighted average wRC+ for a list of player IDs. */
-export function weightedWrcAvg(ids: number[], wrcPaMap: Map<number, PlayerWrcPa>): number | null {
+/**
+ * PA-weighted average wRC+ for a list of player IDs.
+ * @param hand - optional 'L'|'R' to average the vsLHP/vsRHP split instead of the season value.
+ */
+export function weightedWrcAvg(
+  ids: number[],
+  wrcPaMap: Map<number, PlayerWrcPa>,
+  hand?: 'L' | 'R',
+): number | null {
   let sumWrcPa = 0, sumPa = 0
   for (const id of ids) {
     const d = wrcPaMap.get(id)
     if (!d) continue
-    sumWrcPa += d.wrc * d.pa
-    sumPa    += d.pa
+    const wrc = hand === 'L' ? d.vsL : hand === 'R' ? d.vsR : d.wrc
+    const pa  = hand === 'L' ? d.paVsL : hand === 'R' ? d.paVsR : d.pa
+    if (wrc == null || !pa) continue
+    sumWrcPa += wrc * pa
+    sumPa    += pa
   }
   return sumPa === 0 ? null : Math.round(sumWrcPa / sumPa)
 }
@@ -95,10 +117,20 @@ export function weightedWrcAvg(ids: number[], wrcPaMap: Map<number, PlayerWrcPa>
 /**
  * Returns Map<gamePk, GameOffense> so doubleheaders (same teamId, different
  * gamePk) are handled correctly with their own lineups.
+ *
+ * @param cachedWrc - optional pre-resolved wRC+/PA per playerId (e.g. from
+ * compute_lineup_status.py's server-computed hand-split cache, via
+ * lineupStatusCache.ts). Players present here skip the live wRC+ fetch
+ * entirely — only the remainder (unconfirmed lineups, or players the cache
+ * doesn't cover) hits the live MLB API path, which is what makes toggling
+ * the hand filter fast once the day's lineups are confirmed.
  */
 export async function fetchLineupOffenseMap(
   games: GameTeamIds[],
   season = new Date().getFullYear(),
+  startDate?: string,
+  rollingPeriod?: RollingPeriod,
+  cachedWrc?: Map<number, PlayerWrcPa>,
 ): Promise<Map<number, GameOffense>> {
   if (!games.length) return new Map()
 
@@ -112,30 +144,45 @@ export async function fetchLineupOffenseMap(
   )
 
   // 2. Collect all unique player IDs across all games
-  const gameData: Array<{ gamePk: number; awayIds: number[]; homeIds: number[] }> = []
+  const gameData: Array<{
+    gamePk: number; awayIds: number[]; homeIds: number[]
+    awayHand?: 'L' | 'R' | null; homeHand?: 'L' | 'R' | null
+  }> = []
   const allPlayerIds = new Set<number>()
   const playerHomeTeamMap = new Map<number, number>()
 
   boxscores.forEach((bs, i) => {
-    const { gamePk, homeTeamId } = games[i]
+    const { gamePk, homeTeamId, awayHand, homeHand } = games[i]
     const awayIds = bs?.teams.away.battingOrder ?? []
     const homeIds = bs?.teams.home.battingOrder ?? []
-    gameData.push({ gamePk, awayIds, homeIds })
+    gameData.push({ gamePk, awayIds, homeIds, awayHand, homeHand })
     awayIds.forEach(id => { allPlayerIds.add(id); playerHomeTeamMap.set(id, homeTeamId) })
     homeIds.forEach(id => { allPlayerIds.add(id); playerHomeTeamMap.set(id, homeTeamId) })
   })
 
   if (!allPlayerIds.size) return new Map()
 
-  // 3. Park-adjusted wRC+ via computed formula
-  const wrcPaMap = await fetchWrcComputedBulk([...allPlayerIds], playerHomeTeamMap, undefined, season)
+  // 3. Park-adjusted wRC+ via computed formula — skip players already covered
+  // by cachedWrc; only the remainder hits the live (potentially slow) path.
+  // Fetches BOTH vsL and vsR per player regardless of any per-side hand
+  // filter — the per-side hand selection happens in weightedWrcAvg below.
+  const idsNeedingLive = cachedWrc
+    ? [...allPlayerIds].filter(id => !cachedWrc.has(id))
+    : [...allPlayerIds]
+  const liveMap = idsNeedingLive.length
+    ? await fetchWrcComputedBulk(idsNeedingLive, playerHomeTeamMap, undefined, season, startDate, rollingPeriod)
+    : new Map<number, PlayerWrcPa>()
+  const wrcPaMap = new Map<number, PlayerWrcPa>(cachedWrc)
+  for (const [id, v] of liveMap) if (!wrcPaMap.has(id)) wrcPaMap.set(id, v)
 
-  // 4. PA-weighted avg per game side, keyed by gamePk
+  // 4. PA-weighted avg per game side, keyed by gamePk — each side uses its own
+  // resolved hand (relevant for "vs Starter Hand": away vs home starter, home
+  // vs away starter — two different hands within the same game).
   const result = new Map<number, GameOffense>()
-  for (const { gamePk, awayIds, homeIds } of gameData) {
+  for (const { gamePk, awayIds, homeIds, awayHand, homeHand } of gameData) {
     result.set(gamePk, {
-      awayWrc:   weightedWrcAvg(awayIds, wrcPaMap),
-      homeWrc:   weightedWrcAvg(homeIds, wrcPaMap),
+      awayWrc:   weightedWrcAvg(awayIds, wrcPaMap, awayHand ?? undefined),
+      homeWrc:   weightedWrcAvg(homeIds, wrcPaMap, homeHand ?? undefined),
       awayCount: awayIds.length,
       homeCount: homeIds.length,
     })
@@ -156,11 +203,19 @@ export async function fetchWrcComputedBulk(
   homeTeamMap: Map<number, number>,
   batterHandMap?: Map<number, 'L' | 'R'>,
   season = new Date().getFullYear(),
+  startDate?: string,
+  rollingPeriod?: RollingPeriod,
 ): Promise<Map<number, PlayerWrcPa>> {
-  const computed = await fetchComputedWrcBulk(playerIds, homeTeamMap, batterHandMap, season)
+  const computed = await fetchComputedWrcBulk(playerIds, homeTeamMap, batterHandMap, season, startDate, rollingPeriod)
   const out = new Map<number, PlayerWrcPa>()
   for (const [id, d] of computed) {
-    if (d.wrcPlus != null) out.set(id, { wrc: d.wrcPlus, pa: d.pa })
+    if (d.wrcPlus != null) {
+      out.set(id, {
+        wrc: d.wrcPlus, pa: d.pa,
+        vsL: d.vsL, paVsL: d.paVsL,
+        vsR: d.vsR, paVsR: d.paVsR,
+      })
+    }
   }
   return out
 }

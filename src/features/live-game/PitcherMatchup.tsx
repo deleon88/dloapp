@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import type { PitcherInfo, PitcherSeasonStats } from '@/api/mlb/endpoints/pitcherStats'
-import { fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import type { ViewMode } from './LineupComparison'
 import { useT } from '@/i18n/useT'
 import type { TKey } from '@/i18n/useT'
@@ -19,18 +18,38 @@ interface Props {
   awayPitcherName?: string
   homePitcherName?: string
   mode: ViewMode
+  /** When true, the xwOBA chip shows wOBA-against instead — no Statcast batter-stand
+   * filter exists (see savantStats.ts), so xwOBA can't be hand-split; wOBA-against
+   * (from the same hand-split source as FIP/ERA/WHIP above) is the honest substitute.
+   * Independently of this flag, each side also falls back to wOBA-against whenever
+   * its own xwobaComputed is null (e.g. rolling windows, where Savant's pitcher
+   * query is currently broken and expectedStatistics can't be trusted for date
+   * ranges) — see the per-side xwOBA fallback logic below. */
+  isPitcherHandFiltered?: boolean
 }
 
 const HEADSHOT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, mode, isPitcherHandFiltered }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
   const as = awayPitcher?.seasonStats
   const hs = homePitcher?.seasonStats
+
+  // computed values work for both date ranges and full season; fall back to sabermetrics when absent
+  const aFipDisplay  = as ? (as.fipComputed  ?? (as.fip  || null)) : null
+  const hFipDisplay  = hs ? (hs.fipComputed  ?? (hs.fip  || null)) : null
+  const aXfipDisplay = as ? (as.xfipComputed ?? (as.xfip || null)) : null
+  const hXfipDisplay = hs ? (hs.xfipComputed ?? (hs.xfip || null)) : null
+
+  // Show wOBA-against in place of xwOBA whenever xwOBA itself isn't available for
+  // that side — not just when the pitcher hand filter forces it. Each side is
+  // independent (one pitcher can have real xwOBA while the other doesn't).
+  const awayShowWoba = isPitcherHandFiltered || as?.xwobaComputed == null
+  const homeShowWoba = isPitcherHandFiltered || hs?.xwobaComputed == null
 
   return (
     <div className={styles.card}>
@@ -93,10 +112,10 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
       <div className={styles.bars}>
         <PitchBar
           label="FIP"
-          aVal={as?.fip ? as.fip.toFixed(2) : undefined}
-          hVal={hs?.fip ? hs.fip.toFixed(2) : undefined}
-          aw={as?.fipMinus ? fipPlusBarWidth(fipPlus(as.fipMinus)) : 0}
-          hw={hs?.fipMinus ? fipPlusBarWidth(fipPlus(hs.fipMinus)) : 0}
+          aVal={aFipDisplay != null ? aFipDisplay.toFixed(2) : undefined}
+          hVal={hFipDisplay != null ? hFipDisplay.toFixed(2) : undefined}
+          aw={as?.fipPlusComputed != null ? fipPlusBarWidth(as.fipPlusComputed) : 0}
+          hw={hs?.fipPlusComputed != null ? fipPlusBarWidth(hs.fipPlusComputed) : 0}
           ac={ac}
           hc={hc}
         />
@@ -111,7 +130,12 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
         awayColor={awayColor} homeColor={homeColor} mode="comparison"
       >
         <div className={styles.glossaryList}>
-          {GLOSSARY.map(({ stat, descKey }) => (
+          {(isPitcherHandFiltered
+            ? [...GLOSSARY.filter(g => g.stat !== 'xwOBA'), GLOSSARY_WOBA_AGAINST]
+            : (awayShowWoba || homeShowWoba)
+              ? [...GLOSSARY, GLOSSARY_WOBA_AGAINST]
+              : GLOSSARY
+          ).map(({ stat, descKey }) => (
             <div key={stat} className={styles.glossaryItem}>
               <span className={styles.glossaryStat}>{stat}</span>
               <span className={styles.glossaryDesc}>{t(descKey)}</span>
@@ -124,13 +148,17 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
       <PitcherChips
         away={[
           { label: 'K-BB%', val: kbbPct(as) },
-          { label: 'xFIP',  val: as?.xfip   ? as.xfip.toFixed(2) : '—' },
-          { label: 'xwOBA', val: as?.wobaCon ?? '—' },
+          { label: 'xFIP',  val: aXfipDisplay != null ? aXfipDisplay.toFixed(2) : '—' },
+          awayShowWoba
+            ? { label: 'wOBA', val: fmtWobaAgainst(as) }
+            : { label: 'xwOBA', val: fmtXwoba(as) },
         ]}
         home={[
           { label: 'K-BB%', val: kbbPct(hs) },
-          { label: 'xFIP',  val: hs?.xfip   ? hs.xfip.toFixed(2) : '—' },
-          { label: 'xwOBA', val: hs?.wobaCon ?? '—' },
+          { label: 'xFIP',  val: hXfipDisplay != null ? hXfipDisplay.toFixed(2) : '—' },
+          homeShowWoba
+            ? { label: 'wOBA', val: fmtWobaAgainst(hs) }
+            : { label: 'xwOBA', val: fmtXwoba(hs) },
         ]}
       />
     </div>
@@ -178,6 +206,8 @@ const GLOSSARY: Array<{ stat: string; descKey: TKey }> = [
   { stat: 'xwOBA', descKey: 'glossaryXwobaDesc' },
 ]
 
+const GLOSSARY_WOBA_AGAINST = { stat: 'wOBA', descKey: 'glossaryWobaAgainstDesc' as TKey }
+
 /* ── Bar helpers ─────────────────────────────────────────────────── */
 
 function PitchBar({ label, aVal, hVal, lowerIsBetter = false, ac, hc, aw, hw }: {
@@ -197,6 +227,21 @@ function PitchBar({ label, aVal, hVal, lowerIsBetter = false, ac, hc, aw, hw }: 
       hc={hc}
     />
   )
+}
+
+/** xwOBA display: Savant computed value when available, MLB API expectedStatistics fallback */
+function fmtXwoba(s: PitcherSeasonStats | undefined): string {
+  if (!s) return '—'
+  if (s.xwobaComputed != null) return s.xwobaComputed.toFixed(3).replace(/^0/, '')
+  return s.woba !== '-.---' ? s.woba : '—'
+}
+
+/** wOBA-against, shown in place of xwOBA when a pitcher hand filter is active
+ * (no Statcast batter-stand filter exists — see savantStats.ts). Never falls back
+ * to the season-wide xwOBA/wOBA, which would silently mislabel a different number. */
+function fmtWobaAgainst(s: PitcherSeasonStats | undefined): string {
+  if (!s || s.wobaAgainstComputed == null) return '—'
+  return s.wobaAgainstComputed.toFixed(3).replace(/^0/, '')
 }
 
 /** K-BB% = (K - BB) / TBF × 100 */

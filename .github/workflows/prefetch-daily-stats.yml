@@ -1,0 +1,152 @@
+# .github/workflows/prefetch-daily-stats.yml
+#
+# Pre-computes xwOBA, FIP, xFIP, wRC+ for all probable pitchers and active
+# roster batters in today's games, for all split windows (season / 60d / 30d
+# / 14d / 7d).  Saves public/data/daily_stats_{YYYY-MM-DD}.json and commits
+# it so Vercel serves fresh static data without any live Savant requests.
+#
+# Schedule:
+#   09:30 UTC (05:30 ET) — main morning run, after refresh-constants.yml (09:15)
+#   has committed linear_weights_{year}.json so the script reads live constants.
+#   Every 30 min from 14:00–19:00 UTC (10:00 AM–3:00 PM ET) — picks up confirmed
+#   lineups for day games / early evening games as they're announced.
+#   Every 30 min from 20:00 UTC through 05:00 UTC next day (4:00 PM–1:00 AM ET) —
+#   covers evening/night games, INCLUDING West Coast games. A 7-10 PM PT first
+#   pitch (10 PM ET–1 AM ET) typically doesn't get its official boxscore batting
+#   order locked in until 1-2 hours before game time — the 14:00-19:00 ET-only
+#   window used before this change entirely missed those. This extended window
+#   was added specifically to fix that gap.
+#
+# Also runnable manually via workflow_dispatch.
+
+name: Prefetch Daily Stats
+
+on:
+  schedule:
+    - cron: '30 9  * * *'   # 09:30 UTC — after refresh-constants.yml (09:15) has committed
+    - cron: '0  14 * * *'   # 14:00 UTC
+    - cron: '30 14 * * *'
+    - cron: '0  15 * * *'
+    - cron: '30 15 * * *'
+    - cron: '0  16 * * *'
+    - cron: '30 16 * * *'
+    - cron: '0  17 * * *'
+    - cron: '30 17 * * *'
+    - cron: '0  18 * * *'
+    - cron: '30 18 * * *'
+    - cron: '0  19 * * *'
+    - cron: '30 19 * * *'
+    - cron: '0  20 * * *'
+    - cron: '30 20 * * *'
+    - cron: '0  21 * * *'
+    - cron: '30 21 * * *'
+    - cron: '0  22 * * *'
+    - cron: '30 22 * * *'
+    - cron: '0  23 * * *'
+    - cron: '30 23 * * *'
+    - cron: '0  0  * * *'
+    - cron: '30 0  * * *'
+    - cron: '0  1  * * *'
+    - cron: '30 1  * * *'
+    - cron: '0  2  * * *'
+    - cron: '30 2  * * *'
+    - cron: '0  3  * * *'
+    - cron: '30 3  * * *'
+    - cron: '0  4  * * *'
+    - cron: '30 4  * * *'
+    - cron: '0  5  * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Game date (YYYY-MM-DD, leave blank for today)'
+        required: false
+        default: ''
+
+jobs:
+  prefetch:
+    name: Prefetch stats
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Determine date
+        id: gamedate
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            echo "date=${{ github.event.inputs.date }}" >> $GITHUB_OUTPUT
+          else
+            echo "date=$(date -u +%Y-%m-%d)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run prefetch script
+        run: |
+          mkdir -p public/data
+          python scripts/prefetch_daily_stats.py \
+            --date ${{ steps.gamedate.outputs.date }} \
+            --out  public/data \
+            --workers 30
+
+      - name: Verify output
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+          d = "${{ steps.gamedate.outputs.date }}"
+          f = pathlib.Path(f"public/data/daily_stats_{d}.json")
+          if not f.exists():
+            print("ERROR: output file missing"); sys.exit(1)
+          data = json.loads(f.read_text())
+          pitchers = data.get("pitchers", {})
+          batters_season = data.get("batters", {}).get("season", {})
+          print(f"OK  date={data['date']}  pitchers={len(pitchers)}  "
+                f"batters(season)={len(batters_season)}  "
+                f"size={f.stat().st_size//1024} KB")
+          EOF
+
+      # Runs AFTER the stats prefetch above so computedStats can read from the
+      # just-written daily_stats file. Reads public/data/go_to_lineups.json
+      # (committed weekly by refresh-go-to-lineups.yml) as the goToLineup
+      # source of truth. Already-"confirmed" games/sides from earlier runs
+      # today are left untouched — see compute_lineup_status.py for why that
+      # makes this safe to run every 30 min without double-computing.
+      - name: Compute lineup confirmation status
+        run: |
+          python scripts/compute_lineup_status.py \
+            --date ${{ steps.gamedate.outputs.date }} \
+            --out  public/data
+
+      - name: Verify lineup status output
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+          d = "${{ steps.gamedate.outputs.date }}"
+          f = pathlib.Path(f"public/data/lineup_status_{d}.json")
+          if not f.exists():
+            print("ERROR: output file missing"); sys.exit(1)
+          data = json.loads(f.read_text())
+          confirmed = sum(
+            1 for g in data.values() for side in ("awayTeam", "homeTeam")
+            if g.get(side, {}).get("status") == "confirmed"
+          )
+          print(f"OK  games={len(data)}  confirmedSides={confirmed}")
+          EOF
+
+      - name: Commit updated stats
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/daily_stats_${{ steps.gamedate.outputs.date }}.json
+          git add public/data/lineup_status_${{ steps.gamedate.outputs.date }}.json
+          if git diff --cached --quiet; then
+            echo "No changes — stats unchanged since last run."
+          else
+            git commit -m "chore: prefetch daily stats ${{ steps.gamedate.outputs.date }}"
+            git push
+          fi

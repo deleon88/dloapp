@@ -1,4 +1,14 @@
-const MLB_BASE_URL = import.meta.env.VITE_MLB_API_BASE_URL ?? '/api/mlb'
+// import.meta.env is Vite-injected (browser build); falls back to process.env
+// for Node/tsx scripts (e.g. scripts/refresh-go-to-lineups.ts), which have no
+// Vercel rewrite proxy and must point straight at the real MLB Stats API host.
+const MLB_BASE_URL =
+  import.meta.env?.VITE_MLB_API_BASE_URL ??
+  (typeof process !== 'undefined' ? process.env?.VITE_MLB_API_BASE_URL : undefined) ??
+  '/api/mlb'
+
+// window doesn't exist outside the browser — only used here to resolve a
+// relative MLB_BASE_URL against the current origin.
+const ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'http://localhost'
 
 export class MlbApiError extends Error {
   constructor(
@@ -15,7 +25,7 @@ async function request<T>(
   path: string,
   params?: Record<string, string | number | boolean | string[]>,
 ): Promise<T> {
-  const url = new URL(`${MLB_BASE_URL}${path}`, window.location.origin)
+  const url = new URL(`${MLB_BASE_URL}${path}`, ORIGIN)
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {

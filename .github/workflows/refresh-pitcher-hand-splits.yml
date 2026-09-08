@@ -1,0 +1,86 @@
+# .github/workflows/refresh-pitcher-hand-splits.yml
+#
+# Runs daily at 09:20 UTC (05:20 ET, right after refresh-constants.yml at
+# 09:15) — precomputes pitcher vs-LHB / vs-RHB raw rate stats via FanGraphs'
+# splits API and commits public/data/pitcher_hand_splits_{year}.json.
+#
+# Deliberately server-side-only: this FanGraphs endpoint is undocumented
+# (reverse-engineered this session, see scripts/fetch_fg_pitcher_splits.py)
+# — routing it through a daily cron instead of a live per-request browser
+# call keeps every end user's traffic off it, so it can't get us rate-limited
+# or blocked the way FanGraphs' Cloudflare-protected pages already are for
+# plain requests.
+#
+# Also runnable manually via workflow_dispatch.
+
+name: Refresh Pitcher Hand Splits
+
+on:
+  schedule:
+    - cron: '20 9 * * *'   # 09:20 UTC = 05:20 ET
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season year (leave blank for current year)'
+        required: false
+        default: ''
+
+jobs:
+  refresh:
+    name: Refresh pitcher vs-LHB/vs-RHB splits
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Determine season
+        id: season
+        run: |
+          if [ -n "${{ github.event.inputs.season }}" ]; then
+            echo "year=${{ github.event.inputs.season }}" >> $GITHUB_OUTPUT
+          else
+            echo "year=$(date +%Y)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch pitcher hand splits
+        run: |
+          mkdir -p public/data
+          python scripts/fetch_fg_pitcher_splits.py \
+            --season ${{ steps.season.outputs.year }} \
+            --out public/data
+
+      - name: Verify output
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+          f = pathlib.Path("public/data/pitcher_hand_splits_${{ steps.season.outputs.year }}.json")
+          if not f.exists():
+            print("ERROR: output file not found"); sys.exit(1)
+          d = json.loads(f.read_text())
+          n = len(d.get("pitchers", {}))
+          if n < 100:
+            print(f"ERROR: only {n} pitchers — expected 300+"); sys.exit(1)
+          print(f"OK — season={d['season']}  pitchers={n}")
+          EOF
+
+      - name: Commit updated splits
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/pitcher_hand_splits_${{ steps.season.outputs.year }}.json
+          if git diff --cached --quiet; then
+            echo "No changes — splits unchanged since last run."
+          else
+            git commit -m "chore: refresh ${{ steps.season.outputs.year }} pitcher hand splits [skip ci]"
+            git push
+          fi

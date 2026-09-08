@@ -1,0 +1,56 @@
+.wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Icon-only trigger — same footprint as the glossary "?" button */
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 27px;
+  border-radius: 5px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.trigger:hover {
+  background: var(--bg-highlight);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
+
+.triggerActive {
+  color: var(--text-primary);
+  border-color: var(--border-active);
+}
+
+.activeDot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-amber, #e0a52c);
+  border: 1.5px solid var(--bg-page, #0b0d10);
+}
+
+.sectionLabel {
+  padding: 6px 12px 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}

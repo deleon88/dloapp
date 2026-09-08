@@ -1,0 +1,3287 @@
+{
+  "824803": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 663757,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 700250,
+          "battingOrder": 2,
+          "position": "C"
+        },
+        {
+          "playerId": 671218,
+          "battingOrder": 3,
+          "position": "LF"
+        },
+        {
+          "playerId": 671277,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 682987,
+          "battingOrder": 5,
+          "position": "RF"
+        },
+        {
+          "playerId": 665862,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 806146,
+          "battingOrder": 7,
+          "position": "SS"
+        },
+        {
+          "playerId": 641857,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 502671,
+          "battingOrder": 9,
+          "position": "DH"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 663757,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 700250,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 671218,
+          "battingOrder": 3,
+          "position": "LF"
+        },
+        {
+          "playerId": 671277,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 682987,
+          "battingOrder": 5,
+          "position": "RF"
+        },
+        {
+          "playerId": 665862,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 806146,
+          "battingOrder": 7,
+          "position": "SS"
+        },
+        {
+          "playerId": 676609,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 645305,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:00.589392+00:00",
+      "computedStats": {
+        "663757": null,
+        "700250": null,
+        "671218": null,
+        "671277": null,
+        "682987": null,
+        "665862": null,
+        "806146": null,
+        "676609": null,
+        "645305": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 641933,
+          "battingOrder": 1,
+          "position": "RF"
+        },
+        {
+          "playerId": 624413,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 702616,
+          "battingOrder": 3,
+          "position": "2B"
+        },
+        {
+          "playerId": 687637,
+          "battingOrder": 4,
+          "position": "LF"
+        },
+        {
+          "playerId": 683002,
+          "battingOrder": 5,
+          "position": "SS"
+        },
+        {
+          "playerId": 687952,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 665750,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 665966,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 691723,
+          "battingOrder": 9,
+          "position": "DH"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 702616,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 624413,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 687637,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 691723,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 683002,
+          "battingOrder": 5,
+          "position": "SS"
+        },
+        {
+          "playerId": 687952,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 665750,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 681297,
+          "battingOrder": 8,
+          "position": "PH"
+        },
+        {
+          "playerId": 650968,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:00.589411+00:00",
+      "computedStats": {
+        "702616": null,
+        "624413": null,
+        "687637": null,
+        "691723": null,
+        "683002": null,
+        "687952": null,
+        "665750": null,
+        "681297": null,
+        "650968": null
+      }
+    }
+  },
+  "823341": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 805808,
+          "battingOrder": 1,
+          "position": "3B"
+        },
+        {
+          "playerId": 650402,
+          "battingOrder": 2,
+          "position": "2B"
+        },
+        {
+          "playerId": 693307,
+          "battingOrder": 3,
+          "position": "C"
+        },
+        {
+          "playerId": 701162,
+          "battingOrder": 4,
+          "position": "LF"
+        },
+        {
+          "playerId": 680664,
+          "battingOrder": 5,
+          "position": "DH"
+        },
+        {
+          "playerId": 679529,
+          "battingOrder": 6,
+          "position": "1B"
+        },
+        {
+          "playerId": 703601,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 595879,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 656716,
+          "battingOrder": 9,
+          "position": "RF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 650402,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 805808,
+          "battingOrder": 2,
+          "position": "3B"
+        },
+        {
+          "playerId": 693307,
+          "battingOrder": 3,
+          "position": "PH"
+        },
+        {
+          "playerId": 680664,
+          "battingOrder": 4,
+          "position": "C"
+        },
+        {
+          "playerId": 701678,
+          "battingOrder": 5,
+          "position": "PH"
+        },
+        {
+          "playerId": 679529,
+          "battingOrder": 6,
+          "position": "1B"
+        },
+        {
+          "playerId": 814430,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 703601,
+          "battingOrder": 8,
+          "position": "CF"
+        },
+        {
+          "playerId": 595879,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:00.740948+00:00",
+      "computedStats": {
+        "650402": null,
+        "805808": null,
+        "693307": null,
+        "680664": null,
+        "701678": null,
+        "679529": null,
+        "814430": null,
+        "703601": null,
+        "595879": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 687462,
+          "battingOrder": 1,
+          "position": "1B"
+        },
+        {
+          "playerId": 664040,
+          "battingOrder": 2,
+          "position": "2B"
+        },
+        {
+          "playerId": 668804,
+          "battingOrder": 3,
+          "position": "LF"
+        },
+        {
+          "playerId": 695257,
+          "battingOrder": 4,
+          "position": "CF"
+        },
+        {
+          "playerId": 693304,
+          "battingOrder": 5,
+          "position": "3B"
+        },
+        {
+          "playerId": 694378,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 699013,
+          "battingOrder": 7,
+          "position": "RF"
+        },
+        {
+          "playerId": 804668,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 694377,
+          "battingOrder": 9,
+          "position": "DH"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 687462,
+          "battingOrder": 1,
+          "position": "1B"
+        },
+        {
+          "playerId": 664040,
+          "battingOrder": 2,
+          "position": "2B"
+        },
+        {
+          "playerId": 668804,
+          "battingOrder": 3,
+          "position": "DH"
+        },
+        {
+          "playerId": 695257,
+          "battingOrder": 4,
+          "position": "LF"
+        },
+        {
+          "playerId": 665833,
+          "battingOrder": 5,
+          "position": "CF"
+        },
+        {
+          "playerId": 663968,
+          "battingOrder": 6,
+          "position": "RF"
+        },
+        {
+          "playerId": 804668,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 694378,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 669707,
+          "battingOrder": 9,
+          "position": "3B"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:00.740965+00:00",
+      "computedStats": {
+        "687462": null,
+        "664040": null,
+        "668804": null,
+        "695257": null,
+        "665833": null,
+        "663968": null,
+        "804668": null,
+        "694378": null,
+        "669707": null
+      }
+    }
+  },
+  "824398": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 813841,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 646240,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 642715,
+          "battingOrder": 3,
+          "position": "SS"
+        },
+        {
+          "playerId": 682674,
+          "battingOrder": 4,
+          "position": "LF"
+        },
+        {
+          "playerId": 808982,
+          "battingOrder": 5,
+          "position": "RF"
+        },
+        {
+          "playerId": 678545,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 671083,
+          "battingOrder": 7,
+          "position": "3B"
+        },
+        {
+          "playerId": 668800,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 805811,
+          "battingOrder": 9,
+          "position": "DH"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 813841,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 646240,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 682674,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 805811,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 678545,
+          "battingOrder": 5,
+          "position": "2B"
+        },
+        {
+          "playerId": 806367,
+          "battingOrder": 6,
+          "position": "PH"
+        },
+        {
+          "playerId": 687551,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 668800,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 683766,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:00.890196+00:00",
+      "computedStats": {
+        "813841": null,
+        "646240": null,
+        "682674": null,
+        "805811": null,
+        "678545": null,
+        "806367": null,
+        "687551": null,
+        "668800": null,
+        "683766": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 680757,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 800050,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 608070,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 682657,
+          "battingOrder": 4,
+          "position": "2B"
+        },
+        {
+          "playerId": 663993,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 694197,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 690984,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 672275,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 666176,
+          "battingOrder": 9,
+          "position": "RF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 680757,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 608070,
+          "battingOrder": 2,
+          "position": "3B"
+        },
+        {
+          "playerId": 690984,
+          "battingOrder": 3,
+          "position": "CF"
+        },
+        {
+          "playerId": 682657,
+          "battingOrder": 4,
+          "position": "RF"
+        },
+        {
+          "playerId": 656555,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 694197,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 683953,
+          "battingOrder": 7,
+          "position": "DH"
+        },
+        {
+          "playerId": 672275,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 677587,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:00.890214+00:00",
+      "computedStats": {
+        "680757": null,
+        "608070": null,
+        "690984": null,
+        "682657": null,
+        "656555": null,
+        "694197": null,
+        "683953": null,
+        "672275": null,
+        "677587": null
+      }
+    }
+  },
+  "824475": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 802139,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 671056,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 691023,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 676475,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 699625,
+          "battingOrder": 5,
+          "position": "C"
+        },
+        {
+          "playerId": 691026,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 691458,
+          "battingOrder": 7,
+          "position": "3B"
+        },
+        {
+          "playerId": 677592,
+          "battingOrder": 8,
+          "position": "LF"
+        },
+        {
+          "playerId": 701675,
+          "battingOrder": 9,
+          "position": "CF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 802139,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 671056,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 691023,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 676475,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 701675,
+          "battingOrder": 5,
+          "position": "CF"
+        },
+        {
+          "playerId": 691458,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 691026,
+          "battingOrder": 7,
+          "position": "SS"
+        },
+        {
+          "playerId": 677592,
+          "battingOrder": 8,
+          "position": "LF"
+        },
+        {
+          "playerId": 686780,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.035471+00:00",
+      "computedStats": {
+        "802139": null,
+        "671056": null,
+        "691023": null,
+        "676475": null,
+        "701675": null,
+        "691458": null,
+        "691026": null,
+        "677592": null,
+        "686780": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 682829,
+          "battingOrder": 1,
+          "position": "SS"
+        },
+        {
+          "playerId": 701398,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 668709,
+          "battingOrder": 3,
+          "position": "LF"
+        },
+        {
+          "playerId": 663886,
+          "battingOrder": 4,
+          "position": "C"
+        },
+        {
+          "playerId": 553993,
+          "battingOrder": 5,
+          "position": "DH"
+        },
+        {
+          "playerId": 667472,
+          "battingOrder": 6,
+          "position": "CF"
+        },
+        {
+          "playerId": 699302,
+          "battingOrder": 7,
+          "position": "RF"
+        },
+        {
+          "playerId": 680574,
+          "battingOrder": 8,
+          "position": "2B"
+        },
+        {
+          "playerId": 663647,
+          "battingOrder": 9,
+          "position": "3B"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 682829,
+          "battingOrder": 1,
+          "position": "SS"
+        },
+        {
+          "playerId": 701398,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 668709,
+          "battingOrder": 3,
+          "position": "LF"
+        },
+        {
+          "playerId": 553993,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 663886,
+          "battingOrder": 5,
+          "position": "C"
+        },
+        {
+          "playerId": 667472,
+          "battingOrder": 6,
+          "position": "CF"
+        },
+        {
+          "playerId": 680574,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 699302,
+          "battingOrder": 8,
+          "position": "RF"
+        },
+        {
+          "playerId": 663647,
+          "battingOrder": 9,
+          "position": "3B"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.035489+00:00",
+      "computedStats": {
+        "682829": null,
+        "701398": null,
+        "668709": null,
+        "553993": null,
+        "663886": null,
+        "667472": null,
+        "680574": null,
+        "699302": null,
+        "663647": null
+      }
+    }
+  },
+  "822938": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 664770,
+          "battingOrder": 1,
+          "position": "RF"
+        },
+        {
+          "playerId": 703520,
+          "battingOrder": 2,
+          "position": "CF"
+        },
+        {
+          "playerId": 672386,
+          "battingOrder": 3,
+          "position": "C"
+        },
+        {
+          "playerId": 543807,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 672960,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 665926,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 676391,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 669701,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 664702,
+          "battingOrder": 9,
+          "position": "LF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 703520,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 664770,
+          "battingOrder": 2,
+          "position": "RF"
+        },
+        {
+          "playerId": 672386,
+          "battingOrder": 3,
+          "position": "C"
+        },
+        {
+          "playerId": 543807,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 664702,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 672960,
+          "battingOrder": 6,
+          "position": "1B"
+        },
+        {
+          "playerId": 665926,
+          "battingOrder": 7,
+          "position": "SS"
+        },
+        {
+          "playerId": 676391,
+          "battingOrder": 8,
+          "position": "2B"
+        },
+        {
+          "playerId": 669701,
+          "battingOrder": 9,
+          "position": "3B"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.180025+00:00",
+      "computedStats": {
+        "703520": null,
+        "664770": null,
+        "672386": null,
+        "543807": null,
+        "664702": null,
+        "672960": null,
+        "665926": null,
+        "676391": null,
+        "669701": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 650490,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 666018,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 691406,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 663743,
+          "battingOrder": 4,
+          "position": "C"
+        },
+        {
+          "playerId": 802415,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 676356,
+          "battingOrder": 6,
+          "position": "CF"
+        },
+        {
+          "playerId": 683748,
+          "battingOrder": 7,
+          "position": "RF"
+        },
+        {
+          "playerId": 680700,
+          "battingOrder": 8,
+          "position": "2B"
+        },
+        {
+          "playerId": 670764,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 802415,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 691406,
+          "battingOrder": 2,
+          "position": "3B"
+        },
+        {
+          "playerId": 666018,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 650490,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 689414,
+          "battingOrder": 5,
+          "position": "C"
+        },
+        {
+          "playerId": 668723,
+          "battingOrder": 6,
+          "position": "RF"
+        },
+        {
+          "playerId": 656775,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 680700,
+          "battingOrder": 8,
+          "position": "2B"
+        },
+        {
+          "playerId": 670764,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.180043+00:00",
+      "computedStats": {
+        "802415": null,
+        "691406": null,
+        "666018": null,
+        "650490": null,
+        "689414": null,
+        "668723": null,
+        "656775": null,
+        "680700": null,
+        "670764": null
+      }
+    }
+  },
+  "823423": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 805300,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 669364,
+          "battingOrder": 2,
+          "position": "2B"
+        },
+        {
+          "playerId": 672640,
+          "battingOrder": 3,
+          "position": "SS"
+        },
+        {
+          "playerId": 665052,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 681715,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 683357,
+          "battingOrder": 6,
+          "position": "DH"
+        },
+        {
+          "playerId": 691788,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 665923,
+          "battingOrder": 8,
+          "position": "RF"
+        },
+        {
+          "playerId": 691594,
+          "battingOrder": 9,
+          "position": "3B"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 805300,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 669364,
+          "battingOrder": 2,
+          "position": "2B"
+        },
+        {
+          "playerId": 672640,
+          "battingOrder": 3,
+          "position": "SS"
+        },
+        {
+          "playerId": 665052,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 681715,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 682663,
+          "battingOrder": 6,
+          "position": "DH"
+        },
+        {
+          "playerId": 677870,
+          "battingOrder": 7,
+          "position": "PH"
+        },
+        {
+          "playerId": 691594,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 665923,
+          "battingOrder": 9,
+          "position": "PH"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.319731+00:00",
+      "computedStats": {
+        "805300": null,
+        "669364": null,
+        "672640": null,
+        "665052": null,
+        "681715": null,
+        "682663": null,
+        "677870": null,
+        "691594": null,
+        "665923": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 656941,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 607208,
+          "battingOrder": 2,
+          "position": "SS"
+        },
+        {
+          "playerId": 547180,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 650333,
+          "battingOrder": 4,
+          "position": "2B"
+        },
+        {
+          "playerId": 664761,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 681082,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 669016,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 592663,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 702222,
+          "battingOrder": 9,
+          "position": "CF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 656941,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 607208,
+          "battingOrder": 2,
+          "position": "SS"
+        },
+        {
+          "playerId": 547180,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 650333,
+          "battingOrder": 4,
+          "position": "2B"
+        },
+        {
+          "playerId": 664761,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 681082,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 669016,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 592663,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 702222,
+          "battingOrder": 9,
+          "position": "CF"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.319748+00:00",
+      "computedStats": {
+        "656941": null,
+        "607208": null,
+        "547180": null,
+        "650333": null,
+        "664761": null,
+        "681082": null,
+        "669016": null,
+        "592663": null,
+        "702222": null
+      }
+    }
+  },
+  "824723": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 672695,
+          "battingOrder": 1,
+          "position": "SS"
+        },
+        {
+          "playerId": 682998,
+          "battingOrder": 2,
+          "position": "RF"
+        },
+        {
+          "playerId": 672515,
+          "battingOrder": 3,
+          "position": "C"
+        },
+        {
+          "playerId": 543510,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 571448,
+          "battingOrder": 5,
+          "position": "3B"
+        },
+        {
+          "playerId": 545121,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 596146,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 678489,
+          "battingOrder": 8,
+          "position": "CF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 545121,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 682998,
+          "battingOrder": 2,
+          "position": "RF"
+        },
+        {
+          "playerId": 672515,
+          "battingOrder": 3,
+          "position": "DH"
+        },
+        {
+          "playerId": 672695,
+          "battingOrder": 4,
+          "position": "SS"
+        },
+        {
+          "playerId": 694374,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 691783,
+          "battingOrder": 6,
+          "position": "CF"
+        },
+        {
+          "playerId": 543510,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 699912,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 814439,
+          "battingOrder": 9,
+          "position": "LF"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.471854+00:00",
+      "computedStats": {
+        "545121": null,
+        "682998": null,
+        "672515": null,
+        "672695": null,
+        "694374": null,
+        "691783": null,
+        "543510": null,
+        "699912": null,
+        "814439": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 686765,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 678882,
+          "battingOrder": 2,
+          "position": "CF"
+        },
+        {
+          "playerId": 677800,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 575929,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 702332,
+          "battingOrder": 5,
+          "position": "3B"
+        },
+        {
+          "playerId": 655316,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 680776,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 681508,
+          "battingOrder": 8,
+          "position": "DH"
+        },
+        {
+          "playerId": 657136,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 686765,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 678882,
+          "battingOrder": 2,
+          "position": "CF"
+        },
+        {
+          "playerId": 677800,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 575929,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 668939,
+          "battingOrder": 5,
+          "position": "C"
+        },
+        {
+          "playerId": 702332,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 680776,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 655316,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 681508,
+          "battingOrder": 9,
+          "position": "DH"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.471872+00:00",
+      "computedStats": {
+        "686765": null,
+        "678882": null,
+        "677800": null,
+        "575929": null,
+        "668939": null,
+        "702332": null,
+        "680776": null,
+        "655316": null,
+        "681508": null
+      }
+    }
+  },
+  "823586": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 665487,
+          "battingOrder": 1,
+          "position": "RF"
+        },
+        {
+          "playerId": 630105,
+          "battingOrder": 2,
+          "position": "2B"
+        },
+        {
+          "playerId": 592518,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 664034,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 701538,
+          "battingOrder": 5,
+          "position": "CF"
+        },
+        {
+          "playerId": 669134,
+          "battingOrder": 6,
+          "position": "C"
+        },
+        {
+          "playerId": 687749,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 593428,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 657757,
+          "battingOrder": 9,
+          "position": "DH"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 665487,
+          "battingOrder": 1,
+          "position": "RF"
+        },
+        {
+          "playerId": 687749,
+          "battingOrder": 2,
+          "position": "LF"
+        },
+        {
+          "playerId": 592518,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 664034,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 701538,
+          "battingOrder": 5,
+          "position": "CF"
+        },
+        {
+          "playerId": 593428,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 669720,
+          "battingOrder": 7,
+          "position": "DH"
+        },
+        {
+          "playerId": 666023,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 630105,
+          "battingOrder": 9,
+          "position": "2B"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.616548+00:00",
+      "computedStats": {
+        "665487": null,
+        "687749": null,
+        "592518": null,
+        "664034": null,
+        "701538": null,
+        "593428": null,
+        "669720": null,
+        "666023": null,
+        "630105": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 805999,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 596019,
+          "battingOrder": 2,
+          "position": "SS"
+        },
+        {
+          "playerId": 666182,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 673357,
+          "battingOrder": 4,
+          "position": "CF"
+        },
+        {
+          "playerId": 701807,
+          "battingOrder": 5,
+          "position": "RF"
+        },
+        {
+          "playerId": 682626,
+          "battingOrder": 6,
+          "position": "C"
+        },
+        {
+          "playerId": 543760,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 676724,
+          "battingOrder": 8,
+          "position": "1B"
+        },
+        {
+          "playerId": 593871,
+          "battingOrder": 9,
+          "position": "DH"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 596019,
+          "battingOrder": 1,
+          "position": "SS"
+        },
+        {
+          "playerId": 666182,
+          "battingOrder": 2,
+          "position": "3B"
+        },
+        {
+          "playerId": 673357,
+          "battingOrder": 3,
+          "position": "CF"
+        },
+        {
+          "playerId": 701807,
+          "battingOrder": 4,
+          "position": "RF"
+        },
+        {
+          "playerId": 682626,
+          "battingOrder": 5,
+          "position": "DH"
+        },
+        {
+          "playerId": 666624,
+          "battingOrder": 6,
+          "position": "1B"
+        },
+        {
+          "playerId": 543760,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 805999,
+          "battingOrder": 8,
+          "position": "LF"
+        },
+        {
+          "playerId": 676724,
+          "battingOrder": 9,
+          "position": "PH"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.616566+00:00",
+      "computedStats": {
+        "596019": null,
+        "666182": null,
+        "673357": null,
+        "701807": null,
+        "682626": null,
+        "666624": null,
+        "543760": null,
+        "805999": null,
+        "676724": null
+      }
+    }
+  },
+  "824075": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 703607,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 680869,
+          "battingOrder": 2,
+          "position": "LF"
+        },
+        {
+          "playerId": 641680,
+          "battingOrder": 3,
+          "position": "C"
+        },
+        {
+          "playerId": 695720,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 622268,
+          "battingOrder": 5,
+          "position": "2B"
+        },
+        {
+          "playerId": 671732,
+          "battingOrder": 6,
+          "position": "RF"
+        },
+        {
+          "playerId": 691777,
+          "battingOrder": 7,
+          "position": "SS"
+        },
+        {
+          "playerId": 675961,
+          "battingOrder": 8,
+          "position": "3B"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 703607,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 680869,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 643446,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 641680,
+          "battingOrder": 4,
+          "position": "C"
+        },
+        {
+          "playerId": 695720,
+          "battingOrder": 5,
+          "position": "3B"
+        },
+        {
+          "playerId": 671732,
+          "battingOrder": 6,
+          "position": "RF"
+        },
+        {
+          "playerId": 666126,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 622268,
+          "battingOrder": 8,
+          "position": "2B"
+        },
+        {
+          "playerId": 687231,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.756309+00:00",
+      "computedStats": {
+        "703607": null,
+        "680869": null,
+        "643446": null,
+        "641680": null,
+        "695720": null,
+        "671732": null,
+        "666126": null,
+        "622268": null,
+        "687231": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 679845,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 677951,
+          "battingOrder": 2,
+          "position": "SS"
+        },
+        {
+          "playerId": 695506,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 521692,
+          "battingOrder": 4,
+          "position": "C"
+        },
+        {
+          "playerId": 686555,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 695600,
+          "battingOrder": 6,
+          "position": "DH"
+        },
+        {
+          "playerId": 664728,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 686469,
+          "battingOrder": 8,
+          "position": "1B"
+        },
+        {
+          "playerId": 668942,
+          "battingOrder": 9,
+          "position": "3B"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 686555,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 677951,
+          "battingOrder": 2,
+          "position": "SS"
+        },
+        {
+          "playerId": 695506,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 672580,
+          "battingOrder": 4,
+          "position": "3B"
+        },
+        {
+          "playerId": 686469,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 670231,
+          "battingOrder": 6,
+          "position": "PR"
+        },
+        {
+          "playerId": 686681,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 695600,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 686475,
+          "battingOrder": 9,
+          "position": "PH"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.756333+00:00",
+      "computedStats": {
+        "686555": null,
+        "677951": null,
+        "695506": null,
+        "672580": null,
+        "686469": null,
+        "670231": null,
+        "686681": null,
+        "695600": null,
+        "686475": null
+      }
+    }
+  },
+  "823667": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 686948,
+          "battingOrder": 1,
+          "position": "C"
+        },
+        {
+          "playerId": 660670,
+          "battingOrder": 2,
+          "position": "RF"
+        },
+        {
+          "playerId": 621566,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 671739,
+          "battingOrder": 4,
+          "position": "CF"
+        },
+        {
+          "playerId": 645277,
+          "battingOrder": 5,
+          "position": "2B"
+        },
+        {
+          "playerId": 643289,
+          "battingOrder": 6,
+          "position": "LF"
+        },
+        {
+          "playerId": 642086,
+          "battingOrder": 7,
+          "position": "DH"
+        },
+        {
+          "playerId": 663586,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 805347,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 686948,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 660670,
+          "battingOrder": 2,
+          "position": "RF"
+        },
+        {
+          "playerId": 621566,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 671739,
+          "battingOrder": 4,
+          "position": "CF"
+        },
+        {
+          "playerId": 645277,
+          "battingOrder": 5,
+          "position": "2B"
+        },
+        {
+          "playerId": 657041,
+          "battingOrder": 6,
+          "position": "LF"
+        },
+        {
+          "playerId": 663586,
+          "battingOrder": 7,
+          "position": "3B"
+        },
+        {
+          "playerId": 643289,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 669221,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.898564+00:00",
+      "computedStats": {
+        "686948": null,
+        "660670": null,
+        "621566": null,
+        "671739": null,
+        "645277": null,
+        "657041": null,
+        "663586": null,
+        "643289": null,
+        "669221": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 663616,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 621439,
+          "battingOrder": 2,
+          "position": "CF"
+        },
+        {
+          "playerId": 605137,
+          "battingOrder": 3,
+          "position": "DH"
+        },
+        {
+          "playerId": 668904,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 686797,
+          "battingOrder": 5,
+          "position": "3B"
+        },
+        {
+          "playerId": 807712,
+          "battingOrder": 6,
+          "position": "RF"
+        },
+        {
+          "playerId": 605170,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 701785,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 665019,
+          "battingOrder": 9,
+          "position": "2B"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 807712,
+          "battingOrder": 1,
+          "position": "RF"
+        },
+        {
+          "playerId": 621439,
+          "battingOrder": 2,
+          "position": "CF"
+        },
+        {
+          "playerId": 680777,
+          "battingOrder": 3,
+          "position": "C"
+        },
+        {
+          "playerId": 605137,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 665019,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 668904,
+          "battingOrder": 6,
+          "position": "1B"
+        },
+        {
+          "playerId": 686797,
+          "battingOrder": 7,
+          "position": "3B"
+        },
+        {
+          "playerId": 668952,
+          "battingOrder": 8,
+          "position": "2B"
+        },
+        {
+          "playerId": 701785,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:01.898582+00:00",
+      "computedStats": {
+        "807712": null,
+        "621439": null,
+        "680777": null,
+        "605137": null,
+        "665019": null,
+        "668904": null,
+        "686797": null,
+        "668952": null,
+        "701785": null
+      }
+    }
+  },
+  "823749": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 621493,
+          "battingOrder": 1,
+          "position": "RF"
+        },
+        {
+          "playerId": 668227,
+          "battingOrder": 2,
+          "position": "LF"
+        },
+        {
+          "playerId": 645302,
+          "battingOrder": 3,
+          "position": "CF"
+        },
+        {
+          "playerId": 686527,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 702284,
+          "battingOrder": 5,
+          "position": "2B"
+        },
+        {
+          "playerId": 680977,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 663728,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 642215,
+          "battingOrder": 8,
+          "position": "1B"
+        },
+        {
+          "playerId": 801126,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 642215,
+          "battingOrder": 1,
+          "position": "3B"
+        },
+        {
+          "playerId": 668227,
+          "battingOrder": 2,
+          "position": "LF"
+        },
+        {
+          "playerId": 686527,
+          "battingOrder": 3,
+          "position": "DH"
+        },
+        {
+          "playerId": 677594,
+          "battingOrder": 4,
+          "position": "CF"
+        },
+        {
+          "playerId": 647304,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 702284,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 640902,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 645302,
+          "battingOrder": 8,
+          "position": "RF"
+        },
+        {
+          "playerId": 801126,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.302526+00:00",
+      "computedStats": {
+        "642215": null,
+        "668227": null,
+        "686527": null,
+        "677594": null,
+        "647304": null,
+        "702284": null,
+        "640902": null,
+        "645302": null,
+        "801126": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 668930,
+          "battingOrder": 1,
+          "position": "2B"
+        },
+        {
+          "playerId": 694192,
+          "battingOrder": 2,
+          "position": "LF"
+        },
+        {
+          "playerId": 641343,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 683734,
+          "battingOrder": 4,
+          "position": "3B"
+        },
+        {
+          "playerId": 669003,
+          "battingOrder": 5,
+          "position": "CF"
+        },
+        {
+          "playerId": 592885,
+          "battingOrder": 6,
+          "position": "DH"
+        },
+        {
+          "playerId": 800325,
+          "battingOrder": 7,
+          "position": "RF"
+        },
+        {
+          "playerId": 666152,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 661388,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 663604,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 683734,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 680716,
+          "battingOrder": 3,
+          "position": "2B"
+        },
+        {
+          "playerId": 661388,
+          "battingOrder": 4,
+          "position": "C"
+        },
+        {
+          "playerId": 592885,
+          "battingOrder": 5,
+          "position": "DH"
+        },
+        {
+          "playerId": 800325,
+          "battingOrder": 6,
+          "position": "RF"
+        },
+        {
+          "playerId": 669003,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 687401,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 666152,
+          "battingOrder": 9,
+          "position": "3B"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.302547+00:00",
+      "computedStats": {
+        "663604": null,
+        "683734": null,
+        "680716": null,
+        "661388": null,
+        "592885": null,
+        "800325": null,
+        "669003": null,
+        "687401": null,
+        "666152": null
+      }
+    }
+  },
+  "822859": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 682928,
+          "battingOrder": 1,
+          "position": "SS"
+        },
+        {
+          "playerId": 694673,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 686611,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 695734,
+          "battingOrder": 4,
+          "position": "LF"
+        },
+        {
+          "playerId": 691781,
+          "battingOrder": 5,
+          "position": "3B"
+        },
+        {
+          "playerId": 678391,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 665953,
+          "battingOrder": 7,
+          "position": "DH"
+        },
+        {
+          "playerId": 660688,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 696285,
+          "battingOrder": 9,
+          "position": "CF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 682928,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 665953,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 677588,
+          "battingOrder": 3,
+          "position": "2B"
+        },
+        {
+          "playerId": 695734,
+          "battingOrder": 4,
+          "position": "LF"
+        },
+        {
+          "playerId": 686611,
+          "battingOrder": 5,
+          "position": "RF"
+        },
+        {
+          "playerId": 687605,
+          "battingOrder": 6,
+          "position": "PH"
+        },
+        {
+          "playerId": 695670,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 683083,
+          "battingOrder": 8,
+          "position": "SS"
+        },
+        {
+          "playerId": 696285,
+          "battingOrder": 9,
+          "position": "CF"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.455556+00:00",
+      "computedStats": {
+        "682928": null,
+        "665953": null,
+        "677588": null,
+        "695734": null,
+        "686611": null,
+        "687605": null,
+        "695670": null,
+        "683083": null,
+        "696285": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 694671,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 677649,
+          "battingOrder": 2,
+          "position": "3B"
+        },
+        {
+          "playerId": 607043,
+          "battingOrder": 3,
+          "position": "RF"
+        },
+        {
+          "playerId": 669394,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 670032,
+          "battingOrder": 5,
+          "position": "SS"
+        },
+        {
+          "playerId": 679822,
+          "battingOrder": 6,
+          "position": "DH"
+        },
+        {
+          "playerId": 553869,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 694497,
+          "battingOrder": 8,
+          "position": "CF"
+        },
+        {
+          "playerId": 683227,
+          "battingOrder": 9,
+          "position": "2B"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 672284,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 608369,
+          "battingOrder": 2,
+          "position": "SS"
+        },
+        {
+          "playerId": 669394,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 607043,
+          "battingOrder": 4,
+          "position": "RF"
+        },
+        {
+          "playerId": 677649,
+          "battingOrder": 5,
+          "position": "2B"
+        },
+        {
+          "playerId": 592626,
+          "battingOrder": 6,
+          "position": "DH"
+        },
+        {
+          "playerId": 643376,
+          "battingOrder": 7,
+          "position": "C"
+        },
+        {
+          "playerId": 683227,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 694497,
+          "battingOrder": 9,
+          "position": "CF"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.455575+00:00",
+      "computedStats": {
+        "672284": null,
+        "608369": null,
+        "669394": null,
+        "607043": null,
+        "677649": null,
+        "592626": null,
+        "643376": null,
+        "683227": null,
+        "694497": null
+      }
+    }
+  },
+  "824639": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 686668,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 808959,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 678246,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 643217,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 695731,
+          "battingOrder": 5,
+          "position": "RF"
+        },
+        {
+          "playerId": 695657,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 805367,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 671976,
+          "battingOrder": 8,
+          "position": "LF"
+        },
+        {
+          "playerId": 691011,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 803011,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 808959,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 678246,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 643217,
+          "battingOrder": 4,
+          "position": "DH"
+        },
+        {
+          "playerId": 695731,
+          "battingOrder": 5,
+          "position": "RF"
+        },
+        {
+          "playerId": 695657,
+          "battingOrder": 6,
+          "position": "SS"
+        },
+        {
+          "playerId": 805367,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 671976,
+          "battingOrder": 8,
+          "position": "CF"
+        },
+        {
+          "playerId": 691011,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.600437+00:00",
+      "computedStats": {
+        "803011": null,
+        "808959": null,
+        "678246": null,
+        "643217": null,
+        "695731": null,
+        "695657": null,
+        "805367": null,
+        "671976": null,
+        "691011": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 691718,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 673548,
+          "battingOrder": 2,
+          "position": "RF"
+        },
+        {
+          "playerId": 608324,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 683737,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 663538,
+          "battingOrder": 5,
+          "position": "2B"
+        },
+        {
+          "playerId": 608348,
+          "battingOrder": 6,
+          "position": "C"
+        },
+        {
+          "playerId": 664023,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 665804,
+          "battingOrder": 8,
+          "position": "DH"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 691718,
+          "battingOrder": 1,
+          "position": "CF"
+        },
+        {
+          "playerId": 673548,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 608324,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 683737,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 663538,
+          "battingOrder": 5,
+          "position": "SS"
+        },
+        {
+          "playerId": 699393,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 664023,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 608348,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 624424,
+          "battingOrder": 9,
+          "position": "RF"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.600455+00:00",
+      "computedStats": {
+        "691718": null,
+        "673548": null,
+        "608324": null,
+        "683737": null,
+        "663538": null,
+        "699393": null,
+        "664023": null,
+        "608348": null,
+        "624424": null
+      }
+    }
+  },
+  "824154": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 685133,
+          "battingOrder": 1,
+          "position": "RF"
+        },
+        {
+          "playerId": 545361,
+          "battingOrder": 2,
+          "position": "CF"
+        },
+        {
+          "playerId": 694384,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 687263,
+          "battingOrder": 4,
+          "position": "SS"
+        },
+        {
+          "playerId": 694208,
+          "battingOrder": 5,
+          "position": "DH"
+        },
+        {
+          "playerId": 687093,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 666139,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 694203,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 623168,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 642350,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 545361,
+          "battingOrder": 2,
+          "position": "CF"
+        },
+        {
+          "playerId": 694384,
+          "battingOrder": 3,
+          "position": "1B"
+        },
+        {
+          "playerId": 687263,
+          "battingOrder": 4,
+          "position": "SS"
+        },
+        {
+          "playerId": 694208,
+          "battingOrder": 5,
+          "position": "DH"
+        },
+        {
+          "playerId": 672724,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 666139,
+          "battingOrder": 7,
+          "position": "RF"
+        },
+        {
+          "playerId": 694203,
+          "battingOrder": 8,
+          "position": "3B"
+        },
+        {
+          "playerId": 623168,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.745869+00:00",
+      "computedStats": {
+        "642350": null,
+        "545361": null,
+        "694384": null,
+        "687263": null,
+        "694208": null,
+        "672724": null,
+        "666139": null,
+        "694203": null,
+        "623168": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 665161,
+          "battingOrder": 1,
+          "position": "SS"
+        },
+        {
+          "playerId": 670541,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 670623,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 514888,
+          "battingOrder": 4,
+          "position": "2B"
+        },
+        {
+          "playerId": 666211,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 572233,
+          "battingOrder": 6,
+          "position": "1B"
+        },
+        {
+          "playerId": 662139,
+          "battingOrder": 7,
+          "position": "CF"
+        },
+        {
+          "playerId": 673237,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 701358,
+          "battingOrder": 9,
+          "position": "RF"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 665161,
+          "battingOrder": 1,
+          "position": "SS"
+        },
+        {
+          "playerId": 670541,
+          "battingOrder": 2,
+          "position": "DH"
+        },
+        {
+          "playerId": 670623,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 514888,
+          "battingOrder": 4,
+          "position": "2B"
+        },
+        {
+          "playerId": 662139,
+          "battingOrder": 5,
+          "position": "CF"
+        },
+        {
+          "playerId": 572233,
+          "battingOrder": 6,
+          "position": "1B"
+        },
+        {
+          "playerId": 666211,
+          "battingOrder": 7,
+          "position": "LF"
+        },
+        {
+          "playerId": 701358,
+          "battingOrder": 8,
+          "position": "RF"
+        },
+        {
+          "playerId": 673237,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.745887+00:00",
+      "computedStats": {
+        "665161": null,
+        "670541": null,
+        "670623": null,
+        "514888": null,
+        "662139": null,
+        "572233": null,
+        "666211": null,
+        "701358": null,
+        "673237": null
+      }
+    }
+  },
+  "824319": {
+    "awayTeam": {
+      "goToLineup": [
+        {
+          "playerId": 660271,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 518692,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 681624,
+          "battingOrder": 3,
+          "position": "CF"
+        },
+        {
+          "playerId": 571970,
+          "battingOrder": 4,
+          "position": "3B"
+        },
+        {
+          "playerId": 605141,
+          "battingOrder": 5,
+          "position": "SS"
+        },
+        {
+          "playerId": 663656,
+          "battingOrder": 6,
+          "position": "RF"
+        },
+        {
+          "playerId": 669242,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 606192,
+          "battingOrder": 8,
+          "position": "LF"
+        },
+        {
+          "playerId": 676439,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 660271,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 518692,
+          "battingOrder": 2,
+          "position": "1B"
+        },
+        {
+          "playerId": 681624,
+          "battingOrder": 3,
+          "position": "CF"
+        },
+        {
+          "playerId": 571970,
+          "battingOrder": 4,
+          "position": "3B"
+        },
+        {
+          "playerId": 605141,
+          "battingOrder": 5,
+          "position": "SS"
+        },
+        {
+          "playerId": 669242,
+          "battingOrder": 6,
+          "position": "2B"
+        },
+        {
+          "playerId": 663656,
+          "battingOrder": 7,
+          "position": "RF"
+        },
+        {
+          "playerId": 571771,
+          "battingOrder": 8,
+          "position": "LF"
+        },
+        {
+          "playerId": 666163,
+          "battingOrder": 9,
+          "position": "C"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.894289+00:00",
+      "computedStats": {
+        "660271": null,
+        "518692": null,
+        "681624": null,
+        "571970": null,
+        "605141": null,
+        "669242": null,
+        "663656": null,
+        "571771": null,
+        "666163": null
+      }
+    },
+    "homeTeam": {
+      "goToLineup": [
+        {
+          "playerId": 664983,
+          "battingOrder": 1,
+          "position": "LF"
+        },
+        {
+          "playerId": 687597,
+          "battingOrder": 2,
+          "position": "RF"
+        },
+        {
+          "playerId": 694249,
+          "battingOrder": 3,
+          "position": "CF"
+        },
+        {
+          "playerId": 650489,
+          "battingOrder": 4,
+          "position": "2B"
+        },
+        {
+          "playerId": 681198,
+          "battingOrder": 5,
+          "position": "1B"
+        },
+        {
+          "playerId": 681393,
+          "battingOrder": 6,
+          "position": "3B"
+        },
+        {
+          "playerId": 691182,
+          "battingOrder": 7,
+          "position": "DH"
+        },
+        {
+          "playerId": 664954,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 678662,
+          "battingOrder": 9,
+          "position": "SS"
+        }
+      ],
+      "todaysLineup": [
+        {
+          "playerId": 664983,
+          "battingOrder": 1,
+          "position": "DH"
+        },
+        {
+          "playerId": 694249,
+          "battingOrder": 2,
+          "position": "SS"
+        },
+        {
+          "playerId": 650489,
+          "battingOrder": 3,
+          "position": "3B"
+        },
+        {
+          "playerId": 681198,
+          "battingOrder": 4,
+          "position": "1B"
+        },
+        {
+          "playerId": 691728,
+          "battingOrder": 5,
+          "position": "LF"
+        },
+        {
+          "playerId": 666160,
+          "battingOrder": 6,
+          "position": "CF"
+        },
+        {
+          "playerId": 691182,
+          "battingOrder": 7,
+          "position": "2B"
+        },
+        {
+          "playerId": 664954,
+          "battingOrder": 8,
+          "position": "C"
+        },
+        {
+          "playerId": 687859,
+          "battingOrder": 9,
+          "position": "RF"
+        }
+      ],
+      "status": "confirmed",
+      "confirmedAt": "2026-08-19T03:52:02.894308+00:00",
+      "computedStats": {
+        "664983": null,
+        "694249": null,
+        "650489": null,
+        "681198": null,
+        "691728": null,
+        "666160": null,
+        "691182": null,
+        "664954": null,
+        "687859": null
+      }
+    }
+  }
+}

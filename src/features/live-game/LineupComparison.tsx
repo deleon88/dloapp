@@ -19,6 +19,11 @@ interface Props {
   homeTeamId: number
   awayLineup: LineupSlot[]
   homeLineup: LineupSlot[]
+  // Current defensive alignment for the fielding diamond — distinct from
+  // awayLineup/homeLineup (the starting batting order) once substitutions
+  // happen. Falls back to awayLineup/homeLineup when absent (Preview games).
+  awayFielders?: LineupSlot[]
+  homeFielders?: LineupSlot[]
   wrcMap: Map<number, PlayerStats>
   isLoading?: boolean
   mode: ViewMode
@@ -88,6 +93,7 @@ function photo(id: number) {
 export default function LineupComparison({
   awayTeamId, homeTeamId,
   awayLineup, homeLineup,
+  awayFielders, homeFielders,
   wrcMap, isLoading,
   mode, onModeChange,
   awayLineupStatus, homeLineupStatus,
@@ -110,9 +116,10 @@ export default function LineupComparison({
   const [vsPitcherOpen, setVsPitcherOpen] = useState(false)
   const t = useT()
 
-  const activeSide    = mode as 'away' | 'home'
-  const activeLineup  = mode === 'home' ? homeLineup   : awayLineup
-  const activeColor   = mode === 'home' ? homeBarColor : awayBarColor
+  const activeSide     = mode as 'away' | 'home'
+  const activeLineup   = mode === 'home' ? homeLineup   : awayLineup
+  const activeFielders = mode === 'home' ? (homeFielders ?? homeLineup) : (awayFielders ?? awayLineup)
+  const activeColor    = mode === 'home' ? homeBarColor : awayBarColor
   const activeBgColor = mode === 'home' ? homeColor    : awayColor
   const activeLabel   = mode === 'home' ? homeLabel    : awayLabel
   const activeStatus  = mode === 'home' ? homeLineupStatus : awayLineupStatus
@@ -189,7 +196,7 @@ export default function LineupComparison({
       <FieldingAlignmentModal
         isOpen={fieldingOpen}
         onClose={() => setFieldingOpen(false)}
-        lineup={activeLineup}
+        lineup={activeFielders}
         color={activeColor}
         bgColor={activeBgColor}
         side={activeSide}

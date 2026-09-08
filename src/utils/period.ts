@@ -1,12 +1,23 @@
-export type StatPeriod = 'season' | '60days' | '30days' | '14days' | '7days'
+export type StatPeriod = 'season' | 'season2025' | '60days' | '30days' | '14days' | '7days'
 
 export const PERIOD_OPTIONS: { value: StatPeriod; label: string }[] = [
-  { value: 'season',  label: '2026 Season'  },
-  { value: '60days',  label: 'Last 60 Days' },
-  { value: '30days',  label: 'Last 30 Days' },
-  { value: '14days',  label: 'Last 14 Days' },
-  { value: '7days',   label: 'Last 7 Days'  },
+  { value: 'season',      label: '2026 Season'  },
+  { value: 'season2025',  label: '2025 Season'  },
+  { value: '60days',      label: 'Last 60 Days' },
+  { value: '30days',      label: 'Last 30 Days' },
+  { value: '14days',      label: 'Last 14 Days' },
+  { value: '7days',       label: 'Last 7 Days'  },
 ]
+
+/** Full closed season this year → 2025 (immutable, historical); everything else → current year. */
+export function periodToSeason(period: StatPeriod): number {
+  return period === 'season2025' ? 2025 : new Date().getFullYear()
+}
+
+/** True for a full-season view (no date range) — either the live current season or a closed historical one. */
+export function isFullSeasonPeriod(period: StatPeriod): boolean {
+  return period === 'season' || period === 'season2025'
+}
 
 function pad(n: number) {
   return String(n).padStart(2, '0')

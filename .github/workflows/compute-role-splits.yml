@@ -1,0 +1,119 @@
+# .github/workflows/compute-role-splits.yml
+#
+# Runs nightly at 08:00 UTC (04:00 ET) — after the previous day's games are
+# all Final, and before refresh-constants.yml (09:15 UTC) / prefetch-daily-
+# stats.yml (09:30 UTC) start the next day's pipeline.
+#
+# Incrementally computes, from one shared play-by-play walk:
+#   - public/data/role_splits_{year}.json         — per-batter vs-SP/vs-RP (season-cumulative)
+#   - public/data/hand_splits_daily_{year}.json   — internal, per-date raw counts (60-day window)
+#   - public/data/hand_splits_rolling_{year}.json — client-facing rollup (60/30/14/7-day windows)
+#
+# hand_splits_* exist because MLB Stats API's native sitCodes=[vl,vr] split
+# only works at season granularity — combining it with byDateRange silently
+# returns season-to-date totals (verified), so "vs LHP over the last 30
+# days" has no MLB hydrate answer and has to come from PBP instead.
+#
+# hand_splits_daily needs its own backfill the first time this runs (its
+# 60-day trailing window starts empty, unlike role_splits' cumulative
+# total) — this happens AUTOMATICALLY on first run (bounded to ~900 games,
+# see compute_role_splits.py's docstring), no separate flag needed. Every
+# run after that only has genuinely new games left to process.
+#
+# Also runnable manually via workflow_dispatch.
+
+name: Compute Role & Hand Splits
+
+on:
+  schedule:
+    - cron: '0 8 * * *'   # 08:00 UTC = 04:00 ET, after last night's games are Final
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season year (leave blank for current year)'
+        required: false
+        default: ''
+
+jobs:
+  compute:
+    name: Compute vs-SP/vs-RP and vs-hand splits
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need write access to push the updated JSON
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Determine season
+        id: season
+        run: |
+          if [ -n "${{ github.event.inputs.season }}" ]; then
+            echo "year=${{ github.event.inputs.season }}" >> $GITHUB_OUTPUT
+          else
+            echo "year=$(date +%Y)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compute role + hand splits (incremental)
+        run: |
+          mkdir -p public/data
+          python scripts/compute_role_splits.py \
+            --season ${{ steps.season.outputs.year }} \
+            --out public/data \
+            --workers 15
+
+      - name: Verify output
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+          yr = "${{ steps.season.outputs.year }}"
+
+          role_f = pathlib.Path(f"public/data/role_splits_{yr}.json")
+          if not role_f.exists():
+            print("ERROR: role_splits output file not found"); sys.exit(1)
+          role = json.loads(role_f.read_text())
+          missing = {"season", "splits", "processedGamePks"} - role.keys()
+          if missing:
+            print(f"ERROR: role_splits missing keys {missing}"); sys.exit(1)
+          print(f"OK role_splits — batters={len(role['splits'])}  "
+                f"gamesProcessed={len(role['processedGamePks'])}")
+
+          daily_f = pathlib.Path(f"public/data/hand_splits_daily_{yr}.json")
+          if not daily_f.exists():
+            print("ERROR: hand_splits_daily output file not found"); sys.exit(1)
+          daily = json.loads(daily_f.read_text())
+          missing = {"season", "processedGamePks", "dates"} - daily.keys()
+          if missing:
+            print(f"ERROR: hand_splits_daily missing keys {missing}"); sys.exit(1)
+          print(f"OK hand_splits_daily — {len(daily['dates'])} dates kept, "
+                f"gamesProcessed={len(daily['processedGamePks'])}")
+
+          rolling_f = pathlib.Path(f"public/data/hand_splits_rolling_{yr}.json")
+          if not rolling_f.exists():
+            print("ERROR: hand_splits_rolling output file not found"); sys.exit(1)
+          rolling = json.loads(rolling_f.read_text())
+          missing = {"season", "generated", "windows"} - rolling.keys()
+          if missing:
+            print(f"ERROR: hand_splits_rolling missing keys {missing}"); sys.exit(1)
+          for label, w in rolling["windows"].items():
+            print(f"OK hand_splits_rolling[{label}] — batters={len(w['batters'])}  pitchers={len(w['pitchers'])}")
+          EOF
+
+      - name: Commit updated splits
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/role_splits_${{ steps.season.outputs.year }}.json
+          git add public/data/hand_splits_daily_${{ steps.season.outputs.year }}.json
+          git add public/data/hand_splits_rolling_${{ steps.season.outputs.year }}.json
+          if git diff --cached --quiet; then
+            echo "No changes — no new completed games since last run."
+          else
+            git commit -m "chore: update ${{ steps.season.outputs.year }} role & hand splits [skip ci]"
+            git push
+          fi

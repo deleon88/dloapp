@@ -1,6 +1,8 @@
 import type { PlayerPrediction, TeamPredictions } from './predictedLineup'
 
-const STORE_KEY = 'dlp-go-to-lineups-v1'
+// Exported so scripts/refresh-go-to-lineups.ts (Node/tsx) can pre-seed and read
+// back the same key via a localStorage shim — see that script for details.
+export const STORE_KEY = 'dlp-go-to-lineups-v1'
 const TTL_MS    = 7 * 24 * 60 * 60 * 1000  // 7 days — stable across the week
 
 // ── Types ─────────────────────────────────────────────────────────────────────

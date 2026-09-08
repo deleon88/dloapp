@@ -1,0 +1,65 @@
+# .github/workflows/refresh-go-to-lineups.yml
+#
+# Weekly refresh of each team's "go-to" (stable predicted) lineup — the
+# server-side, shared replacement for what used to live only in each
+# browser's own localStorage. Reuses predictedLineup.ts's existing algorithm
+# via tsx (Node) instead of reimplementing it in Python — see
+# scripts/refresh-go-to-lineups.ts for details.
+#
+# Runs weekly (Monday morning, well before that day's games) since a team's
+# regular lineup rarely changes meaningfully day to day. Also runnable
+# manually via workflow_dispatch — trigger this when a real lineup change is
+# suspected (injury, call-up, trade) rather than waiting for the next
+# scheduled Monday run.
+
+name: Refresh Go-To Lineups
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # 09:00 UTC every Monday (05:00 ET)
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    name: Refresh go-to lineups
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Refresh go-to lineups
+        env:
+          VITE_MLB_API_BASE_URL: https://statsapi.mlb.com/api/v1
+        run: npx tsx scripts/refresh-go-to-lineups.ts
+
+      - name: Verify output
+        run: |
+          node -e "
+            const fs = require('fs');
+            const d = JSON.parse(fs.readFileSync('public/data/go_to_lineups.json', 'utf-8'));
+            const n = Object.keys(d).length;
+            if (n < 25) { console.error('ERROR: only ' + n + ' teams — expected ~30'); process.exit(1); }
+            console.log('OK — ' + n + ' teams');
+          "
+
+      - name: Commit updated go-to lineups
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/go_to_lineups.json
+          if git diff --cached --quiet; then
+            echo "No changes — lineups unchanged since last run."
+          else
+            git commit -m "chore: refresh go-to lineups [skip ci]"
+            git push
+          fi
