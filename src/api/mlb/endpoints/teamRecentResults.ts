@@ -19,7 +19,6 @@ export async function fetchTeamRecentResults(
 
   const res = await mlbApi.get<ScheduleResponse>('/schedule', {
     sportId: 1,
-    gameType: 'R',
     startDate: start.toISOString().split('T')[0],
     endDate: end.toISOString().split('T')[0],
     fields: FIELDS,

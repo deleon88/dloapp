@@ -38,7 +38,6 @@ export async function fetchBullpenUsage(teamId: number): Promise<BullpenUsage> {
   }>('/schedule', {
     sportId: 1,
     teamId,
-    gameType: 'R',
     startDate: start,
     endDate: today,
     fields: 'dates,games,gamePk,gameDate,status,abstractGameState',

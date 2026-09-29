@@ -112,7 +112,7 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
     mlbApi.get<TeamStatResponse>(`/teams/${teamId}/stats`, { ...base, stats: 'sabermetrics' }),
     mlbApi.get<{ dates: Array<{ games: Array<{ gamePk: number; gameDate: string; status: { abstractGameState: string } }> }> }>(
       '/schedule', {
-        sportId: 1, teamId, gameType: 'R',
+        sportId: 1, teamId,
         startDate: sevenDaysAgo, endDate: today,
         fields: 'dates,games,gamePk,gameDate,status,abstractGameState',
       },

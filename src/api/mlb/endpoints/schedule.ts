@@ -26,7 +26,6 @@ export function getSchedule(params: GetScheduleParams = {}): Promise<ScheduleRes
   const { hydrate, ...rest } = params
   return mlbApi.get<ScheduleResponse>('/schedule', {
     sportId: 1,
-    gameType: 'R',
     ...rest,
     ...(hydrate ? { hydrate: hydrate.join(',') } : {}),
     fields: SCHEDULE_FIELDS,
