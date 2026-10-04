@@ -100,7 +100,10 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
           ac={ac}
           hc={hc}
         />
-        <PitchBar label="ERA"  aVal={stat(as?.era)}  hVal={stat(hs?.era)}  lowerIsBetter ac={ac} hc={hc} delay={110} />
+        {/* ERA doesn't exist by batter hand: with a hand filter, OPS- takes its place. */}
+        {as?.vsHand || hs?.vsHand
+          ? <PitchBar label="OPS-" aVal={opsMinus(as)} hVal={opsMinus(hs)} ac={ac} hc={hc} delay={110} />
+          : <PitchBar label="ERA"  aVal={stat(as?.era)}  hVal={stat(hs?.era)}  lowerIsBetter ac={ac} hc={hc} delay={110} />}
         <PitchBar label="WHIP" aVal={stat(as?.whip)} hVal={stat(hs?.whip)} lowerIsBetter ac={ac} hc={hc} delay={220} />
       </div>
 
@@ -172,6 +175,7 @@ function PitcherChips({
 const GLOSSARY: Array<{ stat: string; descKey: TKey }> = [
   { stat: 'ERA',   descKey: 'glossaryEraDesc' },
   { stat: 'FIP',   descKey: 'glossaryFipDesc' },
+  { stat: 'OPS-',  descKey: 'glossaryOpsMinusDesc' },
   { stat: 'WHIP',  descKey: 'glossaryWhipDesc' },
   { stat: 'K-BB%', descKey: 'glossaryKbbDesc' },
   { stat: 'xFIP',  descKey: 'glossaryXfipDesc' },
@@ -181,6 +185,11 @@ const GLOSSARY: Array<{ stat: string; descKey: TKey }> = [
 /** MLB uses '-.--' for "no value" (and ERA can't be split by batter hand): show nothing. */
 function stat(v: string | undefined): string | undefined {
   return v && !v.startsWith('-.') ? v : undefined
+}
+
+/** OPS- = 200 − OPS+ allowed, so higher is better like FIP+ (100 = average). */
+function opsMinus(s: PitcherSeasonStats | undefined): string | undefined {
+  return s?.opsPlusAgainst != null ? String(200 - s.opsPlusAgainst) : undefined
 }
 
 /** wOBA allowed from our backend: follows the period and batter-hand filters. */
@@ -231,6 +240,10 @@ function pitchBarWidth(label: string, v: number, lowerIsBetter: boolean): number
     norm = lowerIsBetter
       ? (6.0 - Math.max(1.5, Math.min(6.0, v))) / 4.5
       : (Math.max(1.5, Math.min(6.0, v)) - 1.5) / 4.5
+  } else if (label === 'OPS-') {
+    // OPS- (higher is better): range [40, 160], avg 100 → 50%
+    const c = Math.max(40, Math.min(160, v))
+    norm = lowerIsBetter ? (160 - c) / 120 : (c - 40) / 120
   } else {
     // WHIP: range [0.7, 1.9], avg 1.3 → 50%
     norm = lowerIsBetter

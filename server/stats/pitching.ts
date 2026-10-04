@@ -84,6 +84,55 @@ function getPitcherRows(f: PitcherFilter) {
   `
 }
 
+/** OBP / SLG of a set of counts; null without plate appearances / at-bats. */
+function obpSlg(c: PitcherCounts): { obp: number | null; slg: number | null } {
+  const bb = c.ubb + c.ibb
+  const h = c.h1 + c.h2 + c.h3 + c.hr
+  const den = c.ab + bb + c.hbp + c.sf
+  return {
+    obp: den ? (h + bb + c.hbp) / den : null,
+    slg: c.ab ? (c.h1 + 2 * c.h2 + 3 * c.h3 + 4 * c.hr) / c.ab : null,
+  }
+}
+
+type LeagueOps = Record<'all' | 'L' | 'R', { obp: number | null; slg: number | null }>
+
+/**
+ * All-MLB OBP / SLG for the same window, overall and by batter hand: the base of
+ * OPS+ against (Baseball-Reference's sOPS+: a split is compared with the
+ * league in that same split).
+ */
+async function getLeagueOps(f: PitcherFilter): Promise<LeagueOps> {
+  const rows = await sql<Array<PitcherCounts & { bat_side: string | null }>>`
+    SELECT p.bat_side,
+      count(*) FILTER (WHERE p.is_pa)::int                                                    AS bf,
+      0::int                                                                                  AS outs,
+      count(*) FILTER (WHERE p.is_pa AND NOT (p.event = ANY(${NON_AB})))::int                 AS ab,
+      count(*) FILTER (WHERE p.is_pa AND p.event = 'Single')::int                             AS h1,
+      count(*) FILTER (WHERE p.is_pa AND p.event = 'Double')::int                             AS h2,
+      count(*) FILTER (WHERE p.is_pa AND p.event = 'Triple')::int                             AS h3,
+      count(*) FILTER (WHERE p.is_pa AND p.event = 'Home Run')::int                           AS hr,
+      count(*) FILTER (WHERE p.is_pa AND p.event = 'Walk')::int                               AS ubb,
+      count(*) FILTER (WHERE p.is_pa AND p.event = 'Intent Walk')::int                        AS ibb,
+      count(*) FILTER (WHERE p.is_pa AND p.event = 'Hit By Pitch')::int                       AS hbp,
+      count(*) FILTER (WHERE p.is_pa AND p.event IN ('Sac Fly', 'Sac Fly Double Play'))::int AS sf,
+      0::int AS so, 0::int AS fb
+    FROM plays p JOIN games g USING (game_pk)
+    WHERE g.season = ${f.season} AND g.game_type = 'R'
+      ${f.from ? sql`AND p.game_date >= ${f.from}` : sql``}
+      ${f.to ? sql`AND p.game_date <= ${f.to}` : sql``}
+    GROUP BY 1
+  `
+  const all = empty(), L = empty(), R = empty()
+  for (const r of rows) {
+    for (const t of [all, r.bat_side === 'L' ? L : r.bat_side === 'R' ? R : null]) {
+      if (!t) continue
+      for (const k of COUNT_KEYS) t[k] += r[k]
+    }
+  }
+  return { all: obpSlg(all), L: obpSlg(L), R: obpSlg(R) }
+}
+
 export interface PitchingConstants extends WobaConstants {
   cFIP: number
   lgFIP: number
@@ -104,6 +153,9 @@ export interface PitcherSplit {
   fipMinus: number | null  // park-adjusted, 100 = average; FIP+ = 200 − FIP-
   xfip: number | null
   wobaAgainst: number | null
+  opsAgainst: number | null
+  /** 100 × (OBP/lgOBP + SLG/lgSLG − 1) vs the league in the same split; lower is better. */
+  opsPlusAgainst: number | null
 }
 
 export interface PitcherLine extends PitcherSplit {
@@ -115,7 +167,7 @@ const COUNT_KEYS = ['bf', 'outs', 'ab', 'h1', 'h2', 'h3', 'hr', 'ubb', 'ibb', 'h
 const empty = (): PitcherCounts => ({ bf: 0, outs: 0, ab: 0, h1: 0, h2: 0, h3: 0, hr: 0, ubb: 0, ibb: 0, hbp: 0, sf: 0, so: 0, fb: 0 })
 const round = (x: number | null, d: number) => (x == null || !Number.isFinite(x) ? null : Math.round(x * 10 ** d) / 10 ** d)
 
-function split(c: PitcherCounts, k: PitchingConstants, pf: number): PitcherSplit {
+function split(c: PitcherCounts, k: PitchingConstants, pf: number, lg: LeagueOps[keyof LeagueOps]): PitcherSplit {
   const ip = c.outs / 3
   const bb = c.ubb + c.ibb
   const h = c.h1 + c.h2 + c.h3 + c.hr
@@ -127,6 +179,7 @@ function split(c: PitcherCounts, k: PitchingConstants, pf: number): PitcherSplit
     batter_id: 0, pa: c.bf, ab: c.ab, h1: c.h1, h2: c.h2, h3: c.h3, hr: c.hr,
     ubb: c.ubb, ibb: c.ibb, hbp: c.hbp, sf: c.sf, so: c.so, rbi: 0,
   }
+  const { obp, slg } = obpSlg(c)
   return {
     bf: c.bf,
     ip: round(ip, 3)!,
@@ -137,6 +190,10 @@ function split(c: PitcherCounts, k: PitchingConstants, pf: number): PitcherSplit
     fipMinus: fipMinus == null ? null : Math.round(fipMinus),
     xfip: round(xfip, 2),
     wobaAgainst: c.bf ? round(woba(asBatter, k), 3) : null,
+    opsAgainst: obp != null && slg != null ? round(obp + slg, 3) : null,
+    opsPlusAgainst: obp != null && slg != null && lg.obp && lg.slg
+      ? Math.round(100 * (obp / lg.obp + slg / lg.slg - 1))
+      : null,
   }
 }
 
@@ -146,10 +203,11 @@ function split(c: PitcherCounts, k: PitchingConstants, pf: number): PitcherSplit
  * like the batting lines.
  */
 export async function getPitcherLines(f: PitcherFilter): Promise<Map<number, PitcherLine>> {
-  const [rows, constants, parks] = await Promise.all([
+  const [rows, constants, parks, lg] = await Promise.all([
     getPitcherRows(f),
     getConstants(f.season) as Promise<PitchingConstants>,
     getParkFactors(f.season),
+    getLeagueOps(f),
   ])
   if (constants.cFIP == null) throw new Error(`No pitching constants for ${f.season} (npm run db:constants -- --save)`)
 
@@ -168,8 +226,8 @@ export async function getPitcherLines(f: PitcherFilter): Promise<Map<number, Pit
 
   const out = new Map<number, PitcherLine>()
   for (const [id, a] of acc) {
-    const line = (x: Acc) => split(x.c, constants, x.c.bf ? x.pfBf / x.c.bf : 1)
-    out.set(id, { ...line(a.all), vsL: line(a.L), vsR: line(a.R) })
+    const line = (x: Acc, side: keyof LeagueOps) => split(x.c, constants, x.c.bf ? x.pfBf / x.c.bf : 1, lg[side])
+    out.set(id, { ...line(a.all, 'all'), vsL: line(a.L, 'L'), vsR: line(a.R, 'R') })
   }
   return out
 }

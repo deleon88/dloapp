@@ -22,6 +22,10 @@ export interface PitcherSeasonStats {
   inningsPitchedPerGame: string
   /** wOBA allowed, from our backend (same period / hand as FIP). */
   wobaAgainst?: number | null
+  /** OPS+ allowed (see PitcherSplit); shown instead of ERA with a batter-hand filter. */
+  opsPlusAgainst?: number | null
+  /** Set by applyPitcherHand: these numbers are vs this batter hand only. */
+  vsHand?: 'L' | 'R'
   /** Lines vs LHB / vs RHB for the same period, for the hand filter (see applyPitcherHand). */
   byHand?: { L: PitcherSplit; R: PitcherSplit }
 }
@@ -170,12 +174,14 @@ function splitToStats(s: PitcherSplit): Partial<PitcherSeasonStats> {
     battersFaced:   s.bf,
     inningsPitched: formatIp(s.ip),
     wobaAgainst:    s.wobaAgainst,
+    opsPlusAgainst: s.opsPlusAgainst,
   }
 }
 
 /**
  * Switches each pitcher to his line vs the given batter hand. ERA can't be split
- * by batter hand, so it's emptied instead of showing the overall number.
+ * by batter hand (MLB doesn't publish it), so it's emptied; the card shows OPS+
+ * against in its place.
  */
 export function applyPitcherHand(
   pitchers: Map<number, PitcherInfo>,
@@ -187,7 +193,7 @@ export function applyPitcherHand(
     const split = s?.byHand?.[hand]
     out.set(id, {
       ...info,
-      seasonStats: s && split ? { ...s, ...splitToStats(split), era: '-.--' } : undefined,
+      seasonStats: s && split ? { ...s, ...splitToStats(split), era: '-.--', vsHand: hand } : undefined,
     })
   }
   return out

@@ -16,6 +16,9 @@ export interface PitcherSplit {
   fipMinus: number | null
   xfip: number | null
   wobaAgainst: number | null
+  opsAgainst: number | null
+  /** OPS+ allowed vs the league in the same split (100 = average, lower is better). */
+  opsPlusAgainst: number | null
 }
 
 export interface PitcherRecord {
