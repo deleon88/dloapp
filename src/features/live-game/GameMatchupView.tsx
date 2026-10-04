@@ -39,8 +39,6 @@ interface HydratedGame extends ScheduledGame {
 interface Props {
   game: ScheduledGame
   pitcherStats?: Map<number, PitcherInfo>
-  /** Show wOBA allowed instead of xwOBA (a period or batter-hand filter is active). */
-  showWobaAgainst?: boolean
   lineup?: GameLineup
   wrcMap?: Map<number, PlayerStats>
   lineupLoading?: boolean
@@ -56,7 +54,6 @@ interface Props {
 export default function GameMatchupView({
   game,
   pitcherStats,
-  showWobaAgainst,
   lineup,
   wrcMap,
   lineupLoading,
@@ -169,7 +166,6 @@ export default function GameMatchupView({
 
       {/* ── Pitcher matchup ────────────────────────────────── */}
       <PitcherMatchup
-        showWobaAgainst={showWobaAgainst}
         awayPitcher={awayPitcher}
         homePitcher={homePitcher}
         awayColor={ac}

@@ -105,8 +105,7 @@ export const translations = {
     glossaryWhipDesc: 'Walks plus hits per inning pitched. Measures baserunners allowed.',
     glossaryKbbDesc: 'Strikeout rate minus walk rate. Net command and swing-and-miss ability.',
     glossaryXfipDesc: 'FIP with home run rate normalized to league average. Best predictor of future ERA.',
-    glossaryXwobaDesc: 'Expected wOBA on contact based on exit velocity and launch angle — removes luck and defense.',
-    glossaryWobaAgainstDesc: 'Actual wOBA allowed in the selected period or vs the selected batter hand — shown instead of xwOBA, which is only available for the full season.',
+    glossaryWobaAgainstDesc: 'Weighted on-base average allowed. Values every way a batter reaches base by its run value. Follows the selected period and batter hand.',
   },
   es: {
     // Nav
@@ -214,8 +213,7 @@ export const translations = {
     glossaryWhipDesc: 'Bases por bola más hits por entrada. Mide los corredores permitidos.',
     glossaryKbbDesc: 'Tasa de ponches menos tasa de bases por bola. Mide el control neto del lanzador.',
     glossaryXfipDesc: 'FIP con la tasa de jonrones normalizada al promedio de la liga. Mejor predictor del ERA futuro.',
-    glossaryXwobaDesc: 'wOBA esperada en contacto según velocidad de salida y ángulo de lanzamiento — elimina la suerte y la defensa.',
-    glossaryWobaAgainstDesc: 'wOBA real permitido en el periodo elegido o contra la mano de bateador elegida — se muestra en lugar del xwOBA, que solo existe para la temporada completa.',
+    glossaryWobaAgainstDesc: 'wOBA permitido. Pondera cada forma de llegar a base según su valor en carreras. Sigue el periodo y la mano de bateador elegidos.',
   },
 } as const
 

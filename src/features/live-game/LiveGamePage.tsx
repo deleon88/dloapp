@@ -199,7 +199,6 @@ export default function LiveGamePage() {
         <GameMatchupView
           game={game}
           pitcherStats={pitcherStats}
-          showWobaAgainst={period !== 'season' || handFilters.pitcher !== 'all'}
           lineup={{ away: awayLineup, home: homeLineup }}
           wrcMap={wrcMap}
           lineupLoading={

@@ -18,8 +18,6 @@ export interface PitcherSeasonStats {
   fip: number
   fipMinus: number
   xfip: number
-  woba: string
-  wobaCon: string
   qualityStarts: number
   inningsPitchedPerGame: string
   /** wOBA allowed, from our backend (same period / hand as FIP). */
@@ -55,7 +53,7 @@ interface RawPerson {
 }
 
 /**
- * Starter pitcher info and stats. Name, hand and xwOBA come from MLB (season);
+ * Starter pitcher info and stats. Name and hand come from MLB;
  * FIP, FIP-, xFIP, WHIP, K, BB, IP and ERA/W-L/QS follow the chosen period via
  * our backend. If the backend fails in full season, MLB's numbers are kept;
  * in a shorter period they're left empty rather than mixing periods.
@@ -72,7 +70,7 @@ export async function fetchPitcherStats(
   const data = await mlbApi.get<{ people: RawPerson[] }>('/people', {
     personIds: personIds.join(','),
     season,
-    hydrate: `stats(group=[pitching],type=[season,seasonAdvanced,sabermetrics,expectedStatistics],season=${season})`,
+    hydrate: `stats(group=[pitching],type=[season,seasonAdvanced,sabermetrics],season=${season})`,
     fields: [
       'people', 'id', 'fullName', 'primaryNumber',
       'pitchHand', 'code', 'description',
@@ -81,7 +79,6 @@ export async function fetchPitcherStats(
       'strikeOuts', 'baseOnBalls', 'battersFaced', 'strikeoutsPer9Inn',
       'walksPer9Inn', 'strikeoutWalkRatio', 'runsScoredPer9',
       'fip', 'fipMinus', 'xfip',
-      'woba', 'wobaCon',
       'qualityStarts', 'inningsPitchedPerGame',
     ].join(','),
   })
@@ -100,12 +97,10 @@ export async function fetchPitcherStats(
     }
     type AdvancedStat  = { qualityStarts?: number; inningsPitchedPerGame?: string }
     type SaberStat     = { fip?: number; fipMinus?: number; xfip?: number }
-    type ExpStat       = { woba?: string; wobaCon?: string }
 
     const ss  = (byType.get('season')             ?? {}) as SeasonStat
     const adv = (byType.get('seasonAdvanced')     ?? {}) as AdvancedStat
     const sb  = (byType.get('sabermetrics')       ?? {}) as SaberStat
-    const ex  = (byType.get('expectedStatistics') ?? {}) as ExpStat
 
     map.set(p.id, {
       id: p.id,
@@ -128,8 +123,6 @@ export async function fetchPitcherStats(
         fip:                  sb.fip                   ?? 0,
         fipMinus:             sb.fipMinus              ?? 0,
         xfip:                 sb.xfip                  ?? 0,
-        woba:                 ex.woba                  ?? '-.---',
-        wobaCon:              ex.wobaCon               ?? '-.---',
         qualityStarts:        adv.qualityStarts        ?? 0,
         inningsPitchedPerGame: adv.inningsPitchedPerGame ?? '0.0',
       } : undefined,
@@ -149,7 +142,7 @@ export async function fetchPitcherStats(
     const base: PitcherSeasonStats = info.seasonStats ?? {
       era: '-.--', whip: '-.--', wins: 0, losses: 0, inningsPitched: '0.0', strikeoutsPer9Inn: '0.0',
       walksPer9Inn: '0.0', strikeoutWalkRatio: '—', runsScoredPer9: '0.0', strikeOuts: 0, baseOnBalls: 0,
-      battersFaced: 0, fip: 0, fipMinus: 0, xfip: 0, woba: '-.---', wobaCon: '-.---', qualityStarts: 0,
+      battersFaced: 0, fip: 0, fipMinus: 0, xfip: 0, qualityStarts: 0,
       inningsPitchedPerGame: '0.0',
     }
     info.seasonStats = {
