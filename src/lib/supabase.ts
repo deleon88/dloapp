@@ -5,11 +5,16 @@ import { createClient } from '@supabase/supabase-js'
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY) as string | undefined
 
-export const supabase = url && key
+// Login oculto en producción por ahora: siempre activo en dev; en un deploy,
+// solo con VITE_ENABLE_AUTH=true. Sin cliente, el botón, el modal y las rutas
+// de cuenta desaparecen.
+export const authEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_AUTH === 'true'
+
+export const supabase = authEnabled && url && key
   ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
   : null
 
-if (!supabase) console.warn('[auth] Falta VITE_SUPABASE_URL o la llave publicable: el login queda desactivado.')
+if (authEnabled && !supabase) console.warn('[auth] Falta VITE_SUPABASE_URL o la llave publicable: el login queda desactivado.')
 
 /** URL a la que vuelven los enlaces de confirmación, recuperación y OAuth. */
 export function authRedirectUrl(path = '/auth/callback'): string {

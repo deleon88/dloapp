@@ -13,6 +13,7 @@ import { OpenAuthRoute } from '@/features/auth/AuthModal'
 import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 import AuthCallbackPage from '@/features/auth/AuthCallbackPage'
 import ProfilePage from '@/features/auth/ProfilePage'
+import { supabase } from '@/lib/supabase'
 
 export default function App() {
   return (
@@ -27,12 +28,15 @@ export default function App() {
           <Route path="nrfi" element={<NrfiPage />} />
           <Route path="lmb" element={<LmbSchedulePage />} />
           <Route path="lmb/game/:gameId" element={<LmbGamePage />} />
-          <Route path="login" element={<OpenAuthRoute view="login" />} />
-          <Route path="signup" element={<OpenAuthRoute view="signup" />} />
-          <Route path="forgot-password" element={<OpenAuthRoute view="forgot" />} />
-          <Route path="reset-password" element={<ResetPasswordPage />} />
-          <Route path="auth/callback" element={<AuthCallbackPage />} />
-          <Route path="profile" element={<ProfilePage />} />
+          {supabase && <>
+            <Route path="login" element={<OpenAuthRoute view="login" />} />
+            <Route path="signup" element={<OpenAuthRoute view="signup" />} />
+            <Route path="forgot-password" element={<OpenAuthRoute view="forgot" />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
+            <Route path="auth/callback" element={<AuthCallbackPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </>}
+          <Route path="*" element={<Navigate to="/schedule" replace />} />
         </Route>
       </Routes>
       <Analytics />

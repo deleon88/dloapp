@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import AuthModal from '@/features/auth/AuthModal'
+import { supabase } from '@/lib/supabase'
 import { useTeamsVersion } from '@/data/teams'
 import { loadTeams } from '@/data/loadTeams'
 import NavBar from './NavBar'
@@ -37,7 +38,7 @@ export default function Layout() {
       <main className={styles.main} key={teamsVersion}>
         <Outlet />
       </main>
-      <AuthModal />
+      {supabase && <AuthModal />}
     </div>
   )
 }
