@@ -1,5 +1,5 @@
-import { sql } from './db'
-import { fetchGamePlays, fetchSchedule, type ScheduleGame } from './mlb/pbp'
+import { sql } from './db.js'
+import { fetchGamePlays, fetchSchedule, type ScheduleGame } from './mlb/pbp.js'
 
 /** Inserta o actualiza los juegos del calendario. No toca el estado de ingesta. */
 export async function upsertGames(games: ScheduleGame[]): Promise<void> {

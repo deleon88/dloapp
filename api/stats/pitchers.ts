@@ -1,9 +1,9 @@
 // GET /api/stats/pitchers?ids=1,2,3[&season=2026][&period=season|60days|30days|14days|7days][&role=all|rp]
 // FIP, FIP-, xFIP, WHIP, K-BB% and wOBA against (overall, vs LHB, vs RHB) from
 // the play-by-play, plus ERA / W-L / QS from MLB for the same period.
-import { PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting'
-import { getPitcherLines, type PitcherRole } from '../../server/stats/pitching'
-import { getPitcherRecords } from '../../server/mlb/pitcherRecord'
+import { PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting.js'
+import { getPitcherLines, type PitcherRole } from '../../server/stats/pitching.js'
+import { getPitcherRecords } from '../../server/mlb/pitcherRecord.js'
 
 const MAX_IDS = 200
 const PERIODS = new Set<string>(['season', ...Object.keys(PERIOD_DAYS)])

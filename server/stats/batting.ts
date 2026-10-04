@@ -1,7 +1,7 @@
 // Estadísticas de bateo calculadas desde la tabla plays: conteos por bateador
 // filtrables por temporada, ventana de fechas y mano del pitcher, más wOBA y
 // wRC+ con las constantes de league_constants.
-import { sql } from '../db'
+import { sql } from '../db.js'
 
 // Turnos que no cuentan como turno oficial (AB). La interferencia del bateador
 // sí es AB (el bateador queda out), a diferencia de la del receptor.

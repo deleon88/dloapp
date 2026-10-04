@@ -2,7 +2,7 @@
 //                       [&from=YYYY-MM-DD&to=YYYY-MM-DD]
 // wOBA, wRC+, OPS y HR (general, vs LHP, vs RHP) calculados desde el play-by-play.
 // `period` calcula el rango en el servidor; `from`/`to` explícitos tienen prioridad.
-import { getBatterLines, PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting'
+import { getBatterLines, PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting.js'
 
 const MAX_IDS = 200
 const DATE = /^\d{4}-\d{2}-\d{2}$/

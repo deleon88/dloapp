@@ -1,8 +1,8 @@
 // Pitching stats from the plays table: per-pitcher counts by period, role
 // (starter / reliever) and batter hand, plus FIP, FIP-, xFIP, WHIP, K-BB% and
 // wOBA against, with the constants in league_constants.
-import { sql } from '../db'
-import { getConstants, getParkFactors, woba, type BatterCounts, type WobaConstants } from './batting'
+import { sql } from '../db.js'
+import { getConstants, getParkFactors, woba, type BatterCounts, type WobaConstants } from './batting.js'
 
 const NON_AB = ['Walk', 'Intent Walk', 'Hit By Pitch', 'Sac Fly', 'Sac Fly Double Play',
   'Sac Bunt', 'Sac Bunt Double Play', 'Catcher Interference']

@@ -1,7 +1,7 @@
 // ERA, W-L and quality starts from the MLB Stats API. These need earned runs and
 // decisions, which the stored play-by-play doesn't have. Supports a date range
 // (byDateRange) and relief-only splits (sitCodes=rp, season only).
-import { getJson } from './pbp'
+import { getJson } from './pbp.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 

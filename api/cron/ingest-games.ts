@@ -2,7 +2,7 @@
 // 1. Sincroniza el calendario de ayer y hoy (hora del este).
 // 2. Ingresa el play-by-play de los juegos terminados que falten.
 // 3. Vuelve a ingresar los de los últimos 2 días, por si MLB corrigió la anotación.
-import { etDate, ingestMany, pendingGames, syncSchedule } from '../../server/ingest'
+import { etDate, ingestMany, pendingGames, syncSchedule } from '../../server/ingest.js'
 
 export const maxDuration = 60
 

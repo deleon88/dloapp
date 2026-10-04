@@ -1,7 +1,7 @@
 // GET /api/teams — MLB and LMB teams with their colors, plus (MLB) league,
 // division, venue, roof type and FanGraphs park factor. Almost never changes:
 // the CDN caches it for hours.
-import { sql } from '../server/db'
+import { sql } from '../server/db.js'
 
 interface TeamRow {
   league: 'MLB' | 'LMB'
