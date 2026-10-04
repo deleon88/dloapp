@@ -1,17 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getGame } from '@/api/mlb/endpoints/schedule'
 import { fetchTeamRecentResults } from '@/api/mlb/endpoints/teamRecentResults'
 import { fetchPitcherStats } from '@/api/mlb/endpoints/pitcherStats'
 import { getGameLineup } from '@/api/mlb/endpoints/boxscore'
-import { fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
+import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchDepthChart } from '@/api/mlb/endpoints/teamRoster'
 import { fetchTeamPredictions } from '@/api/mlb/endpoints/predictedLineup'
 import { getCachedPredictions, setCachedPredictions } from '@/api/mlb/endpoints/lineupPredictionCache'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
+import HandSelect from '@/components/HandSelect/HandSelect'
 import type { StatPeriod } from '@/utils/period'
+import { batterSplitFor, type HandFilters } from '@/utils/handFilter'
+import { loadSavedPeriod, saveSavedPeriod, loadSavedHandFilters, saveSavedHandFilters } from '@/utils/filterPreferences'
 import GameMatchupView from './GameMatchupView'
 import styles from './LiveGamePage.module.css'
 
@@ -143,20 +146,41 @@ export default function LiveGamePage() {
     ...awayLineup.map(p => p.id),
     ...homeLineup.map(p => p.id),
   ]
+  // Initialized from localStorage so the filters survive navigation to/from
+  // SchedulePage (and a reload) — see filterPreferences.ts.
+  const [period, setPeriodState] = useState<StatPeriod>(loadSavedPeriod)
+  const [handFilters, setHandFiltersState] = useState<HandFilters>(loadSavedHandFilters)
+  const setPeriod = (p: StatPeriod) => { setPeriodState(p); saveSavedPeriod(p) }
+  const setHandFilters = (f: HandFilters) => { setHandFiltersState(f); saveSavedHandFilters(f) }
+
   const saberQuery = useQuery({
-    queryKey: ['lineup-saber', ...allBatterIds],
-    queryFn: () => fetchLineupStats(allBatterIds),
+    queryKey: ['lineup-saber', period, ...allBatterIds],
+    queryFn: () => fetchLineupStats(allBatterIds, period),
     enabled: allBatterIds.length > 0,
     staleTime: 3_600_000,
+    placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
   })
 
-  const [period, setPeriod] = useState<StatPeriod>('season')
+  // Hand filter: away batters face the home starter and vice versa. The splits
+  // already came with saberQuery, so switching hands doesn't refetch.
+  const wrcMap = useMemo(() => {
+    const stats = saberQuery.data
+    if (!stats || handFilters.batter === 'all') return stats
+    const awaySplit = batterSplitFor(handFilters.batter, homePitcherHand)
+    const homeSplit = batterSplitFor(handFilters.batter, awayPitcherHand)
+    const awayIds = new Set(awayLineup.map(p => p.id))
+    const asHand = (s: 'all' | 'L' | 'R' | null) => (s === 'all' ? null : s)
+    return applyBatterHand(stats, id => asHand(awayIds.has(id) ? awaySplit : homeSplit))
+  }, [saberQuery.data, handFilters.batter, homePitcherHand, awayPitcherHand, awayLineup])
 
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <button className={styles.backBtn} onClick={() => navigate(-1)}>← Back</button>
-        <PeriodSelect value={period} onChange={setPeriod} />
+        <div className={styles.headerRight}>
+          <PeriodSelect value={period} onChange={setPeriod} />
+          <HandSelect value={handFilters} onChange={setHandFilters} />
+        </div>
       </div>
 
       {gameQuery.isLoading && <p className={styles.loading}>Loading…</p>}
@@ -167,7 +191,7 @@ export default function LiveGamePage() {
           game={game}
           pitcherStats={pitcherQuery.data}
           lineup={{ away: awayLineup, home: homeLineup }}
-          wrcMap={saberQuery.data}
+          wrcMap={wrcMap}
           lineupLoading={
             lineupQuery.isLoading || saberQuery.isLoading ||
             (isPreview && (awayPredictedQuery.isLoading || homePredictedQuery.isLoading))

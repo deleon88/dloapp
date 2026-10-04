@@ -1,8 +1,9 @@
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import type { PlayerStats } from '@/api/mlb/endpoints/lineupStats'
 import { getTeamMeta, getBarColor } from '@/data/teams'
 import { useT } from '@/i18n/useT'
+import { BarFill, CountUp } from '@/components/AnimatedBar/AnimatedBar'
 import CardBgLayers from './CardBgLayers'
 import FieldingAlignmentModal from './FieldingAlignmentModal'
 import VsPitcherModal from './VsPitcherModal'
@@ -32,6 +33,8 @@ interface Props {
 const WRC_MIN = 40
 const WRC_MAX = 160
 const AVG_MARK_PCT = ((100 - WRC_MIN) / (WRC_MAX - WRC_MIN)) * 100 // 50%
+/** Delay between lineup rows in the bar cascade, in ms. */
+const ROW_STAGGER_MS = 60
 
 function barPct(wrc: number): number {
   return Math.max(0, Math.min(100, ((wrc - WRC_MIN) / (WRC_MAX - WRC_MIN)) * 100))
@@ -228,6 +231,7 @@ function ComparisonView({
   homeLineupStatus?: LineupStatus
 }) {
   const slots = Math.max(awayLineup.length, homeLineup.length, 9)
+  const totalsDelay = slots * ROW_STAGGER_MS   // totals fill after the last row
   const aAvg = lineupAvgWrc(awayLineup, wrcMap)
   const hAvg = lineupAvgWrc(homeLineup, wrcMap)
   const aChips = lineupChipStats(awayLineup, wrcMap)
@@ -258,6 +262,9 @@ function ComparisonView({
         const h = homeLineup[i]
         const aWrc = a ? (wrcMap.get(a.id)?.wRcPlus ?? null) : null
         const hWrc = h ? (wrcMap.get(h.id)?.wRcPlus ?? null) : null
+        // PA del periodo elegido (de wrcMap); si no hay, los del lineup.
+        const aPa = a ? (wrcMap.get(a.id)?.pa ?? a.pa) : null
+        const hPa = h ? (wrcMap.get(h.id)?.pa ?? h.pa) : null
         const aPct = aWrc != null ? barPct(aWrc) : 0
         const hPct = hWrc != null ? barPct(hWrc) : 0
 
@@ -270,24 +277,24 @@ function ComparisonView({
               {a ? <>
                 <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(a.fullName)}</span>
                 <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(a.fullName)}</span>
-                <span className={styles.meta}><span className={styles.posText}>{a.pos} · </span>{a.pa != null ? `${a.pa} PA` : a.avg}</span>
+                <span className={styles.meta}><span className={styles.posText}>{a.pos} · </span>{aPa != null ? `${aPa} PA` : a.avg}</span>
               </> : <span className={styles.empty}>—</span>}
             </div>
 
             {/* Away bar (right-anchored) + wRC+ value */}
             <div className={styles.barBlockAway}>
               <div className={styles.barTrack}>
-                <div className={styles.barFillRight} style={{ '--bar-width': `${aPct}%`, background: awayColor } as CSSProperties} />
+                <BarFill className={styles.barFillRight} width={aPct} color={awayColor} delay={i * ROW_STAGGER_MS} />
                 <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
               </div>
-              <span className={styles.wrc}>{aWrc ?? '—'}</span>
+              <span className={styles.wrc}><CountUp value={aWrc} delay={i * ROW_STAGGER_MS} /></span>
             </div>
 
             {/* Home bar (left-anchored) + wRC+ value */}
             <div className={styles.barBlockHome}>
-              <span className={styles.wrc}>{hWrc ?? '—'}</span>
+              <span className={styles.wrc}><CountUp value={hWrc} delay={i * ROW_STAGGER_MS} /></span>
               <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ '--bar-width': `${hPct}%`, background: homeColor } as CSSProperties} />
+                <BarFill className={styles.barFillLeft} width={hPct} color={homeColor} delay={i * ROW_STAGGER_MS} />
                 <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
               </div>
             </div>
@@ -296,7 +303,7 @@ function ComparisonView({
               {h ? <>
                 <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(h.fullName)}</span>
                 <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(h.fullName)}</span>
-                <span className={styles.meta}><span className={styles.posText}>{h.pos} · </span>{h.pa != null ? `${h.pa} PA` : h.avg}</span>
+                <span className={styles.meta}><span className={styles.posText}>{h.pos} · </span>{hPa != null ? `${hPa} PA` : h.avg}</span>
               </> : <span className={styles.empty}>—</span>}
             </div>
 
@@ -310,25 +317,25 @@ function ComparisonView({
       <div className={styles.totalsRow}>
         {/* ── Row 1: wRC+ values + bars aligned ── */}
         <div className={`${styles.totalsWrcOuter} ${styles.totalsWrcAway}`}>
-          {aAvg ?? '—'}
+          <CountUp value={aAvg} delay={totalsDelay} />
         </div>
 
         <div className={styles.totalsBarAway}>
           <div className={styles.barTrack} style={{ width: '100%', flex: 'none' }}>
-            <div className={styles.barFillRight} style={{ '--bar-width': `${aAvg != null ? barPct(aAvg) : 0}%`, background: awayColor } as CSSProperties} />
+            <BarFill className={styles.barFillRight} width={aAvg != null ? barPct(aAvg) : 0} color={awayColor} delay={totalsDelay} />
             <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
           </div>
         </div>
 
         <div className={styles.totalsBarHome}>
           <div className={styles.barTrack} style={{ width: '100%', flex: 'none' }}>
-            <div className={styles.barFillLeft} style={{ '--bar-width': `${hAvg != null ? barPct(hAvg) : 0}%`, background: homeColor } as CSSProperties} />
+            <BarFill className={styles.barFillLeft} width={hAvg != null ? barPct(hAvg) : 0} color={homeColor} delay={totalsDelay} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
         </div>
 
         <div className={`${styles.totalsWrcOuter} ${styles.totalsWrcHome}`}>
-          {hAvg ?? '—'}
+          <CountUp value={hAvg} delay={totalsDelay} />
         </div>
 
         {/* ── Row 2: chips spanning full half ── */}
@@ -403,6 +410,7 @@ function SingleView({ lineup, color, wrcMap }: {
       {slots.map((p: LineupSlot | null, i) => {
         const ps  = p ? (wrcMap.get(p.id) ?? null) : null
         const wrc = ps?.wRcPlus ?? null
+        const pa  = ps?.pa ?? p?.pa ?? null
         const pct = wrc != null ? barPct(wrc) : 0
 
         return (
@@ -411,7 +419,7 @@ function SingleView({ lineup, color, wrcMap }: {
             <PlayerPhoto id={p?.id} name={p?.fullName} />
             <div className={styles.singleInfo}>
               {p
-                ? <><span className={styles.name}>{fmtName(p.fullName)}</span><span className={styles.meta}>{p.pos}{p.pa != null ? ` · ${p.pa} PA` : ''}</span></>
+                ? <><span className={styles.name}>{fmtName(p.fullName)}</span><span className={styles.meta}>{p.pos}{pa != null ? ` · ${pa} PA` : ''}</span></>
                 : <span className={styles.empty}>—</span>}
             </div>
             <span className={styles.statVal}>{ps?.hr  ?? '—'}</span>
@@ -421,10 +429,10 @@ function SingleView({ lineup, color, wrcMap }: {
             <span className={styles.statVal}>{ps?.woba ?? '—'}</span>
             <div className={styles.singleBarWrap}>
               <div className={styles.barTrack}>
-                <div className={styles.barFillLeft} style={{ '--bar-width': `${pct}%`, background: color } as CSSProperties} />
+                <BarFill className={styles.barFillLeft} width={pct} color={color} delay={i * ROW_STAGGER_MS} />
                 <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
               </div>
-              <span className={styles.wrc}>{wrc ?? '—'}</span>
+              <span className={styles.wrc}><CountUp value={wrc} delay={i * ROW_STAGGER_MS} /></span>
             </div>
           </div>
         )
@@ -437,10 +445,10 @@ function SingleView({ lineup, color, wrcMap }: {
         <span className={styles.singleTotalsLabel}>Wtd. wRC+ Avg</span>
         <div className={`${styles.singleBarWrap} ${styles.singleTotalsBarWrap}`}>
           <div className={styles.barTrack}>
-            <div className={styles.barFillLeft} style={{ '--bar-width': `${avgPct}%`, background: color } as CSSProperties} />
+            <BarFill className={styles.barFillLeft} width={avgPct} color={color} delay={slots.length * ROW_STAGGER_MS} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
-          <span className={styles.wrc}>{avg ?? '—'}</span>
+          <span className={styles.wrc}><CountUp value={avg} delay={slots.length * ROW_STAGGER_MS} /></span>
         </div>
       </div>
     </div>

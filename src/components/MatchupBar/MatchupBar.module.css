@@ -64,7 +64,6 @@
   right: 0;
   height: 100%;
   border-radius: 4px 0 0 4px;
-  animation: barFill 0.55s ease-out forwards;
 }
 
 .fillHome {
@@ -73,12 +72,6 @@
   left: 0;
   height: 100%;
   border-radius: 0 4px 4px 0;
-  animation: barFill 0.55s ease-out forwards;
-}
-
-@keyframes barFill {
-  from { width: 0 }
-  to   { width: var(--bar-width) }
 }
 
 .avgLine {

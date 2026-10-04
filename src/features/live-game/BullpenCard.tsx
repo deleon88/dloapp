@@ -1,15 +1,17 @@
-import { type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { BullpenStats, BullpenPitcher } from '@/api/mlb/endpoints/bullpenStats'
 import { fetchBullpenUsage } from '@/api/mlb/endpoints/bullpenUsage'
 import type { BullpenUsage, UsageDay } from '@/api/mlb/endpoints/bullpenUsage'
 import type { ViewMode } from './LineupComparison'
+import { BarFill, CountUp } from '@/components/AnimatedBar/AnimatedBar'
 import CardBgLayers from './CardBgLayers'
 import styles from './BullpenCard.module.css'
 
 const FIP_MIN = 70
 const FIP_MAX = 130
 const AVG_MARK_PCT = ((100 - FIP_MIN) / (FIP_MAX - FIP_MIN)) * 100  // 50%
+/** Delay between bullpen rows in the bar cascade, in ms. */
+const ROW_STAGGER_MS = 60
 
 function toFipPlus(fipMinus: number): number {
   return Math.round(200 - fipMinus)
@@ -246,16 +248,16 @@ function ComparisonView({
 
               <div className={styles.barBlockAway}>
                 <div className={styles.barTrack}>
-                  <div className={styles.barFillRight} style={{ '--bar-width': `${aPct}%`, background: awayColor } as CSSProperties} />
+                  <BarFill className={styles.barFillRight} width={aPct} color={awayColor} delay={i * ROW_STAGGER_MS} />
                   <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
                 </div>
-                <span className={styles.fipVal}>{aFip ?? '—'}</span>
+                <span className={styles.fipVal}><CountUp value={aFip} delay={i * ROW_STAGGER_MS} /></span>
               </div>
 
               <div className={styles.barBlockHome}>
-                <span className={styles.fipVal}>{hFip ?? '—'}</span>
+                <span className={styles.fipVal}><CountUp value={hFip} delay={i * ROW_STAGGER_MS} /></span>
                 <div className={styles.barTrack}>
-                  <div className={styles.barFillLeft} style={{ '--bar-width': `${hPct}%`, background: homeColor } as CSSProperties} />
+                  <BarFill className={styles.barFillLeft} width={hPct} color={homeColor} delay={i * ROW_STAGGER_MS} />
                   <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
                 </div>
               </div>
@@ -294,18 +296,18 @@ function ComparisonView({
       {/* Team aggregate totals */}
       <div className={styles.totalsRow}>
         <div className={styles.totalsAway}>
-          <span className={styles.totalsVal}>{aFipPlus ?? '—'}</span>
+          <span className={styles.totalsVal}><CountUp value={aFipPlus} delay={rows * ROW_STAGGER_MS} /></span>
           <div className={styles.barTrack}>
-            <div className={styles.barFillRight} style={{ '--bar-width': `${aAggPct}%`, background: awayColor } as CSSProperties} />
+            <BarFill className={styles.barFillRight} width={aAggPct} color={awayColor} delay={rows * ROW_STAGGER_MS} />
             <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
           </div>
         </div>
         <div className={styles.totalsHome}>
           <div className={styles.barTrack}>
-            <div className={styles.barFillLeft} style={{ '--bar-width': `${hAggPct}%`, background: homeColor } as CSSProperties} />
+            <BarFill className={styles.barFillLeft} width={hAggPct} color={homeColor} delay={rows * ROW_STAGGER_MS} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
-          <span className={styles.totalsVal}>{hFipPlus ?? '—'}</span>
+          <span className={styles.totalsVal}><CountUp value={hFipPlus} delay={rows * ROW_STAGGER_MS} /></span>
         </div>
       </div>
     </div>
@@ -333,7 +335,7 @@ function SingleView({ stats, color, usage }: {
         </div>
       </div>
 
-      {stats.pitchers.map((p) => {
+      {stats.pitchers.map((p, i) => {
         const fp  = p.fipMinus != null ? toFipPlus(p.fipMinus) : null
         const pct = fipBarPct(p.fipMinus)
         return (
@@ -348,10 +350,10 @@ function SingleView({ stats, color, usage }: {
               <span className={styles.statVal}>{p.ip ?? '—'}</span>
               <div className={styles.singleBarWrap}>
                 <div className={styles.barTrack}>
-                  <div className={styles.barFillLeft} style={{ '--bar-width': `${pct}%`, background: color } as CSSProperties} />
+                  <BarFill className={styles.barFillLeft} width={pct} color={color} delay={i * ROW_STAGGER_MS} />
                   <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
                 </div>
-                <span className={styles.fipVal}>{fp ?? '—'}</span>
+                <span className={styles.fipVal}><CountUp value={fp} delay={i * ROW_STAGGER_MS} /></span>
               </div>
             </div>
 

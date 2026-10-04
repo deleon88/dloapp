@@ -1,6 +1,9 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "crons": [
+    { "path": "/api/cron/ingest-games", "schedule": "0 10 * * *" }
+  ],
   "rewrites": [
     {
       "source": "/api/mlb-v11/:path*",

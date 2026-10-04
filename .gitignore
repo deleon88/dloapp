@@ -4,3 +4,8 @@ dist/
 .env.local
 *.local
 .DS_Store
+*.pem
+*.key
+__pycache__/
+.vercel
+.env*

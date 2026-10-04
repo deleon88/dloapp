@@ -1,0 +1,12 @@
+/* Spring fill: overshoots a little past the target, then settles. The same
+   transition animates both the first fill and later value changes (period or
+   hand filter), sliding from the old width to the new one. */
+.fill {
+  transition: width 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
+  }
+}

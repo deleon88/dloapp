@@ -1,19 +1,16 @@
-import { mlbApi } from '../client'
-import { fetchComputedWrcBulk } from './wrcComputed'
-export type { PlayerWrcData } from './wrcComputed'
+import { getStartingBattingOrders } from './boxscore'
+import { fetchBatterLines, type SplitLine } from '@/api/stats/batters'
+import type { StatPeriod } from '@/utils/period'
 
-interface RawBoxscoreTeam {
-  battingOrder: number[]
-}
-interface RawBoxscoreResponse {
-  teams: { away: RawBoxscoreTeam; home: RawBoxscoreTeam }
+/** Confirmed batting orders of one game (empty = not confirmed yet). */
+export interface GameLineupIds {
+  awayIds: number[]
+  homeIds: number[]
 }
 
-export interface GameOffense {
-  awayWrc: number | null
-  homeWrc: number | null
-  awayCount: number   // # of batters in confirmed batting order; 0 = no confirmed lineup
-  homeCount: number
+export interface LineupOffense {
+  games: Map<number, GameLineupIds>   // keyed by gamePk, so doubleheaders keep their own lineups
+  wrc: Map<number, PlayerWrcSplits>   // every batter in those lineups
 }
 
 interface GameTeamIds {
@@ -26,63 +23,25 @@ interface GameTeamIds {
 
 export interface PlayerWrcPa { wrc: number; pa: number }
 
-const WRC_PA_FIELDS = [
-  'people', 'id',
-  'stats', 'type', 'displayName', 'group',
-  'splits', 'stat', 'wRcPlus', 'plateAppearances',
-].join(',')
-
-async function fetchWrcPaChunk(ids: number[], season: number): Promise<Map<number, PlayerWrcPa>> {
-  const data = await mlbApi.get<{
-    people: Array<{
-      id: number
-      stats?: Array<{
-        type: { displayName: string }
-        group: { displayName: string }
-        splits: Array<{ stat: Record<string, unknown> }>
-      }>
-    }>
-  }>('/people', {
-    personIds: ids.join(','),
-    hydrate: `stats(group=[hitting],type=[season,sabermetrics],season=${season})`,
-    fields: WRC_PA_FIELDS,
-  })
-
-  const map = new Map<number, PlayerWrcPa>()
-  for (const person of data.people ?? []) {
-    const find = (t: string) =>
-      person.stats?.find(s => s.type.displayName === t && s.group.displayName === 'hitting')
-        ?.splits?.[0]?.stat ?? {}
-    const sea   = find('season')       as { plateAppearances?: number }
-    const saber = find('sabermetrics') as { wRcPlus?: number }
-    if (saber.wRcPlus != null) {
-      map.set(person.id, { wrc: Math.round(saber.wRcPlus), pa: sea.plateAppearances ?? 1 })
-    }
-  }
-  return map
+/** wRC+ y PA de un bateador: general, vs LHP y vs RHP. */
+export interface PlayerWrcSplits {
+  all: PlayerWrcPa | null
+  L: PlayerWrcPa | null
+  R: PlayerWrcPa | null
 }
 
-/** Bulk-fetches wRC+ and PA for an arbitrary player list, chunked at 60. */
-export async function fetchWrcPaBulk(
-  playerIds: number[],
-  season = new Date().getFullYear(),
-): Promise<Map<number, PlayerWrcPa>> {
-  if (!playerIds.length) return new Map()
-  const CHUNK = 60
-  const chunks = Array.from({ length: Math.ceil(playerIds.length / CHUNK) }, (_, i) =>
-    playerIds.slice(i * CHUNK, (i + 1) * CHUNK)
-  )
-  const maps = await Promise.all(chunks.map(chunk => fetchWrcPaChunk(chunk, season)))
-  const merged = new Map<number, PlayerWrcPa>()
-  for (const m of maps) for (const [k, v] of m) merged.set(k, v)
-  return merged
-}
+/** 'all' = todos los pitchers; 'L'/'R' = solo vs zurdos / derechos. */
+export type WrcSplitKey = keyof PlayerWrcSplits
 
-/** PA-weighted average wRC+ for a list of player IDs. */
-export function weightedWrcAvg(ids: number[], wrcPaMap: Map<number, PlayerWrcPa>): number | null {
+/** PA-weighted average wRC+ for a list of player IDs, using one split. */
+export function weightedWrcAvg(
+  ids: number[],
+  wrcMap: Map<number, PlayerWrcSplits>,
+  split: WrcSplitKey = 'all',
+): number | null {
   let sumWrcPa = 0, sumPa = 0
   for (const id of ids) {
-    const d = wrcPaMap.get(id)
+    const d = wrcMap.get(id)?.[split]
     if (!d) continue
     sumWrcPa += d.wrc * d.pa
     sumPa    += d.pa
@@ -93,74 +52,52 @@ export function weightedWrcAvg(ids: number[], wrcPaMap: Map<number, PlayerWrcPa>
 // ── Main export ───────────────────────────────────────────────────────────────
 
 /**
- * Returns Map<gamePk, GameOffense> so doubleheaders (same teamId, different
- * gamePk) are handled correctly with their own lineups.
+ * Confirmed batting orders for each game (from the boxscores) plus every
+ * batter's wRC+ splits for the period. The page picks the split to average,
+ * so changing the hand filter doesn't refetch anything.
  */
 export async function fetchLineupOffenseMap(
   games: GameTeamIds[],
+  period: StatPeriod = 'season',
   season = new Date().getFullYear(),
-): Promise<Map<number, GameOffense>> {
-  if (!games.length) return new Map()
+): Promise<LineupOffense> {
+  const result: LineupOffense = { games: new Map(), wrc: new Map() }
+  if (!games.length) return result
 
-  // 1. Fetch all boxscores in parallel, keyed by gamePk
-  const boxscores = await Promise.all(
-    games.map(({ gamePk }) =>
-      mlbApi.get<RawBoxscoreResponse>(`/game/${gamePk}/boxscore`, {
-        fields: 'teams,away,home,battingOrder',
-      }).catch(() => null),
-    ),
+  // 1. Starting batting orders, the same nine the game page shows (not the
+  //    current occupants, which change with substitutions during the game)
+  const orders = await Promise.all(
+    games.map(({ gamePk }) => getStartingBattingOrders(gamePk).catch(() => null)),
   )
 
   // 2. Collect all unique player IDs across all games
-  const gameData: Array<{ gamePk: number; awayIds: number[]; homeIds: number[] }> = []
   const allPlayerIds = new Set<number>()
-  const playerHomeTeamMap = new Map<number, number>()
-
-  boxscores.forEach((bs, i) => {
-    const { gamePk, homeTeamId } = games[i]
-    const awayIds = bs?.teams.away.battingOrder ?? []
-    const homeIds = bs?.teams.home.battingOrder ?? []
-    gameData.push({ gamePk, awayIds, homeIds })
-    awayIds.forEach(id => { allPlayerIds.add(id); playerHomeTeamMap.set(id, homeTeamId) })
-    homeIds.forEach(id => { allPlayerIds.add(id); playerHomeTeamMap.set(id, homeTeamId) })
+  orders.forEach((o, i) => {
+    const awayIds = o?.away ?? []
+    const homeIds = o?.home ?? []
+    result.games.set(games[i].gamePk, { awayIds, homeIds })
+    awayIds.forEach(id => allPlayerIds.add(id))
+    homeIds.forEach(id => allPlayerIds.add(id))
   })
 
-  if (!allPlayerIds.size) return new Map()
-
-  // 3. Park-adjusted wRC+ via computed formula
-  const wrcPaMap = await fetchWrcComputedBulk([...allPlayerIds], playerHomeTeamMap, undefined, season)
-
-  // 4. PA-weighted avg per game side, keyed by gamePk
-  const result = new Map<number, GameOffense>()
-  for (const { gamePk, awayIds, homeIds } of gameData) {
-    result.set(gamePk, {
-      awayWrc:   weightedWrcAvg(awayIds, wrcPaMap),
-      homeWrc:   weightedWrcAvg(homeIds, wrcPaMap),
-      awayCount: awayIds.length,
-      homeCount: homeIds.length,
-    })
-  }
+  // 3. wRC+ ajustado por parque, desde nuestro backend
+  if (allPlayerIds.size) result.wrc = await fetchWrcComputedBulk([...allPlayerIds], period, season)
   return result
 }
 
 /**
- * Park-adjusted wRC+ drop-in replacement for fetchWrcPaBulk.
- * Returns the same Map<playerId, PlayerWrcPa> shape so existing callers
- * (SchedulePage, etc.) need no changes — they get the park-corrected number.
- *
- * @param homeTeamMap - playerId → homeTeamId (needed for park factor lookup)
- * @param batterHandMap - optional playerId → 'L'|'R' (enables handedness park factors on vs splits)
+ * wRC+ y PA por jugador (general, vs LHP, vs RHP) desde /api/stats/batters,
+ * para usar con weightedWrcAvg(). El park factor lo pondera el backend según
+ * los parques donde bateó cada jugador, no según el estadio del juego de hoy.
  */
 export async function fetchWrcComputedBulk(
   playerIds: number[],
-  homeTeamMap: Map<number, number>,
-  batterHandMap?: Map<number, 'L' | 'R'>,
+  period: StatPeriod = 'season',
   season = new Date().getFullYear(),
-): Promise<Map<number, PlayerWrcPa>> {
-  const computed = await fetchComputedWrcBulk(playerIds, homeTeamMap, batterHandMap, season)
-  const out = new Map<number, PlayerWrcPa>()
-  for (const [id, d] of computed) {
-    if (d.wrcPlus != null) out.set(id, { wrc: d.wrcPlus, pa: d.pa })
-  }
+): Promise<Map<number, PlayerWrcSplits>> {
+  const lines = await fetchBatterLines(playerIds, { season, period })
+  const toWrcPa = (l: SplitLine): PlayerWrcPa | null => (l.wrcPlus != null ? { wrc: l.wrcPlus, pa: l.pa } : null)
+  const out = new Map<number, PlayerWrcSplits>()
+  for (const [id, d] of lines) out.set(id, { all: toWrcPa(d), L: toWrcPa(d.vsL), R: toWrcPa(d.vsR) })
   return out
 }

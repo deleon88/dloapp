@@ -98,6 +98,7 @@ export default function GameCard({
         homeBullpenFipPlus={homeBullpenFipPlus}
         acBar={acBar}
         hcBar={hcBar}
+        delay={animDelay}
       />
     </Link>
   );
@@ -165,28 +166,34 @@ function LineupStatusBadge({ status }: { status: LineupStatus }) {
   )
 }
 
-function StatBars({ awayFipPlus, homeFipPlus, awayWrc, homeWrc, awayBullpenFipPlus, homeBullpenFipPlus, acBar, hcBar }: {
+/** Delay between rows of the cascade, in ms. */
+const ROW_STAGGER_MS = 110
+
+function StatBars({ awayFipPlus, homeFipPlus, awayWrc, homeWrc, awayBullpenFipPlus, homeBullpenFipPlus, acBar, hcBar, delay }: {
   awayFipPlus?: number; homeFipPlus?: number
   awayWrc?: number; homeWrc?: number
   awayBullpenFipPlus?: number; homeBullpenFipPlus?: number
   acBar: string; hcBar: string
+  delay: number   // the card's own entrance delay, so the bars start as it appears
 }) {
   const t = useT()
   return (
     <div className={styles.statbars}>
-      <StatBar label={t('starters')} aVal={awayFipPlus ?? null} hVal={homeFipPlus ?? null} ac={acBar} hc={hcBar} barFn={fipBarWidth} />
-      <StatBar label={t('offense')} aVal={awayWrc ?? null} hVal={homeWrc ?? null} ac={acBar} hc={hcBar} barFn={wrcBarWidth} />
-      <StatBar label={t('bullpen')} aVal={awayBullpenFipPlus ?? null} hVal={homeBullpenFipPlus ?? null} ac={acBar} hc={hcBar} barFn={fipBarWidth} />
+      <StatBar label={t('starters')} aVal={awayFipPlus ?? null} hVal={homeFipPlus ?? null} ac={acBar} hc={hcBar} barFn={fipBarWidth} delay={delay} />
+      <StatBar label={t('offense')} aVal={awayWrc ?? null} hVal={homeWrc ?? null} ac={acBar} hc={hcBar} barFn={wrcBarWidth} delay={delay + ROW_STAGGER_MS} />
+      <StatBar label={t('bullpen')} aVal={awayBullpenFipPlus ?? null} hVal={homeBullpenFipPlus ?? null} ac={acBar} hc={hcBar} barFn={fipBarWidth} delay={delay + 2 * ROW_STAGGER_MS} />
     </div>
   )
 }
 
-function StatBar({ label, aVal, hVal, ac, hc, barFn }: {
+function StatBar({ label, aVal, hVal, ac, hc, barFn, delay }: {
   label: string; aVal: number | null; hVal: number | null; ac: string; hc: string
   barFn: (v: number) => number
+  delay: number
 }) {
   return (
     <MatchupBar
+      delay={delay}
       label={label}
       aDisplay={aVal != null ? String(aVal) : "—"}
       hDisplay={hVal != null ? String(hVal) : "—"}

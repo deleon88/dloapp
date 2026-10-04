@@ -8,7 +8,9 @@ interface Props {
   onChange: (v: StatPeriod) => void
 }
 
-const FREE_PERIODS: StatPeriod[] = ['season']
+// Todos los periodos están disponibles. Para reservar alguno a usuarios de pago,
+// basta con quitarlo de esta lista: se muestra con candado y no se puede elegir.
+const FREE_PERIODS: StatPeriod[] = PERIOD_OPTIONS.map(o => o.value)
 
 export default function PeriodSelect({ value, onChange }: Props) {
   const [open, setOpen] = useState(false)

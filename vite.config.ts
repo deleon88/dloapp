@@ -1,32 +1,66 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { existsSync } from 'fs'
 import { resolve } from 'path'
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
+/**
+ * En desarrollo, sirve las funciones de api/ (las que en producción ejecuta
+ * Vercel) para que `npm run dev` funcione sin `vercel dev`. Solo GET; las rutas
+ * sin archivo en api/ (como /api/mlb) siguen al proxy de abajo.
+ */
+function devApiFunctions(): Plugin {
+  return {
+    name: 'dev-api-functions',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const url = new URL(req.url ?? '/', 'http://localhost')
+        const file = resolve(__dirname, `.${url.pathname}.ts`)
+        if (!url.pathname.startsWith('/api/') || req.method !== 'GET' || !existsSync(file)) return next()
+        try {
+          const mod = await server.ssrLoadModule(file)
+          const response: Response = await mod.GET(new Request(url, { headers: req.headers as HeadersInit }))
+          res.statusCode = response.status
+          response.headers.forEach((value, key) => res.setHeader(key, value))
+          res.end(Buffer.from(await response.arrayBuffer()))
+        } catch (e) {
+          next(e)
+        }
+      })
     },
-  },
-  server: {
-    port: 3000,
-    proxy: {
-      '/api/mlb': {
-        target: 'https://statsapi.mlb.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/mlb/, '/api/v1'),
-      },
-      '/api/mlb-v11': {
-        target: 'https://statsapi.mlb.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/mlb-v11/, '/api/v1.1'),
-      },
-      '/api/lmb': {
-        target: 'https://lmb.com.mx',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/lmb/, '/juegos/api'),
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  // Variables sin prefijo VITE_ (POSTGRES_URL…) para las funciones de api/ en desarrollo.
+  // Nunca llegan al navegador: solo se usan en el proceso de Node del servidor de Vite.
+  Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
+
+  return {
+    plugins: [react(), devApiFunctions()],
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, 'src'),
       },
     },
-  },
+    server: {
+      port: 3000,
+      proxy: {
+        '/api/mlb': {
+          target: 'https://statsapi.mlb.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/mlb/, '/api/v1'),
+        },
+        '/api/mlb-v11': {
+          target: 'https://statsapi.mlb.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/mlb-v11/, '/api/v1.1'),
+        },
+        '/api/lmb': {
+          target: 'https://lmb.com.mx',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/lmb/, '/juegos/api'),
+        },
+      },
+    },
+  }
 })

@@ -1,3 +1,6 @@
+// El rango de fechas de cada periodo lo calcula el servidor (server/stats/batting.ts
+// → resolvePeriod), contando hacia atrás desde el último día con juegos de
+// temporada regular.
 export type StatPeriod = 'season' | '60days' | '30days' | '14days' | '7days'
 
 export const PERIOD_OPTIONS: { value: StatPeriod; label: string }[] = [
@@ -7,27 +10,3 @@ export const PERIOD_OPTIONS: { value: StatPeriod; label: string }[] = [
   { value: '14days',  label: 'Last 14 Days' },
   { value: '7days',   label: 'Last 7 Days'  },
 ]
-
-function pad(n: number) {
-  return String(n).padStart(2, '0')
-}
-
-function fmtDate(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-export function getPeriodStartDate(period: StatPeriod): string {
-  const d = new Date()
-  const yr = d.getFullYear()
-  switch (period) {
-    case '60days': d.setDate(d.getDate() - 60); return fmtDate(d)
-    case '30days': d.setDate(d.getDate() - 30); return fmtDate(d)
-    case '14days': d.setDate(d.getDate() - 14); return fmtDate(d)
-    case '7days':  d.setDate(d.getDate() - 7);  return fmtDate(d)
-    default:       return `${yr}-03-01`
-  }
-}
-
-export function todayStr(): string {
-  return fmtDate(new Date())
-}

@@ -155,3 +155,31 @@
   background: var(--bg-highlight);
   color: var(--text-primary);
 }
+
+/* Account: icon-only rounded square (logged out: person icon; logged in: initial) */
+.accountBtn {
+  /* Same height as the EN/ES pill next to it */
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-highlight);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.accountBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.accountBtnSignedIn {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent-blue-dim);
+  border-color: rgba(59, 130, 246, 0.55);
+}

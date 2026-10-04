@@ -10,7 +10,10 @@ import { getGoToLineup } from '@/api/mlb/endpoints/goToLineupStore'
 import { fetchTeamPredictionsNoDepth } from '@/api/mlb/endpoints/predictedLineup'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { type StatPeriod } from '@/utils/period'
+import { batterSplitFor, type HandFilters } from '@/utils/handFilter'
+import { loadSavedPeriod, saveSavedPeriod, loadSavedHandFilters, saveSavedHandFilters } from '@/utils/filterPreferences'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
+import HandSelect from '@/components/HandSelect/HandSelect'
 import GameCard from './GameCard'
 import DateNav from './DateNav'
 import { useT } from '@/i18n/useT'
@@ -18,7 +21,12 @@ import styles from './SchedulePage.module.css'
 
 export default function SchedulePage() {
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
-  const [_period, _setPeriod] = useState<StatPeriod>('season')
+  // Initialized from localStorage so the filters survive navigation to/from
+  // LiveGamePage (and a reload) — see filterPreferences.ts.
+  const [period, setPeriodState] = useState<StatPeriod>(loadSavedPeriod)
+  const [handFilters, setHandFiltersState] = useState<HandFilters>(loadSavedHandFilters)
+  const setPeriod = (p: StatPeriod) => { setPeriodState(p); saveSavedPeriod(p) }
+  const setHandFilters = (f: HandFilters) => { setHandFiltersState(f); saveSavedHandFilters(f) }
   const [glossaryOpen, setGlossaryOpen] = useState(false)
 
   const scheduleQuery = useQuery({
@@ -103,10 +111,11 @@ export default function SchedulePage() {
   const allGamePks = allGamesForLineup.map(g => g.gamePk).join(',')
 
   const lineupOffenseQuery = useQuery({
-    queryKey: ['lineup-offense', date, allGamePks],
-    queryFn: () => fetchLineupOffenseMap(allGamesForLineup),
+    queryKey: ['lineup-offense', date, allGamePks, period],
+    queryFn: () => fetchLineupOffenseMap(allGamesForLineup, period),
     enabled: allGamesForLineup.length > 0,
     staleTime: 120_000,
+    placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
   })
 
   // Projected lineup: read player IDs from go-to store for unconfirmed teams,
@@ -117,48 +126,40 @@ export default function SchedulePage() {
     const lineupOffense = lineupOffenseQuery.data
     const pitchHands    = pitchHandQuery.data
 
-    const teamPlayerIds     = new Map<number, number[]>()
-    const playerHomeTeamMap = new Map<number, number>()
+    const teamPlayerIds = new Map<number, number[]>()
 
     for (const game of games) {
       const gp         = game as GameWithPitcher
-      const gl         = lineupOffense?.get(game.gamePk)
+      const gl         = lineupOffense?.games.get(game.gamePk)
       const homeTeamId = game.teams.home.team.id
 
-      if (!gl || gl.awayCount === 0) {
+      if (!gl || gl.awayIds.length === 0) {
         const homePitcherId = gp.teams.home.probablePitcher?.id
         const hand = homePitcherId ? pitchHands?.get(homePitcherId) as 'R' | 'L' | undefined : undefined
         const stored = getGoToLineup(game.teams.away.team.id)
         const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
-        if (lineup?.length) {
-          const ids = lineup.map(p => p.id)
-          teamPlayerIds.set(game.teams.away.team.id, ids)
-          for (const id of ids) playerHomeTeamMap.set(id, homeTeamId)
-        }
+        if (lineup?.length) teamPlayerIds.set(game.teams.away.team.id, lineup.map(p => p.id))
       }
 
-      if (!gl || gl.homeCount === 0) {
+      if (!gl || gl.homeIds.length === 0) {
         const awayPitcherId = gp.teams.away.probablePitcher?.id
         const hand = awayPitcherId ? pitchHands?.get(awayPitcherId) as 'R' | 'L' | undefined : undefined
         const stored = getGoToLineup(homeTeamId)
         const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
-        if (lineup?.length) {
-          const ids = lineup.map(p => p.id)
-          teamPlayerIds.set(homeTeamId, ids)
-          for (const id of ids) playerHomeTeamMap.set(id, homeTeamId)
-        }
+        if (lineup?.length) teamPlayerIds.set(homeTeamId, lineup.map(p => p.id))
       }
     }
 
     const allIds = [...new Set([...teamPlayerIds.values()].flat())]
-    return { teamPlayerIds, playerHomeTeamMap, allIds }
+    return { teamPlayerIds, allIds }
   }, [games, lineupOffenseQuery.data, pitchHandQuery.data, schedPredQuery.data])
 
   const projectedWrcQuery = useQuery({
-    queryKey: ['projected-sched-wrc', projectedInfo.allIds.slice().sort().join(',')],
-    queryFn: () => fetchWrcComputedBulk(projectedInfo.allIds, projectedInfo.playerHomeTeamMap),
+    queryKey: ['projected-sched-wrc', projectedInfo.allIds.slice().sort().join(','), period],
+    queryFn: () => fetchWrcComputedBulk(projectedInfo.allIds, period),
     enabled: projectedInfo.allIds.length > 0,
     staleTime: 3_600_000,
+    placeholderData: prev => prev,
   })
 
   const lineupOffense   = lineupOffenseQuery.data
@@ -177,7 +178,8 @@ export default function SchedulePage() {
           <h1 className={styles.heading}>{t('mlbGames')}</h1>
         </div>
         <div className={styles.headerRight}>
-          <PeriodSelect value={_period} onChange={_setPeriod} />
+          <PeriodSelect value={period} onChange={setPeriod} />
+          <HandSelect value={handFilters} onChange={setHandFilters} />
           <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
         </div>
       </div>
@@ -214,32 +216,27 @@ export default function SchedulePage() {
           const awayFipMinus = awayPitcherId ? pitcherStatsMap?.get(awayPitcherId)?.seasonStats?.fipMinus : undefined
           const homeFipMinus = homePitcherId ? pitcherStatsMap?.get(homePitcherId)?.seasonStats?.fipMinus : undefined
 
-          const gameLineup    = lineupOffense?.get(game.gamePk)
-          const awayConfirmed = (gameLineup?.awayCount ?? 0) > 0
-          const homeConfirmed = (gameLineup?.homeCount ?? 0) > 0
+          const gameLineup    = lineupOffense?.games.get(game.gamePk)
+          const awayConfirmed = (gameLineup?.awayIds.length ?? 0) > 0
+          const homeConfirmed = (gameLineup?.homeIds.length ?? 0) > 0
           const awayLineupStatus = awayConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.away.team.id) ? 'projected' as const : undefined
           const homeLineupStatus = homeConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.home.team.id) ? 'projected' as const : undefined
 
-          // Offense: confirmed → PA-weighted wRC+ from boxscore (API sabermetrics)
-          //          projected → PA-weighted wRC+ from API sabermetrics for projected players
-          //          neither   → omit (bar shows —)
-          const awayWrc: number | undefined = awayConfirmed
-            ? (gameLineup!.awayWrc ?? undefined)
-            : projectedWrcMap
-              ? (weightedWrcAvg(
-                  projectedInfo.teamPlayerIds.get(game.teams.away.team.id) ?? [],
-                  projectedWrcMap,
-                ) ?? undefined)
-              : undefined
+          // Hand filter: each lineup faces the OTHER team's starter.
+          const awaySplit = batterSplitFor(handFilters.batter, homePitcherId ? pitchHands?.get(homePitcherId) : undefined)
+          const homeSplit = batterSplitFor(handFilters.batter, awayPitcherId ? pitchHands?.get(awayPitcherId) : undefined)
 
-          const homeWrc: number | undefined = homeConfirmed
-            ? (gameLineup!.homeWrc ?? undefined)
-            : projectedWrcMap
-              ? (weightedWrcAvg(
-                  projectedInfo.teamPlayerIds.get(game.teams.home.team.id) ?? [],
-                  projectedWrcMap,
-                ) ?? undefined)
-              : undefined
+          // Offense: confirmed → PA-weighted wRC+ of the boxscore batting order
+          //          projected → PA-weighted wRC+ of the go-to lineup
+          //          neither (or starter hand unknown with "vs Starter Hand") → omit (bar shows —)
+          const sideWrc = (confirmedIds: number[] | undefined, teamId: number, split: typeof awaySplit) => {
+            if (!split) return undefined
+            if (confirmedIds?.length) return weightedWrcAvg(confirmedIds, lineupOffense!.wrc, split) ?? undefined
+            if (!projectedWrcMap) return undefined
+            return weightedWrcAvg(projectedInfo.teamPlayerIds.get(teamId) ?? [], projectedWrcMap, split) ?? undefined
+          }
+          const awayWrc = sideWrc(gameLineup?.awayIds, game.teams.away.team.id, awaySplit)
+          const homeWrc = sideWrc(gameLineup?.homeIds, game.teams.home.team.id, homeSplit)
 
           return (
             <GameCard

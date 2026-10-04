@@ -100,8 +100,8 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
           ac={ac}
           hc={hc}
         />
-        <PitchBar label="ERA"  aVal={as?.era}  hVal={hs?.era}  lowerIsBetter ac={ac} hc={hc} />
-        <PitchBar label="WHIP" aVal={as?.whip} hVal={hs?.whip} lowerIsBetter ac={ac} hc={hc} />
+        <PitchBar label="ERA"  aVal={as?.era}  hVal={hs?.era}  lowerIsBetter ac={ac} hc={hc} delay={110} />
+        <PitchBar label="WHIP" aVal={as?.whip} hVal={hs?.whip} lowerIsBetter ac={ac} hc={hc} delay={220} />
       </div>
 
       {/* ── Stat glossary overlay ─────────────────────────────────── */}
@@ -180,9 +180,10 @@ const GLOSSARY: Array<{ stat: string; descKey: TKey }> = [
 
 /* ── Bar helpers ─────────────────────────────────────────────────── */
 
-function PitchBar({ label, aVal, hVal, lowerIsBetter = false, ac, hc, aw, hw }: {
+function PitchBar({ label, aVal, hVal, lowerIsBetter = false, ac, hc, aw, hw, delay = 0 }: {
   label: string; aVal?: string; hVal?: string; lowerIsBetter?: boolean
   ac: string; hc: string; aw?: number; hw?: number
+  delay?: number   // cascade stagger, in ms
 }) {
   const aN = aVal ? parseFloat(aVal) : null
   const hN = hVal ? parseFloat(hVal) : null
@@ -195,6 +196,7 @@ function PitchBar({ label, aVal, hVal, lowerIsBetter = false, ac, hc, aw, hw }: 
       hw={hw ?? (hN !== null ? pitchBarWidth(label, hN, lowerIsBetter) : 0)}
       ac={ac}
       hc={hc}
+      delay={delay}
     />
   )
 }
