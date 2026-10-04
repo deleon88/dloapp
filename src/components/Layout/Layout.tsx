@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import AuthModal from '@/features/auth/AuthModal'
+import { useTeamsVersion } from '@/data/teams'
+import { loadTeams } from '@/data/loadTeams'
 import NavBar from './NavBar'
 import styles from './Layout.module.css'
 
@@ -16,6 +18,11 @@ export default function Layout() {
 
   useEffect(() => init(), [init])
 
+  // Team colors / parks from the database. If they differ from the bundled
+  // copy, the page re-renders once with them (keyed on the version).
+  const teamsVersion = useTeamsVersion(s => s.version)
+  useEffect(() => { void loadTeams() }, [])
+
   useEffect(() => {
     if (AUTH_PATHS.includes(location.pathname)) return
     // Llegó con el enlace de recuperar contraseña: primero elige una nueva.
@@ -27,7 +34,7 @@ export default function Layout() {
   return (
     <div className={styles.root}>
       <NavBar />
-      <main className={styles.main}>
+      <main className={styles.main} key={teamsVersion}>
         <Outlet />
       </main>
       <AuthModal />

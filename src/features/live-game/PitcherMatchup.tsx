@@ -19,12 +19,14 @@ interface Props {
   awayPitcherName?: string
   homePitcherName?: string
   mode: ViewMode
+  /** Show wOBA allowed instead of xwOBA: Statcast's xwOBA can't follow a period or batter-hand filter. */
+  showWobaAgainst?: boolean
 }
 
 const HEADSHOT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, mode, showWobaAgainst = false }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
   const ac = awayBarColor ?? awayColor
@@ -100,8 +102,8 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
           ac={ac}
           hc={hc}
         />
-        <PitchBar label="ERA"  aVal={as?.era}  hVal={hs?.era}  lowerIsBetter ac={ac} hc={hc} delay={110} />
-        <PitchBar label="WHIP" aVal={as?.whip} hVal={hs?.whip} lowerIsBetter ac={ac} hc={hc} delay={220} />
+        <PitchBar label="ERA"  aVal={stat(as?.era)}  hVal={stat(hs?.era)}  lowerIsBetter ac={ac} hc={hc} delay={110} />
+        <PitchBar label="WHIP" aVal={stat(as?.whip)} hVal={stat(hs?.whip)} lowerIsBetter ac={ac} hc={hc} delay={220} />
       </div>
 
       {/* ── Stat glossary overlay ─────────────────────────────────── */}
@@ -111,7 +113,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
         awayColor={awayColor} homeColor={homeColor} mode="comparison"
       >
         <div className={styles.glossaryList}>
-          {GLOSSARY.map(({ stat, descKey }) => (
+          {(showWobaAgainst ? GLOSSARY_WOBA_AGAINST : GLOSSARY).map(({ stat, descKey }) => (
             <div key={stat} className={styles.glossaryItem}>
               <span className={styles.glossaryStat}>{stat}</span>
               <span className={styles.glossaryDesc}>{t(descKey)}</span>
@@ -125,12 +127,12 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
         away={[
           { label: 'K-BB%', val: kbbPct(as) },
           { label: 'xFIP',  val: as?.xfip   ? as.xfip.toFixed(2) : '—' },
-          { label: 'xwOBA', val: as?.wobaCon ?? '—' },
+          xwobaChip(as, showWobaAgainst),
         ]}
         home={[
           { label: 'K-BB%', val: kbbPct(hs) },
           { label: 'xFIP',  val: hs?.xfip   ? hs.xfip.toFixed(2) : '—' },
-          { label: 'xwOBA', val: hs?.wobaCon ?? '—' },
+          xwobaChip(hs, showWobaAgainst),
         ]}
       />
     </div>
@@ -177,6 +179,21 @@ const GLOSSARY: Array<{ stat: string; descKey: TKey }> = [
   { stat: 'xFIP',  descKey: 'glossaryXfipDesc' },
   { stat: 'xwOBA', descKey: 'glossaryXwobaDesc' },
 ]
+
+const GLOSSARY_WOBA_AGAINST = GLOSSARY.map(g =>
+  g.stat === 'xwOBA' ? { stat: 'wOBA', descKey: 'glossaryWobaAgainstDesc' as const } : g)
+
+/** MLB uses '-.--' for "no value" (and ERA can't be split by batter hand): show nothing. */
+function stat(v: string | undefined): string | undefined {
+  return v && !v.startsWith('-.') ? v : undefined
+}
+
+/** Statcast xwOBA (season only) or, with a period / hand filter, wOBA allowed from our backend. */
+function xwobaChip(s: PitcherSeasonStats | undefined, wobaAgainst: boolean): { label: string; val: string } {
+  if (!wobaAgainst) return { label: 'xwOBA', val: s?.wobaCon ?? '—' }
+  const w = s?.wobaAgainst
+  return { label: 'wOBA', val: w != null ? w.toFixed(3).replace(/^0/, '') : '—' }
+}
 
 /* ── Bar helpers ─────────────────────────────────────────────────── */
 

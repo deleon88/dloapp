@@ -50,8 +50,7 @@ export function loadSavedHandFilters(): HandFilters {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<HandFilters> | null
       if (parsed && isBatterHandFilterValue(parsed.batter) && isPitcherHandFilterValue(parsed.pitcher)) {
-        // The pitcher half isn't available yet: a value saved by an older build is reset to 'all'.
-        return { batter: parsed.batter, pitcher: 'all' }
+        return { batter: parsed.batter, pitcher: parsed.pitcher }
       }
     }
   } catch {

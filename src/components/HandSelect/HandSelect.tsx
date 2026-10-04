@@ -12,15 +12,12 @@ interface Props {
   onChange: (v: HandFilters) => void
 }
 
-// Pitcher vs LHB/RHB options stay locked until their stats come from the database.
-const PITCHER_SPLITS_READY = false
-
 /**
  * Handedness split filter — two independent toggles under one button: batters
  * (All / vs LHP / vs RHP / vs Starter Hand, from the vsL/vsR lines of
  * /api/stats/batters — "vs Starter Hand" resolves per-batter to that game's
  * actual opposing starter instead of a fixed hand) and pitchers (All / vs LHB
- * / vs RHB, locked until pitcher splits are computed from the database).
+ * / vs RHB, from the vsL/vsR lines of /api/stats/pitchers).
  * Dropdown visuals reuse PeriodSelect.module.css so both controls match; only
  * the icon-only trigger button gets its own styling here.
  */
@@ -73,7 +70,6 @@ export default function HandSelect({ value, onChange }: Props) {
               key={`pitcher-${v}`}
               label={t(pitcherLabelKey(v))}
               selected={value.pitcher === v}
-              locked={!PITCHER_SPLITS_READY && v !== 'all'}
               onSelect={() => onChange({ ...value, pitcher: v })}
             />
           ))}

@@ -1,0 +1,53 @@
+league,team_key,abbr,city,nickname,color,color2,bar_color,cap_logo_variant
+MLB,108,LAA,Los Angeles,Angels,#BA0021,#003087,,dark
+MLB,109,ARI,Arizona,D-backs,#A71930,#E3D4AD,,dark
+MLB,110,BAL,Baltimore,Orioles,#DF4601,#000000,,dark
+MLB,111,BOS,Boston,Red Sox,#BD3039,#0C2340,,dark
+MLB,112,CHC,Chicago,Cubs,#0E3386,#CC3433,,dark
+MLB,113,CIN,Cincinnati,Reds,#C6011F,#000000,,dark
+MLB,114,CLE,Cleveland,Guardians,#00385D,#E31937,#E31937,dark
+MLB,115,COL,Colorado,Rockies,#33006F,#C4CED4,,dark
+MLB,116,DET,Detroit,Tigers,#0C2340,#FA4616,#0e325e,dark
+MLB,117,HOU,Houston,Astros,#002D62,#EB6E1F,#EB6E1F,dark
+MLB,118,KCR,Kansas City,Royals,#004687,#BD9B60,,dark
+MLB,119,LAD,Los Angeles,Dodgers,#005A9C,#EF3E42,,dark
+MLB,120,WSH,Washington,Nationals,#AB0003,#11225B,,dark
+MLB,121,NYM,New York,Mets,#002D72,#FF5910,#FF5910,light
+MLB,133,ATH,Sacramento,Athletics,#003831,#EFB21E,#03534a,dark
+MLB,134,PIT,Pittsburgh,Pirates,#161512,#FDB827,#FDB827,dark
+MLB,135,SDP,San Diego,Padres,#2F241D,#FFC107,#FFC107,dark
+MLB,136,SEA,Seattle,Mariners,#0C2C56,#005C5C,#005C5C,dark
+MLB,137,SFG,San Francisco,Giants,#FD5A1E,#27251F,,dark
+MLB,138,STL,St. Louis,Cardinals,#C41E3A,#0C2340,,dark
+MLB,139,TBR,Tampa Bay,Rays,#092C5C,#8FBCE6,#8FBCE6,dark
+MLB,140,TEX,Texas,Rangers,#003278,#C0111F,,dark
+MLB,141,TOR,Toronto,Blue Jays,#134A8E,#E8291C,,dark
+MLB,142,MIN,Minnesota,Twins,#002B5C,#D31145,#D31145,dark
+MLB,143,PHI,Philadelphia,Phillies,#E81828,#002D72,,dark
+MLB,144,ATL,Atlanta,Braves,#13274F,#CE1141,#CE1141,dark
+MLB,145,CWS,Chicago,White Sox,#161512,#C4CED4,#C4CED4,dark
+MLB,146,MIA,Miami,Marlins,#00A3E0,#EF3340,,dark
+MLB,147,NYY,New York,Yankees,#003087,#E4002C,,dark
+MLB,158,MIL,Milwaukee,Brewers,#FFC52F,#122C4A,,dark
+MLB,159,AL,AL All-Stars,AL All-Stars,#ffffff,#003087,,dark
+MLB,160,NL,NL All-Stars,NL All-Stars,#ffffff,#C41E3A,,dark
+LMB,MTY,MTY,,Sultanes de Monterrey,#003087,#E31837,,dark
+LMB,LAG,LAG,,Algodoneros de Laguna,#002B5C,#D4AF37,,dark
+LMB,CAM,CAM,,Piratas de Campeche,#1A1A2E,#C8A951,,dark
+LMB,MEX,MEX,,Diablos Rojos del México,#CC0000,#000000,,dark
+LMB,OAX,OAX,,Guerreros de Oaxaca,#006400,#FFD700,,dark
+LMB,PUE,PUE,,Pericos de Puebla,#006B3F,#FFD700,,dark
+LMB,LAR,LAR,,Tecos (Dos Laredos),#1E3A5F,#C8A951,,dark
+LMB,AGS,AGS,,Rieleros de Aguascalientes,#002B7F,#C41E3A,,dark
+LMB,TIJ,TIJ,,Toros de Tijuana,#C41E3A,#000000,,dark
+LMB,SLW,SLW,,Saraperos de Saltillo,#CC0000,#FFFFFF,,dark
+LMB,MVA,MVA,,Acereros de Monclova,#003087,#C0C0C0,,dark
+LMB,JAL,JAL,,Charros de Jalisco,#1C4587,#BF9000,,dark
+LMB,QRO,QRO,,Conspiradores de Querétaro,#003087,#C41E3A,,dark
+LMB,VER,VER,,El Águila de Veracruz,#002B5C,#CC0000,,dark
+LMB,LEO,LEO,,Bravos de León,#003087,#FFD700,,dark
+LMB,YUC,YUC,,Leones de Yucatán,#FFD700,#003087,,dark
+LMB,TIG,TIG,,Tigres de Quintana Roo,#FF6600,#000000,,dark
+LMB,TAB,TAB,,Olmecas de Tabasco,#003087,#008000,,dark
+LMB,CHI,CHI,,Dorados de Chihuahua,#FFD700,#CC0000,,dark
+LMB,DUR,DUR,,Caliente de Durango,#003087,#CC0000,,dark

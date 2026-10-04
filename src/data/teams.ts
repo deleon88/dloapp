@@ -1,3 +1,17 @@
+import { create } from 'zustand'
+
+// Source of truth: the teams / venues / park_factors tables (db/seeds/teams.csv,
+// npm run db:seed-teams), served by /api/teams. TEAMS below is a bundled copy so
+// the first paint has the right colors; loadTeams() replaces it with the
+// database version on startup.
+
+export interface TeamPark {
+  venueId: number
+  name: string | null
+  roofType: string | null   // Open | Retractable | Dome
+  factor: number | null     // FanGraphs basic park factor, 1.00 = neutral
+}
+
 export interface MlbTeamMeta {
   id: number
   abbr: string
@@ -6,6 +20,10 @@ export interface MlbTeamMeta {
   color: string     // primary hex (used for backgrounds)
   color2: string    // secondary hex
   barColor?: string // overrides color for bars only; omit to use color
+  capLogoVariant?: 'dark' | 'light'
+  leagueId?: number | null
+  divisionId?: number | null
+  park?: TeamPark | null    // only after loadTeams()
 }
 
 export const TEAMS: MlbTeamMeta[] = [
@@ -22,8 +40,8 @@ export const TEAMS: MlbTeamMeta[] = [
   { id: 118, abbr: 'KCR', name: 'Kansas City',   brief: 'Royals',     color: '#004687', color2: '#BD9B60' },
   { id: 119, abbr: 'LAD', name: 'Los Angeles',   brief: 'Dodgers',    color: '#005A9C', color2: '#EF3E42' },
   { id: 120, abbr: 'WSH', name: 'Washington',    brief: 'Nationals',  color: '#AB0003', color2: '#11225B' },
-  { id: 121, abbr: 'NYM', name: 'New York',      brief: 'Mets',       color: '#002D72', color2: '#FF5910', barColor: '#FF5910' },
-  { id: 133, abbr: 'OAK', name: 'Oakland',       brief: 'Athletics',  color: '#003831', color2: '#EFB21E', barColor: '#03534a' },
+  { id: 121, abbr: 'NYM', name: 'New York',      brief: 'Mets',       color: '#002D72', color2: '#FF5910', barColor: '#FF5910', capLogoVariant: 'light' },
+  { id: 133, abbr: 'ATH', name: 'Sacramento',    brief: 'Athletics',  color: '#003831', color2: '#EFB21E', barColor: '#03534a' },
   { id: 134, abbr: 'PIT', name: 'Pittsburgh',    brief: 'Pirates',    color: '#161512', color2: '#FDB827', barColor: '#FDB827' },
   { id: 135, abbr: 'SDP', name: 'San Diego',     brief: 'Padres',     color: '#2F241D', color2: '#FFC107', barColor: '#FFC107' },
   { id: 136, abbr: 'SEA', name: 'Seattle',       brief: 'Mariners',   color: '#0C2C56', color2: '#005C5C', barColor: '#005C5C' },
@@ -43,21 +61,51 @@ export const TEAMS: MlbTeamMeta[] = [
   { id: 160, abbr: 'NL',  name: 'NL All-Stars',  brief: 'NL All-Stars', color: '#ffffff', color2: '#C41E3A' },
 ]
 
-const byId = new Map(TEAMS.map((t) => [t.id, t]))
+let byId = new Map(TEAMS.map((t) => [t.id, t]))
 
 export function getTeamMeta(id: number): MlbTeamMeta | undefined {
   return byId.get(id)
 }
+
+/**
+ * Replaces the team data (from /api/teams). Returns true only if something
+ * visible changed (colors, names, logo); park / league data is swapped in
+ * silently, so the page doesn't re-render on every load just to add it.
+ */
+export function setMlbTeams(teams: MlbTeamMeta[]): boolean {
+  const visible = (m: Map<number, MlbTeamMeta>) => JSON.stringify([...m.values()]
+    .sort((a, b) => a.id - b.id)
+    .map(t => [t.id, t.abbr, t.name, t.brief, t.color, t.color2, t.barColor ?? null, t.capLogoVariant ?? 'dark']))
+  const next = new Map(teams.map((t) => [t.id, t]))
+  const changed = visible(next) !== visible(byId)
+  byId = next
+  return changed
+}
+
+/**
+ * Park info of a team's home stadium, for the NRFI model. Retractable roofs
+ * count as a controlled environment, like domes. Neutral until loadTeams() runs.
+ */
+export function getParkInfo(teamId: number): { factor: number; isDome: boolean; name: string } {
+  const park = byId.get(teamId)?.park
+  return {
+    factor: park?.factor ?? 1,
+    isDome: park?.roofType === 'Dome' || park?.roofType === 'Retractable',
+    name: park?.name ?? 'Unknown Venue',
+  }
+}
+
+/** Bumped when loadTeams() brings different data, so the UI re-renders with it. */
+export const useTeamsVersion = create<{ version: number }>(() => ({ version: 0 }))
 
 /** Returns the color to use for bars — barColor if set, otherwise the primary color. */
 export function getBarColor(meta: MlbTeamMeta): string {
   return meta.barColor ?? meta.color
 }
 
-const CAP_LIGHT_TEAMS = new Set([121]) // Mets: cap logo only looks right on light
-
 export function capLogoUrl(teamId: number): string {
-  const variant = CAP_LIGHT_TEAMS.has(teamId) ? 'team-cap-on-light' : 'team-cap-on-dark'
+  // Some caps (Mets) only look right on the light variant.
+  const variant = byId.get(teamId)?.capLogoVariant === 'light' ? 'team-cap-on-light' : 'team-cap-on-dark'
   return `https://www.mlbstatic.com/team-logos/${variant}/${teamId}.svg`
 }
 

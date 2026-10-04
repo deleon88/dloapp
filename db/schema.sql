@@ -42,6 +42,10 @@ CREATE TABLE IF NOT EXISTS plays (
   rbi            smallint NOT NULL,
   PRIMARY KEY (game_pk, at_bat_index)
 );
+-- Batted-ball type of the play (fly_ball, popup, line_drive, ground_ball; null
+-- without contact). Used for xFIP's fly balls, which events alone can't give
+-- (a fly ball that falls for a hit is just "Single"/"Double").
+ALTER TABLE plays ADD COLUMN IF NOT EXISTS trajectory text;
 CREATE INDEX IF NOT EXISTS plays_batter_date_idx  ON plays (batter_id, game_date);
 CREATE INDEX IF NOT EXISTS plays_pitcher_date_idx ON plays (pitcher_id, game_date);
 
@@ -132,3 +136,35 @@ END $$;
 DROP TRIGGER IF EXISTS profiles_touch_updated_at ON profiles;
 CREATE TRIGGER profiles_touch_updated_at BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
+
+-- ── Equipos y estadios ──────────────────────────────────────────────────────
+-- Estadios: nombre y tipo de techo (fieldInfo.roofType de MLB: Open,
+-- Retractable, Dome). Los park factors viven en park_factors (FanGraphs).
+CREATE TABLE IF NOT EXISTS venues (
+  venue_id    integer     PRIMARY KEY,
+  name        text        NOT NULL,
+  roof_type   text,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Equipos de MLB y de la LMB con su identidad visual. team_key = id de MLB
+-- ('135') o código corto de la LMB ('MTY').
+CREATE TABLE IF NOT EXISTS teams (
+  league            text        NOT NULL CHECK (league IN ('MLB', 'LMB')),
+  team_key          text        NOT NULL,
+  abbr              text,
+  city              text,
+  nickname          text,
+  color             text        NOT NULL CHECK (color  ~ '^#[0-9A-Fa-f]{6}$'),
+  color2            text        NOT NULL CHECK (color2 ~ '^#[0-9A-Fa-f]{6}$'),
+  bar_color         text                 CHECK (bar_color ~ '^#[0-9A-Fa-f]{6}$'),
+  cap_logo_variant  text        NOT NULL DEFAULT 'dark' CHECK (cap_logo_variant IN ('dark', 'light')),
+  mlb_league_id     integer,             -- 103 AL, 104 NL
+  division_id       integer,
+  venue_id          integer     REFERENCES venues,
+  updated_at        timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (league, team_key)
+);
+
+ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams  ENABLE ROW LEVEL SECURITY;

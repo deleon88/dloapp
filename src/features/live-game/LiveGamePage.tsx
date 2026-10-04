@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getGame } from '@/api/mlb/endpoints/schedule'
 import { fetchTeamRecentResults } from '@/api/mlb/endpoints/teamRecentResults'
-import { fetchPitcherStats } from '@/api/mlb/endpoints/pitcherStats'
+import { applyPitcherHand, fetchPitcherStats } from '@/api/mlb/endpoints/pitcherStats'
 import { getGameLineup } from '@/api/mlb/endpoints/boxscore'
 import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchDepthChart } from '@/api/mlb/endpoints/teamRoster'
@@ -23,6 +23,13 @@ export default function LiveGamePage() {
   const navigate = useNavigate()
   const pk = Number(gamePk)
 
+  // Initialized from localStorage so the filters survive navigation to/from
+  // SchedulePage (and a reload) — see filterPreferences.ts.
+  const [period, setPeriodState] = useState<StatPeriod>(loadSavedPeriod)
+  const [handFilters, setHandFiltersState] = useState<HandFilters>(loadSavedHandFilters)
+  const setPeriod = (p: StatPeriod) => { setPeriodState(p); saveSavedPeriod(p) }
+  const setHandFilters = (f: HandFilters) => { setHandFiltersState(f); saveSavedHandFilters(f) }
+
   // 1. Base game info (pitchers, venue, weather)
   const gameQuery = useQuery({
     queryKey: ['game', pk],
@@ -38,11 +45,18 @@ export default function LiveGamePage() {
   const pitcherIds = [awayPitcherId, homePitcherId].filter((id): id is number => id != null)
 
   const pitcherQuery = useQuery({
-    queryKey: ['pitcher-stats', ...pitcherIds],
-    queryFn: () => fetchPitcherStats(pitcherIds),
+    queryKey: ['pitcher-stats', period, ...pitcherIds],
+    queryFn: () => fetchPitcherStats(pitcherIds, period),
     enabled: pitcherIds.length > 0,
     staleTime: 3_600_000,
+    placeholderData: prev => prev,
   })
+  // Pitcher hand filter: starters' numbers vs left- or right-handed batters only.
+  // The pitch hand itself (used for lineups) always comes from the unfiltered data.
+  const pitcherStats = useMemo(() => {
+    const stats = pitcherQuery.data
+    return stats && handFilters.pitcher !== 'all' ? applyPitcherHand(stats, handFilters.pitcher) : stats
+  }, [pitcherQuery.data, handFilters.pitcher])
 
   // 3. Batting orders from boxscore (Live / Final games)
   const isPreview = game?.status.abstractGameState === 'Preview'
@@ -129,16 +143,18 @@ export default function LiveGamePage() {
 
   // 6. Bullpen stats for both teams
   const awayBullpenQuery = useQuery({
-    queryKey: ['bullpen', awayTeamId],
-    queryFn: () => fetchBullpenStats(awayTeamId!),
+    queryKey: ['bullpen', awayTeamId, period, handFilters.pitcher],
+    queryFn: () => fetchBullpenStats(awayTeamId!, period, handFilters.pitcher),
     enabled: !!awayTeamId,
     staleTime: 3_600_000,
+    placeholderData: prev => prev,
   })
   const homeBullpenQuery = useQuery({
-    queryKey: ['bullpen', homeTeamId],
-    queryFn: () => fetchBullpenStats(homeTeamId!),
+    queryKey: ['bullpen', homeTeamId, period, handFilters.pitcher],
+    queryFn: () => fetchBullpenStats(homeTeamId!, period, handFilters.pitcher),
     enabled: !!homeTeamId,
     staleTime: 3_600_000,
+    placeholderData: prev => prev,
   })
 
   // 7. wRC+ for each batter
@@ -146,13 +162,6 @@ export default function LiveGamePage() {
     ...awayLineup.map(p => p.id),
     ...homeLineup.map(p => p.id),
   ]
-  // Initialized from localStorage so the filters survive navigation to/from
-  // SchedulePage (and a reload) — see filterPreferences.ts.
-  const [period, setPeriodState] = useState<StatPeriod>(loadSavedPeriod)
-  const [handFilters, setHandFiltersState] = useState<HandFilters>(loadSavedHandFilters)
-  const setPeriod = (p: StatPeriod) => { setPeriodState(p); saveSavedPeriod(p) }
-  const setHandFilters = (f: HandFilters) => { setHandFiltersState(f); saveSavedHandFilters(f) }
-
   const saberQuery = useQuery({
     queryKey: ['lineup-saber', period, ...allBatterIds],
     queryFn: () => fetchLineupStats(allBatterIds, period),
@@ -189,7 +198,8 @@ export default function LiveGamePage() {
       {game && (
         <GameMatchupView
           game={game}
-          pitcherStats={pitcherQuery.data}
+          pitcherStats={pitcherStats}
+          showWobaAgainst={period !== 'season' || handFilters.pitcher !== 'all'}
           lineup={{ away: awayLineup, home: homeLineup }}
           wrcMap={wrcMap}
           lineupLoading={

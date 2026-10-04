@@ -14,7 +14,9 @@
     "db:constants": "tsx --env-file=.env.local scripts/db/constants.ts",
     "db:calibrate": "tsx --env-file=.env.local scripts/db/calibrate.ts",
     "db:validate-batting": "tsx --env-file=.env.local scripts/db/validate-batting.ts",
-    "db:seed-park-factors": "tsx --env-file=.env.local scripts/db/seed-park-factors.ts"
+    "db:seed-park-factors": "tsx --env-file=.env.local scripts/db/seed-park-factors.ts",
+    "db:validate-pitching": "tsx --env-file=.env.local scripts/db/validate-pitching.ts",
+    "db:seed-teams": "tsx --env-file=.env.local scripts/db/seed-teams.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

@@ -1,6 +1,7 @@
 // Carga inicial: calendario + play-by-play de una temporada completa.
-// Uso: npm run db:backfill -- --season 2026 [--concurrency 5]
-// Se puede volver a correr: solo procesa los juegos que faltan.
+// Uso: npm run db:backfill -- --season 2026 [--concurrency 5] [--reingest]
+// Se puede volver a correr: solo procesa los juegos que faltan. Con --reingest
+// vuelve a descargar todos los juegos terminados (p. ej. al agregar un campo nuevo).
 import { parseArgs } from 'node:util'
 import { sql } from '../../server/db'
 import { ingestMany, pendingGames, syncSchedule } from '../../server/ingest'
@@ -9,6 +10,7 @@ const { values } = parseArgs({
   options: {
     season: { type: 'string', default: String(new Date().getFullYear()) },
     concurrency: { type: 'string', default: '5' },
+    reingest: { type: 'boolean', default: false },
   },
 })
 const season = Number(values.season)
@@ -17,8 +19,8 @@ console.log(`Calendario ${season}...`)
 const n = await syncSchedule(`${season}-02-01`, `${season}-11-30`)
 console.log(`  ${n} juegos en el calendario.`)
 
-const pending = await pendingGames({ season })
-console.log(`  ${pending.length} juegos terminados sin play-by-play.`)
+const pending = await pendingGames({ season, recheckSince: values.reingest ? `${season}-01-01` : undefined })
+console.log(`  ${pending.length} juegos terminados ${values.reingest ? 'a volver a descargar' : 'sin play-by-play'}.`)
 
 const t0 = Date.now()
 const res = await ingestMany(pending, Number(values.concurrency), (done, total) => {

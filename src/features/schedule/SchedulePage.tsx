@@ -5,7 +5,7 @@ import { getSchedule } from '@/api/mlb/endpoints/schedule'
 import { fetchBullpenFipPlusMap } from '@/api/mlb/endpoints/bullpenStats'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
-import { fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
+import { applyPitcherHand, fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { getGoToLineup } from '@/api/mlb/endpoints/goToLineupStore'
 import { fetchTeamPredictionsNoDepth } from '@/api/mlb/endpoints/predictedLineup'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
@@ -70,19 +70,21 @@ export default function SchedulePage() {
   })
 
   const pitcherStatsQuery = useQuery({
-    queryKey: ['pitcher-stats', ...pitcherIds],
-    queryFn: () => fetchPitcherStats(pitcherIds),
+    queryKey: ['pitcher-stats', period, ...pitcherIds],
+    queryFn: () => fetchPitcherStats(pitcherIds, period),
     enabled: pitcherIds.length > 0,
     staleTime: 3_600_000,
+    placeholderData: prev => prev,
   })
 
   const uniqueTeamIds = [...new Set(games.flatMap(g => [g.teams.away.team.id, g.teams.home.team.id]))]
 
   const bullpenFipQuery = useQuery({
-    queryKey: ['bullpen-fip', uniqueTeamIds.slice().sort((a, b) => a - b).join(',')],
-    queryFn: () => fetchBullpenFipPlusMap(uniqueTeamIds),
+    queryKey: ['bullpen-fip', uniqueTeamIds.slice().sort((a, b) => a - b).join(','), period, handFilters.pitcher],
+    queryFn: () => fetchBullpenFipPlusMap(uniqueTeamIds, period, handFilters.pitcher),
     enabled: uniqueTeamIds.length > 0,
     staleTime: 3_600_000,
+    placeholderData: prev => prev,
   })
 
   // Proactively fetch and cache go-to lineup predictions for every team on the schedule.
@@ -165,7 +167,11 @@ export default function SchedulePage() {
   const lineupOffense   = lineupOffenseQuery.data
   const bullpenFipPlus  = bullpenFipQuery.data
   const pitchHands      = pitchHandQuery.data
-  const pitcherStatsMap = pitcherStatsQuery.data
+  // Pitcher hand filter: starters' numbers vs left- or right-handed batters only.
+  const pitcherStatsMap = useMemo(() => {
+    const stats = pitcherStatsQuery.data
+    return stats && handFilters.pitcher !== 'all' ? applyPitcherHand(stats, handFilters.pitcher) : stats
+  }, [pitcherStatsQuery.data, handFilters.pitcher])
   const projectedWrcMap = projectedWrcQuery.data
 
 

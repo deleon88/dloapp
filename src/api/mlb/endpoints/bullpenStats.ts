@@ -1,4 +1,6 @@
 import { mlbApi } from '../client'
+import { fetchPitcherLines, formatIp, type PitcherLine, type PitcherSplit } from '@/api/stats/pitchers'
+import type { StatPeriod } from '@/utils/period'
 
 export interface BullpenPitcher {
   id: number
@@ -91,7 +93,11 @@ function ipToDecimal(ip: string | null | undefined): number {
  * Excludes IL players, bulk starters, and pitch-gated arms.
  * Team aggregate FIP- is computed across all active DC arms for the totals row.
  */
-export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
+export async function fetchBullpenStats(
+  teamId: number,
+  period: StatPeriod = 'season',
+  hand: BullpenHand = 'all',
+): Promise<BullpenStats> {
   const season     = new Date().getFullYear()
   const today      = new Date().toISOString().split('T')[0]
   const yesterday  = new Date(Date.now() -     86400000).toISOString().split('T')[0]
@@ -318,16 +324,88 @@ export async function fetchBullpenStats(teamId: number): Promise<BullpenStats> {
     teamWhip = (aggEntries.reduce((s, e) => s + e.whip * e.ip, 0) / totalIP).toFixed(2)
   }
 
-  return { pitchers, teamFipMinus, teamEra, teamWhip }
+  // ── Step 10: period / hand-aware numbers from our backend ──────
+  // The arms above are chosen with season-wide MLB data (who's likely to pitch
+  // today); the numbers shown for them follow the period and hand filter.
+  const mlbOnly: BullpenStats = { pitchers, teamFipMinus, teamEra, teamWhip }
+  const ours = await fetchPitcherLines([...new Set([...top8, ...allDcIds])], { season, period, role: 'rp' }).catch(() => null)
+  if (!ours) return period === 'season' && hand === 'all' ? mlbOnly : withoutNumbers(mlbOnly)
+  return withOurNumbers(mlbOnly, allDcIds, ours, period, hand)
+}
+
+type BullpenHand = 'all' | 'L' | 'R'
+
+function pickSplit(line: PitcherLine | undefined, hand: BullpenHand): PitcherSplit | undefined {
+  if (!line) return undefined
+  return hand === 'L' ? line.vsL : hand === 'R' ? line.vsR : line
+}
+
+/** Replace the shown numbers with ours. ERA can't be split by batter hand → empty. */
+function withOurNumbers(
+  mlb: BullpenStats,
+  allDcIds: number[],
+  ours: Map<number, PitcherLine>,
+  period: StatPeriod,
+  hand: BullpenHand,
+): BullpenStats {
+  const eraFor = (p: BullpenPitcher, line: PitcherLine | undefined) =>
+    hand !== 'all' ? null : period === 'season' ? p.era : (line?.record?.era ?? null)
+
+  const pitchers = mlb.pitchers.map(p => {
+    const line = ours.get(p.id)
+    const s = pickSplit(line, hand)
+    return {
+      ...p,
+      fip:      s?.fip ?? null,
+      xfip:     s?.xfip ?? null,
+      fipMinus: s?.fipMinus ?? null,
+      whip:     s?.whip != null ? s.whip.toFixed(2) : null,
+      ip:       s ? formatIp(s.ip) : null,
+      k9:       s && s.ip > 0 ? ((s.so / s.ip) * 9).toFixed(1) : null,
+      era:      eraFor(p, line),
+    }
+  })
+
+  // Team totals: IP-weighted over every active reliever on the depth chart.
+  let ipSum = 0, fipSum = 0, whipSum = 0, eraSum = 0, eraIp = 0
+  for (const id of allDcIds) {
+    const line = ours.get(id)
+    const s = pickSplit(line, hand)
+    if (!s || s.ip <= 0) continue
+    ipSum += s.ip
+    if (s.fipMinus != null) fipSum += s.fipMinus * s.ip
+    if (s.whip != null) whipSum += s.whip * s.ip
+    const era = line?.record?.era != null ? parseFloat(line.record.era) : NaN
+    if (Number.isFinite(era)) { eraSum += era * s.ip; eraIp += s.ip }
+  }
+  return {
+    pitchers,
+    teamFipMinus: ipSum > 0 ? Math.round(fipSum / ipSum) : null,
+    teamWhip:     ipSum > 0 ? (whipSum / ipSum).toFixed(2) : null,
+    teamEra:      hand !== 'all' ? null : period === 'season' ? mlb.teamEra : eraIp > 0 ? (eraSum / eraIp).toFixed(2) : null,
+  }
+}
+
+/** Backend down outside full season: show no numbers rather than mix periods. */
+function withoutNumbers(mlb: BullpenStats): BullpenStats {
+  return {
+    pitchers: mlb.pitchers.map(p => ({ ...p, fip: null, xfip: null, fipMinus: null, whip: null, ip: null, k9: null, era: null })),
+    teamFipMinus: null, teamEra: null, teamWhip: null,
+  }
 }
 
 /**
  * Lightweight batch fetch for the schedule-page bullpen bar.
- * Step 1: sabermetrics per pitcher for each team (parallel).
- * Step 2: one bulk /people call for all pitchers → IP for weighting.
+ * Step 1: active relievers on each team's depth chart (+ MLB sabermetrics).
+ * Step 2: their relief lines from our backend for the period / batter hand.
  * Returns Map<teamId, fipPlus> where fipPlus = 200 - IP-weighted FIP-.
+ * If our backend fails in full season with no hand filter, falls back to MLB.
  */
-export async function fetchBullpenFipPlusMap(teamIds: number[]): Promise<Map<number, number>> {
+export async function fetchBullpenFipPlusMap(
+  teamIds: number[],
+  period: StatPeriod = 'season',
+  hand: BullpenHand = 'all',
+): Promise<Map<number, number>> {
   if (!teamIds.length) return new Map()
 
   const season = new Date().getFullYear()
@@ -353,11 +431,31 @@ export async function fetchBullpenFipPlusMap(teamIds: number[]): Promise<Map<num
             .map(e => e.person.id),
         )
         const splits = (saberRes.stats?.[0]?.splits ?? []).filter(s => relieverIds.has(s.player.id))
-        return { teamId, splits }
+        return { teamId, splits, relieverIds: [...relieverIds] }
       }),
     ),
   )
   const saberResults = rawResults
+
+  // Step 2: our relief lines for every active reliever, by period and hand
+  const ours = await fetchPitcherLines(
+    [...new Set(rawResults.flatMap(r => r.relieverIds))], { season, period, role: 'rp' },
+  ).catch(() => null)
+  if (ours) {
+    const map = new Map<number, number>()
+    for (const { teamId, relieverIds } of rawResults) {
+      let ip = 0, fip = 0
+      for (const id of relieverIds) {
+        const s = pickSplit(ours.get(id), hand)
+        if (!s || s.ip <= 0 || s.fipMinus == null) continue
+        ip += s.ip
+        fip += s.fipMinus * s.ip
+      }
+      if (ip > 0) map.set(teamId, Math.round(200 - fip / ip))
+    }
+    return map
+  }
+  if (period !== 'season' || hand !== 'all') return new Map()
 
   // Collect all unique player IDs across all teams
   const allPlayerIds = [...new Set(saberResults.flatMap(r => r.splits.map(s => s.player.id)))]

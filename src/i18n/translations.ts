@@ -35,7 +35,7 @@ export const translations = {
     expectedWeather: 'Expected Weather',
     wind: 'Wind',
     // Stat periods
-    season: '2026 Season',
+    season: '{year} Season',
     '60days': 'Last 60 Days',
     '30days': 'Last 30 Days',
     '14days': 'Last 14 Days',
@@ -105,6 +105,7 @@ export const translations = {
     glossaryKbbDesc: 'Strikeout rate minus walk rate. Net command and swing-and-miss ability.',
     glossaryXfipDesc: 'FIP with home run rate normalized to league average. Best predictor of future ERA.',
     glossaryXwobaDesc: 'Expected wOBA on contact based on exit velocity and launch angle — removes luck and defense.',
+    glossaryWobaAgainstDesc: 'Actual wOBA allowed in the selected period or vs the selected batter hand — shown instead of xwOBA, which is only available for the full season.',
   },
   es: {
     // Nav
@@ -142,7 +143,7 @@ export const translations = {
     expectedWeather: 'Clima esperado',
     wind: 'Viento',
     // Stat periods
-    season: 'Temp. 2026',
+    season: 'Temp. {year}',
     '60days': 'Últ. 60 días',
     '30days': 'Últ. 30 días',
     '14days': 'Últ. 14 días',
@@ -212,6 +213,7 @@ export const translations = {
     glossaryKbbDesc: 'Tasa de ponches menos tasa de bases por bola. Mide el control neto del lanzador.',
     glossaryXfipDesc: 'FIP con la tasa de jonrones normalizada al promedio de la liga. Mejor predictor del ERA futuro.',
     glossaryXwobaDesc: 'wOBA esperada en contacto según velocidad de salida y ángulo de lanzamiento — elimina la suerte y la defensa.',
+    glossaryWobaAgainstDesc: 'wOBA real permitido en el periodo elegido o contra la mano de bateador elegida — se muestra en lugar del xwOBA, que solo existe para la temporada completa.',
   },
 } as const
 

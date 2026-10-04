@@ -1,12 +1,24 @@
 // El rango de fechas de cada periodo lo calcula el servidor (server/stats/batting.ts
 // → resolvePeriod), contando hacia atrás desde el último día con juegos de
 // temporada regular.
+import type { TKey } from '@/i18n/useT'
+
 export type StatPeriod = 'season' | '60days' | '30days' | '14days' | '7days'
 
-export const PERIOD_OPTIONS: { value: StatPeriod; label: string }[] = [
-  { value: 'season',  label: '2026 Season'  },
-  { value: '60days',  label: 'Last 60 Days' },
-  { value: '30days',  label: 'Last 30 Days' },
-  { value: '14days',  label: 'Last 14 Days' },
-  { value: '7days',   label: 'Last 7 Days'  },
+export const PERIOD_OPTIONS: { value: StatPeriod }[] = [
+  { value: 'season' },
+  { value: '60days' },
+  { value: '30days' },
+  { value: '14days' },
+  { value: '7days' },
 ]
+
+/** Season the app shows, the same one the stats endpoints default to. */
+export function currentSeason(): number {
+  return new Date().getFullYear()
+}
+
+/** Translated period label; full season reads "2026 Season" / "Temp. 2026" with the current year. */
+export function periodLabel(period: StatPeriod, t: (k: TKey) => string): string {
+  return t(period).replace('{year}', String(currentSeason()))
+}

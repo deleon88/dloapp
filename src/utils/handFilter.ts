@@ -7,7 +7,7 @@ export type BatterHandFilterValue = HandFilterValue | 'starter'
 
 export interface HandFilters {
   batter:  BatterHandFilterValue   // vs LHP / vs RHP / vs Starter Hand — vsL/vsR lines of /api/stats/batters
-  pitcher: HandFilterValue          // vs LHB / vs RHB — pending: pitcher splits from the database
+  pitcher: HandFilterValue          // vs LHB / vs RHB — vsL/vsR lines of /api/stats/pitchers
 }
 
 export const DEFAULT_HAND_FILTERS: HandFilters = { batter: 'all', pitcher: 'all' }

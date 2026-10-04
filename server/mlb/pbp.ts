@@ -11,6 +11,7 @@ const PBP_FIELDS = [
   'about', 'atBatIndex', 'inning', 'halfInning', 'isComplete',
   'count', 'outs', 'matchup', 'batter', 'pitcher', 'id', 'pitchHand', 'batSide', 'code',
   'runners', 'movement', 'originBase', 'end',
+  'playEvents', 'hitData', 'trajectory',
 ].join(',')
 
 export const PA_EVENTS = new Set([
@@ -48,6 +49,7 @@ export interface PlayRow {
   runs_scored: number
   outs_recorded: number
   rbi: number
+  trajectory: string | null
 }
 
 interface RawPlay {
@@ -61,6 +63,7 @@ interface RawPlay {
     pitchHand?: { code?: string }
   }
   runners?: Array<{ movement?: { originBase?: string | null; end?: string | null } }>
+  playEvents?: Array<{ hitData?: { trajectory?: string } }>
 }
 
 export async function getJson<T>(url: string, retries = 3): Promise<T> {
@@ -138,6 +141,8 @@ export function parsePlays(gamePk: number, gameDate: string, allPlays: RawPlay[]
       runs_scored: runs,
       outs_recorded: postOuts - prevOuts,
       rbi: play.result?.rbi ?? 0,
+      // The ball put in play is the last event with hitData.
+      trajectory: [...(play.playEvents ?? [])].reverse().find(e => e.hitData)?.hitData?.trajectory ?? null,
     })
 
     bases = next

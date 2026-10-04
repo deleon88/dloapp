@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
-import { useT, type TKey } from '@/i18n/useT'
+import { PERIOD_OPTIONS, periodLabel, type StatPeriod } from '@/utils/period'
+import { useT } from '@/i18n/useT'
 import styles from './PeriodSelect.module.css'
 
 interface Props {
@@ -17,7 +17,7 @@ export default function PeriodSelect({ value, onChange }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const t = useT()
 
-  const selectedLabel = t(value as TKey)
+  const selectedLabel = periodLabel(value, t)
 
   // Close on outside click
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function PeriodSelect({ value, onChange }: Props) {
                   setOpen(false)
                 }}
               >
-                <span className={styles.optionLabel}>{t(v as TKey)}</span>
+                <span className={styles.optionLabel}>{periodLabel(v, t)}</span>
                 {!isFree && (
                   <span className={styles.lockBadge}>
                     <LockIcon />

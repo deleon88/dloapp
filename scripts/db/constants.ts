@@ -91,10 +91,42 @@ const lgOBP = (t.h1 + t.h2 + t.h3 + t.hr + ubb + t.hbp) / denom
 const scale = lgOBP / lgwOBARaw
 const r3 = (x: number) => Math.round(x * 1000) / 1000
 
+// ── Pitching constants ────────────────────────────────────────────────────────
+// cFIP makes league FIP equal league ERA. Earned runs aren't in the
+// play-by-play, so the league totals come from MLB (same as the Python script).
+const mlbTotals = await fetch(
+  `https://statsapi.mlb.com/api/v1/teams/stats?group=pitching&season=${season}&sportIds=1&gameType=R&stats=season`,
+).then(r => r.json()) as { stats: Array<{ splits: Array<{ stat: Record<string, number | string> }> }> }
+const lg = { er: 0, outs: 0, hr: 0, bb: 0, hbp: 0, so: 0 }
+for (const s of mlbTotals.stats[0].splits) {
+  const ip = String(s.stat.inningsPitched)
+  const [whole, thirds] = ip.split('.').map(Number)
+  lg.outs += whole * 3 + (thirds || 0)
+  lg.er += Number(s.stat.earnedRuns)
+  lg.hr += Number(s.stat.homeRuns)
+  lg.bb += Number(s.stat.baseOnBalls)
+  lg.hbp += Number(s.stat.hitByPitch)
+  lg.so += Number(s.stat.strikeOuts)
+}
+const lgIP = lg.outs / 3
+const lgERA = (9 * lg.er) / lgIP
+const cFIP = lgERA - (13 * lg.hr + 3 * (lg.bb + lg.hbp) - 2 * lg.so) / lgIP
+
+// League HR per fly ball for xFIP. Fly balls = batted-ball trajectory fly_ball
+// or popup, the same definition pitchers' xFIP uses (server/stats/pitching.ts).
+const [fb] = await sql<{ hr: number; fb: number }[]>`
+  SELECT count(*) FILTER (WHERE p.event = 'Home Run')::int AS hr,
+         count(*) FILTER (WHERE p.trajectory IN ('fly_ball', 'popup'))::int AS fb
+  FROM plays p JOIN games g USING (game_pk)
+  WHERE g.season = ${season} AND g.game_type = 'R' AND p.is_pa
+`
+const lgHRFB = fb.hr / fb.fb
+
 const constants = {
   wBB: r3(c.wBB * scale), wHBP: r3(c.wHBP * scale), w1B: r3(c.w1B * scale),
   w2B: r3(c.w2B * scale), w3B: r3(c.w3B * scale), wHR: r3(c.wHR * scale),
   lgwOBA: r3(lgOBP), wOBAScale: r3(scale), lgRPA: r3(t.runs / t.pa),
+  cFIP: r3(cFIP), lgFIP: r3(lgERA), lgHRFB: Math.round(lgHRFB * 10000) / 10000,
   games: t.games, pa: t.pa,
 }
 console.log(`Constantes RE24 ${season}:`, constants)

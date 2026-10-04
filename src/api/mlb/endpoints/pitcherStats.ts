@@ -1,4 +1,6 @@
 import { mlbApi } from '../client'
+import { fetchPitcherLines, formatIp, type PitcherSplit } from '@/api/stats/pitchers'
+import type { StatPeriod } from '@/utils/period'
 
 export interface PitcherSeasonStats {
   era: string
@@ -20,6 +22,10 @@ export interface PitcherSeasonStats {
   wobaCon: string
   qualityStarts: number
   inningsPitchedPerGame: string
+  /** wOBA allowed, from our backend (same period / hand as FIP). */
+  wobaAgainst?: number | null
+  /** Lines vs LHB / vs RHB for the same period, for the hand filter (see applyPitcherHand). */
+  byHand?: { L: PitcherSplit; R: PitcherSplit }
 }
 
 /** Convert FIP- to FIP+ so higher = better (mirrors OPS+ scale). */
@@ -48,10 +54,20 @@ interface RawPerson {
   stats?: StatEntry[]
 }
 
-export async function fetchPitcherStats(personIds: number[]): Promise<Map<number, PitcherInfo>> {
+/**
+ * Starter pitcher info and stats. Name, hand and xwOBA come from MLB (season);
+ * FIP, FIP-, xFIP, WHIP, K, BB, IP and ERA/W-L/QS follow the chosen period via
+ * our backend. If the backend fails in full season, MLB's numbers are kept;
+ * in a shorter period they're left empty rather than mixing periods.
+ */
+export async function fetchPitcherStats(
+  personIds: number[],
+  period: StatPeriod = 'season',
+): Promise<Map<number, PitcherInfo>> {
   if (!personIds.length) return new Map()
 
   const season = new Date().getFullYear()
+  const oursPromise = fetchPitcherLines(personIds, { season, period }).catch(() => null)
 
   const data = await mlbApi.get<{ people: RawPerson[] }>('/people', {
     personIds: personIds.join(','),
@@ -119,5 +135,67 @@ export async function fetchPitcherStats(personIds: number[]): Promise<Map<number
       } : undefined,
     })
   }
+
+  const ours = await oursPromise
+  if (!ours && period === 'season') return map
+
+  for (const info of map.values()) {
+    const line = ours?.get(info.id)
+    if (!line) {
+      // No appearances in the window (or backend down in a short period): no numbers.
+      if (info.seasonStats && period !== 'season') info.seasonStats = undefined
+      continue
+    }
+    const base: PitcherSeasonStats = info.seasonStats ?? {
+      era: '-.--', whip: '-.--', wins: 0, losses: 0, inningsPitched: '0.0', strikeoutsPer9Inn: '0.0',
+      walksPer9Inn: '0.0', strikeoutWalkRatio: '—', runsScoredPer9: '0.0', strikeOuts: 0, baseOnBalls: 0,
+      battersFaced: 0, fip: 0, fipMinus: 0, xfip: 0, woba: '-.---', wobaCon: '-.---', qualityStarts: 0,
+      inningsPitchedPerGame: '0.0',
+    }
+    info.seasonStats = {
+      ...base,
+      ...splitToStats(line),
+      era:           line.record?.era ?? '-.--',
+      wins:          line.record?.wins ?? base.wins,
+      losses:        line.record?.losses ?? base.losses,
+      qualityStarts: line.record?.qualityStarts ?? (period === 'season' ? base.qualityStarts : 0),
+      byHand:        { L: line.vsL, R: line.vsR },
+    }
+  }
   return map
+}
+
+/** Our split → the fields of PitcherSeasonStats it replaces. */
+function splitToStats(s: PitcherSplit): Partial<PitcherSeasonStats> {
+  return {
+    fip:            s.fip ?? 0,
+    fipMinus:       s.fipMinus ?? 0,
+    xfip:           s.xfip ?? 0,
+    whip:           s.whip != null ? s.whip.toFixed(2) : '-.--',
+    strikeOuts:     s.so,
+    baseOnBalls:    s.bb,
+    battersFaced:   s.bf,
+    inningsPitched: formatIp(s.ip),
+    wobaAgainst:    s.wobaAgainst,
+  }
+}
+
+/**
+ * Switches each pitcher to his line vs the given batter hand. ERA can't be split
+ * by batter hand, so it's emptied instead of showing the overall number.
+ */
+export function applyPitcherHand(
+  pitchers: Map<number, PitcherInfo>,
+  hand: 'L' | 'R',
+): Map<number, PitcherInfo> {
+  const out = new Map<number, PitcherInfo>()
+  for (const [id, info] of pitchers) {
+    const s = info.seasonStats
+    const split = s?.byHand?.[hand]
+    out.set(id, {
+      ...info,
+      seasonStats: s && split ? { ...s, ...splitToStats(split), era: '-.--' } : undefined,
+    })
+  }
+  return out
 }
