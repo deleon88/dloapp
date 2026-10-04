@@ -83,7 +83,7 @@ function LoginView({ t, returnTo, go }: ViewProps & { returnTo: string }) {
     <>
       <ProviderButtons t={t} onError={setError} returnTo={returnTo} />
       <div className={styles.divider}>{t('orDivider')}</div>
-      <form className={styles.form} onSubmit={onSubmit} noValidate>
+      <form className={styles.form} onSubmit={onSubmit}>
         <label className={styles.field}>
           <span className={styles.label}>{t('email')}</span>
           <input className={styles.input} type="email" autoComplete="email" required
@@ -147,7 +147,7 @@ function SignupView({ t, returnTo, go }: ViewProps & { returnTo: string }) {
     <>
       <ProviderButtons t={t} onError={setError} returnTo={returnTo} />
       <div className={styles.divider}>{t('orDivider')}</div>
-      <form className={styles.form} onSubmit={onSubmit} noValidate>
+      <form className={styles.form} onSubmit={onSubmit}>
         <label className={styles.field}>
           <span className={styles.label}>{t('email')}</span>
           <input className={styles.input} type="email" autoComplete="email" required
@@ -187,7 +187,7 @@ function ForgotView({ t, go }: ViewProps) {
     })
     setBusy(false)
     // Same message whether or not the account exists, so emails can't be probed.
-    if (error && error.status !== 400) return setError('genericAuthError')
+    if (error) return setError(authErrorKey(error))
     setSent(true)
   }
 
@@ -201,7 +201,7 @@ function ForgotView({ t, go }: ViewProps) {
   }
 
   return (
-    <form className={styles.form} onSubmit={onSubmit} noValidate>
+    <form className={styles.form} onSubmit={onSubmit}>
       <label className={styles.field}>
         <span className={styles.label}>{t('email')}</span>
         <input className={styles.input} type="email" autoComplete="email" required

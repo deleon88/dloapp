@@ -17,7 +17,11 @@ export default function AuthCallbackPage() {
   const navigate = useNavigate()
   const { loading, session, profile } = useAuthStore()
   // Error que devuelve el proveedor en la URL (enlace expirado, acceso cancelado…).
-  const [failed, setFailed] = useState(() => /error/.test(window.location.hash + window.location.search))
+  const [failed, setFailed] = useState(() => {
+    const query = new URLSearchParams(window.location.search)
+    const hash = new URLSearchParams(window.location.hash.slice(1))
+    return ['error', 'error_code', 'error_description'].some(key => query.has(key) || hash.has(key))
+  })
 
   useEffect(() => {
     if (failed || loading || !session || !profile) return
@@ -25,7 +29,10 @@ export default function AuthCallbackPage() {
   }, [failed, loading, session, profile, navigate])
 
   useEffect(() => {
-    const id = setTimeout(() => setFailed(f => f || !useAuthStore.getState().session), TIMEOUT_MS)
+    const id = setTimeout(() => {
+      const state = useAuthStore.getState()
+      setFailed(f => f || !state.session || !state.profile)
+    }, TIMEOUT_MS)
     return () => clearTimeout(id)
   }, [])
 

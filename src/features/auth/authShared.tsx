@@ -1,4 +1,5 @@
-import type { AuthError } from '@supabase/supabase-js'
+import { useState } from 'react'
+import { AuthError } from '@supabase/supabase-js'
 import { supabase, authRedirectUrl } from '@/lib/supabase'
 import type { TKey } from '@/i18n/useT'
 import styles from './Auth.module.css'
@@ -28,12 +29,16 @@ export function authErrorKey(error: AuthError | null | undefined): TKey {
     case 'user_already_exists':
     case 'email_exists':         return 'emailTaken'
     case 'weak_password':        return 'passwordTooShort'
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit': return 'authRateLimited'
+    case 'provider_disabled':
+    case 'signup_disabled':      return 'authUnavailable'
     default:                     return 'genericAuthError'
   }
 }
 
 export async function signInWithProvider(provider: 'google' | 'apple', returnTo?: string): Promise<AuthError | null> {
-  if (!supabase) return null
+  if (!supabase) return new AuthError('Authentication is not configured', 503, 'provider_disabled')
   rememberReturnTo(returnTo)
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
@@ -47,16 +52,25 @@ export function ProviderButtons({ t, onError, returnTo }: {
   onError: (k: TKey) => void
   returnTo?: string
 }) {
+  const [busy, setBusy] = useState(false)
   const go = async (provider: 'google' | 'apple') => {
-    const error = await signInWithProvider(provider, returnTo)
-    if (error) onError(authErrorKey(error))
+    if (busy) return
+    setBusy(true)
+    try {
+      const error = await signInWithProvider(provider, returnTo)
+      if (error) onError(authErrorKey(error))
+    } catch {
+      onError('genericAuthError')
+    } finally {
+      setBusy(false)
+    }
   }
   return (
     <>
-      <button type="button" className={`${styles.providerBtn} ${styles.google}`} onClick={() => go('google')}>
+      <button type="button" disabled={busy} className={`${styles.providerBtn} ${styles.google}`} onClick={() => go('google')}>
         <GoogleIcon /> {t('continueWithGoogle')}
       </button>
-      <button type="button" className={`${styles.providerBtn} ${styles.apple}`} onClick={() => go('apple')}>
+      <button type="button" disabled={busy} className={`${styles.providerBtn} ${styles.apple}`} onClick={() => go('apple')}>
         <AppleIcon /> {t('continueWithApple')}
       </button>
     </>
