@@ -18,6 +18,7 @@ import HandSelect from '@/components/HandSelect/HandSelect'
 import GameCard from './GameCard'
 import DateNav from './DateNav'
 import { useT } from '@/i18n/useT'
+import StatBarsGuide from './StatBarsGuide'
 import styles from './SchedulePage.module.css'
 
 export default function SchedulePage() {
@@ -188,7 +189,7 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {glossaryOpen && <StatBarsModal onClose={() => setGlossaryOpen(false)} />}
+      {glossaryOpen && <StatBarsGuide onClose={() => setGlossaryOpen(false)} />}
 
       <DateNav
         date={date}
@@ -286,82 +287,6 @@ function SkeletonList() {
           style={{ height: 180, animationDelay: `${i * 80}ms` }}
         />
       ))}
-    </div>
-  )
-}
-
-const FIP_RATINGS = [
-  { label: 'Excellent',     value: '≥ 130', tier: 'excellent' },
-  { label: 'Great',         value: '≥ 120', tier: 'great'     },
-  { label: 'Above Average', value: '≥ 110', tier: 'above'     },
-  { label: 'Average',       value: '100',   tier: 'avg'       },
-  { label: 'Below Average', value: '≤ 90',  tier: 'below'     },
-  { label: 'Poor',          value: '≤ 85',  tier: 'poor'      },
-  { label: 'Awful',         value: '≤ 75',  tier: 'awful'     },
-]
-
-const WRC_RATINGS = [
-  { label: 'Excellent',     value: '≥ 160', tier: 'excellent' },
-  { label: 'Great',         value: '≥ 140', tier: 'great'     },
-  { label: 'Above Average', value: '≥ 115', tier: 'above'     },
-  { label: 'Average',       value: '100',   tier: 'avg'       },
-  { label: 'Below Average', value: '≤ 80',  tier: 'below'     },
-  { label: 'Poor',          value: '≤ 75',  tier: 'poor'      },
-  { label: 'Awful',         value: '≤ 60',  tier: 'awful'     },
-]
-
-const TIER: Record<string, string> = {
-  excellent: styles.tierExcellent,
-  great:     styles.tierGreat,
-  above:     styles.tierAbove,
-  avg:       styles.tierAvg,
-  below:     styles.tierBelow,
-  poor:      styles.tierPoor,
-  awful:     styles.tierAwful,
-}
-
-function StatBarsModal({ onClose }: { onClose: () => void }) {
-  const t = useT()
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [onClose])
-
-  return (
-    <div className={styles.modalBackdrop} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <span className={styles.modalTitle}>{t('statBarsGuide')}</span>
-          <button className={styles.modalClose} onClick={onClose}>✕</button>
-        </div>
-        <div className={styles.modalBody}>
-          <StatPanel label={t('fipPlusLabel')} desc={t('fipPlusDesc')} ratings={FIP_RATINGS} />
-          <StatPanel label={t('wrcPlusLabel')} desc={t('wrcPlusDesc')} ratings={WRC_RATINGS} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatPanel({ label, desc, ratings }: {
-  label: string
-  desc: string
-  ratings: { label: string; value: string; tier: string }[]
-}) {
-  return (
-    <div className={styles.statPanel}>
-      <div className={styles.statPanelLabel}>{label}</div>
-      <p className={styles.statPanelDesc}>{desc}</p>
-      <div className={styles.ratingTable}>
-        {ratings.map(r => (
-          <div key={r.label} className={`${styles.ratingRow} ${TIER[r.tier]}`}>
-            <span className={styles.ratingLabel}>{r.label}</span>
-            <span className={styles.ratingValue}>{r.value}</span>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
