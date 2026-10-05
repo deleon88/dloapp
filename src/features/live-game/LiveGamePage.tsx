@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getGame } from '@/api/mlb/endpoints/schedule'
@@ -186,10 +186,26 @@ export default function LiveGamePage() {
     return applyBatterHand(stats, id => asHand(awayIds.has(id) ? awaySplit : homeSplit))
   }, [saberQuery.data, handFilters.batter, homePitcherHand, awayPitcherHand, awayLineup])
 
+  // Period / hand filters stay on screen while scrolling (sticky under the nav
+  // bar); once the header leaves its place they turn into a floating pill.
+  const headerSentinel = useRef<HTMLDivElement>(null)
+  const [filtersFloating, setFiltersFloating] = useState(false)
+  useEffect(() => {
+    const el = headerSentinel.current
+    if (!el) return
+    const navHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) || 52
+    const update = () => setFiltersFloating(el.getBoundingClientRect().top < navHeight)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [])
+
   return (
     <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>← Back</button>
+      {/* Above the header: once it scrolls out of view the filters are floating. */}
+      <div ref={headerSentinel} className={styles.headerSentinel} aria-hidden="true" />
+      <div className={`${styles.pageHeader} ${filtersFloating ? styles.pageHeaderFloating : ''}`}>
+        <button className={styles.backBtn} onClick={() => navigate(-1)} tabIndex={filtersFloating ? -1 : 0}>← Back</button>
         <div className={styles.headerRight}>
           <PeriodSelect value={period} onChange={setPeriod} />
           <HandSelect value={handFilters} onChange={setHandFilters} />
