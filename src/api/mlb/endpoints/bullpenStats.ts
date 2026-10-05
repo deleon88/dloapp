@@ -1,6 +1,7 @@
 import { mlbApi } from '../client'
 import { fetchPitcherLines, formatIp, type PitcherLine, type PitcherSplit } from '@/api/stats/pitchers'
 import type { StatPeriod } from '@/utils/period'
+import { etDate } from '@/utils/etDate'
 
 export interface BullpenPitcher {
   id: number
@@ -98,11 +99,12 @@ export async function fetchBullpenStats(
   period: StatPeriod = 'season',
   hand: BullpenHand = 'all',
 ): Promise<BullpenStats> {
-  const season     = new Date().getFullYear()
-  const today      = new Date().toISOString().split('T')[0]
-  const yesterday  = new Date(Date.now() -     86400000).toISOString().split('T')[0]
-  const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]
-  const sevenDaysAgo = new Date(Date.now() - 8 * 86400000).toISOString().split('T')[0]
+  // ET calendar days, like MLB's officialDate (UTC would put night games on the next day).
+  const season       = new Date().getFullYear()
+  const today        = etDate()
+  const yesterday    = etDate(1)
+  const twoDaysAgo   = etDate(2)
+  const sevenDaysAgo = etDate(8)
   const base = { group: 'pitching', season, sportIds: 1, gameType: 'R', sitCodes: 'rp' }
 
   // ── Step 1: parallel fetches ───────────────────────────────────
@@ -116,11 +118,11 @@ export async function fetchBullpenStats(
       fields: 'roster,person,id,status,description',
     }),
     mlbApi.get<TeamStatResponse>(`/teams/${teamId}/stats`, { ...base, stats: 'sabermetrics' }),
-    mlbApi.get<{ dates: Array<{ games: Array<{ gamePk: number; gameDate: string; status: { abstractGameState: string } }> }> }>(
+    mlbApi.get<{ dates: Array<{ games: Array<{ gamePk: number; officialDate: string; status: { abstractGameState: string } }> }> }>(
       '/schedule', {
         sportId: 1, teamId,
         startDate: sevenDaysAgo, endDate: today,
-        fields: 'dates,games,gamePk,gameDate,status,abstractGameState',
+        fields: 'dates,games,gamePk,officialDate,status,abstractGameState',
       },
     ),
   ])
@@ -157,7 +159,7 @@ export async function fetchBullpenStats(
   // ── Step 5: last-7-game boxscores for usage ────────────────────
   const completed = (schedRes.dates ?? [])
     .flatMap(d => d.games)
-    .filter(g => g.status.abstractGameState === 'Final' && g.gameDate.split('T')[0] < today)
+    .filter(g => g.status.abstractGameState === 'Final' && g.officialDate < today)
     .slice(-7)
 
   const usageMap = new Map<number, UsageEntry[]>()
@@ -172,7 +174,7 @@ export async function fetchBullpenStats(
     )
     boxes.forEach((bs, i) => {
       if (!bs) return
-      const gameDate = completed[i].gameDate.split('T')[0]
+      const gameDate = completed[i].officialDate
       const side = bs.teams.away.team.id === teamId ? bs.teams.away : bs.teams.home
       ;(side.pitchers ?? []).forEach((pid, order) => {
         const pitches = side.players?.['ID' + pid]?.stats?.pitching?.numberOfPitches ?? 0

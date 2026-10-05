@@ -78,7 +78,7 @@ function UsageDays({ pitcherId, usage, color }: {
   return (
     <>
       {usage.days.map((day, i) => (
-        <UsageDayBox key={day.date} day={day} pitches={counts[i]} color={color} />
+        <UsageDayBox key={day.gamePk} day={day} pitches={counts[i]} color={color} />
       ))}
     </>
   )

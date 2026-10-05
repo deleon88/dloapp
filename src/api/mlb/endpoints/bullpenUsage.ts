@@ -1,7 +1,9 @@
 import { mlbApi } from '../client'
+import { etDate } from '@/utils/etDate'
 
 export interface UsageDay {
-  date: string   // "2026-04-28"
+  gamePk: number // a doubleheader has two entries with the same date
+  date: string   // "2026-04-28", MLB official (ET) date
   label: string  // "4/28"
 }
 
@@ -12,7 +14,7 @@ export interface BullpenUsage {
 
 interface ScheduleGame {
   gamePk: number
-  gameDate: string
+  officialDate: string
   status: { abstractGameState: string }
 }
 
@@ -30,8 +32,8 @@ function fmtLabel(date: string): string {
 }
 
 export async function fetchBullpenUsage(teamId: number): Promise<BullpenUsage> {
-  const today = new Date().toISOString().split('T')[0]
-  const start = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const today = etDate()
+  const start = etDate(14)
 
   const schedRes = await mlbApi.get<{
     dates: Array<{ games: ScheduleGame[] }>
@@ -40,7 +42,7 @@ export async function fetchBullpenUsage(teamId: number): Promise<BullpenUsage> {
     teamId,
     startDate: start,
     endDate: today,
-    fields: 'dates,games,gamePk,gameDate,status,abstractGameState',
+    fields: 'dates,games,gamePk,officialDate,status,abstractGameState',
   })
 
   const completed = (schedRes.dates ?? [])
@@ -51,8 +53,9 @@ export async function fetchBullpenUsage(teamId: number): Promise<BullpenUsage> {
   if (!completed.length) return { days: [], pitchMap: new Map() }
 
   const days: UsageDay[] = completed.map(g => ({
-    date: g.gameDate.split('T')[0],
-    label: fmtLabel(g.gameDate.split('T')[0]),
+    gamePk: g.gamePk,
+    date: g.officialDate,
+    label: fmtLabel(g.officialDate),
   }))
 
   const boxscores = await Promise.all(
