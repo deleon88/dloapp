@@ -384,15 +384,6 @@ function SingleView({ lineup, color, wrcMap }: {
   const avg    = lineupAvgWrc(lineup, wrcMap)
   const avgPct = avg != null ? barPct(avg) : 0
 
-  let totalHr = 0, totalRbi = 0, totalSb = 0
-  for (const p of lineup) {
-    const ps = wrcMap.get(p.id)
-    if (!ps) continue
-    totalHr  += ps.hr  ?? 0
-    totalRbi += ps.rbi ?? 0
-    totalSb  += ps.sb  ?? 0
-  }
-
   return (
     <div>
       <div className={styles.singleHeader}>

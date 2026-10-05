@@ -28,13 +28,10 @@ export default function LmbSchedulePage() {
   })
 
   const today = format(new Date(), 'yyyy-MM-dd')
+  const allFinal = !!scheduleQuery.data && games.length > 0 && games.every(g => g.status === 'F')
   useEffect(() => {
-    if (date !== today) return
-    if (!scheduleQuery.data || scheduleQuery.isLoading) return
-    if (games.length > 0 && games.every(g => g.status === 'F')) {
-      setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))
-    }
-  }, [scheduleQuery.data, scheduleQuery.isLoading])
+    if (date === today && allFinal) setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))
+  }, [date, today, allFinal])
 
   const t = useT()
 
@@ -51,6 +48,7 @@ export default function LmbSchedulePage() {
         date={date}
         onPrev={() => setDate(format(subDays(parseISO(date), 1), 'yyyy-MM-dd'))}
         onNext={() => setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))}
+        today={today}
       />
 
       {scheduleQuery.isLoading && <SkeletonList />}

@@ -1,3 +1,4 @@
+import { etDate } from '@/utils/etDate'
 import { mlbApi } from '../client'
 import type { ScheduleResponse } from '../types'
 
@@ -12,7 +13,7 @@ export interface GetScheduleParams {
 }
 
 const SCHEDULE_FIELDS = [
-  'dates', 'date', 'games', 'gamePk', 'gameDate', 'dayNight',
+  'dates', 'date', 'games', 'gamePk', 'gameDate', 'officialDate', 'dayNight',
   'status', 'abstractGameState', 'detailedState',
   'teams', 'away', 'home', 'team', 'id', 'name',
   'leagueRecord', 'wins', 'losses', 'score',
@@ -33,7 +34,7 @@ export function getSchedule(params: GetScheduleParams = {}): Promise<ScheduleRes
 }
 
 const GAME_FIELDS = [
-  'dates', 'games', 'gamePk', 'gameDate', 'dayNight',
+  'dates', 'games', 'gamePk', 'gameDate', 'officialDate', 'dayNight',
   'status', 'abstractGameState', 'detailedState',
   'teams', 'away', 'home', 'team', 'id', 'name',
   'leagueRecord', 'wins', 'losses', 'score',
@@ -60,6 +61,6 @@ export async function getGame(gamePk: number): Promise<ScheduleResponse['dates']
 }
 
 export function getTodaySchedule(): Promise<ScheduleResponse> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = etDate()
   return getSchedule({ date: today, hydrate: ['probablePitcher', 'linescore'] })
 }

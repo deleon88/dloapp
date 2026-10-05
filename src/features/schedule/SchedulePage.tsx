@@ -1,3 +1,4 @@
+import { etDate } from '@/utils/etDate'
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
@@ -20,7 +21,7 @@ import { useT } from '@/i18n/useT'
 import styles from './SchedulePage.module.css'
 
 export default function SchedulePage() {
-  const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  const [date, setDate] = useState(() => etDate())
   // Initialized from localStorage so the filters survive navigation to/from
   // LiveGamePage (and a reload) — see filterPreferences.ts.
   const [period, setPeriodState] = useState<StatPeriod>(loadSavedPeriod)
@@ -40,14 +41,11 @@ export default function SchedulePage() {
   )
 
   // Auto-advance to tomorrow if today's schedule is fully complete
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = etDate()
+  const allFinal = !!scheduleQuery.data && games.length > 0 && games.every(g => g.status.abstractGameState === 'Final')
   useEffect(() => {
-    if (date !== today) return
-    if (!scheduleQuery.data || scheduleQuery.isLoading) return
-    if (games.length > 0 && games.every(g => g.status.abstractGameState === 'Final')) {
-      setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))
-    }
-  }, [scheduleQuery.data, scheduleQuery.isLoading])
+    if (date === today && allFinal) setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))
+  }, [date, today, allFinal])
 
   // Collect all probable pitcher IDs from the schedule
   const pitcherIds = [

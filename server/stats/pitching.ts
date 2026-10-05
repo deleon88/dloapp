@@ -2,7 +2,13 @@
 // (starter / reliever) and batter hand, plus FIP, FIP-, xFIP, WHIP, K-BB% and
 // wOBA against, with the constants in league_constants.
 import { sql } from '../db.js'
-import { getConstants, getParkFactors, woba, type BatterCounts, type WobaConstants } from './batting.js'
+import { getConstants, getParkFactors } from './batting.js'
+import {
+  obpSlg, pitcherSplit,
+  type PitcherCounts, type PitcherSplit, type PitchingConstants,
+} from './formulas.js'
+
+export type { PitcherCounts, PitcherSplit, PitchingConstants }
 
 const NON_AB = ['Walk', 'Intent Walk', 'Hit By Pitch', 'Sac Fly', 'Sac Fly Double Play',
   'Sac Bunt', 'Sac Bunt Double Play', 'Catcher Interference']
@@ -13,22 +19,6 @@ const NON_AB = ['Walk', 'Intent Walk', 'Hit By Pitch', 'Sac Fly', 'Sac Fly Doubl
  * average error; its league HR/FB rate matches MLB's best fit.
  */
 const FLY_BALLS = ['fly_ball', 'popup']
-
-export interface PitcherCounts {
-  bf: number        // batters faced (completed plate appearances)
-  outs: number      // outs recorded, including caught stealing / pickoffs
-  ab: number
-  h1: number
-  h2: number
-  h3: number
-  hr: number
-  ubb: number
-  ibb: number
-  hbp: number
-  sf: number
-  so: number
-  fb: number
-}
 
 export type PitcherRole = 'all' | 'rp'
 
@@ -84,17 +74,6 @@ function getPitcherRows(f: PitcherFilter) {
   `
 }
 
-/** OBP / SLG of a set of counts; null without plate appearances / at-bats. */
-function obpSlg(c: PitcherCounts): { obp: number | null; slg: number | null } {
-  const bb = c.ubb + c.ibb
-  const h = c.h1 + c.h2 + c.h3 + c.hr
-  const den = c.ab + bb + c.hbp + c.sf
-  return {
-    obp: den ? (h + bb + c.hbp) / den : null,
-    slg: c.ab ? (c.h1 + 2 * c.h2 + 3 * c.h3 + 4 * c.hr) / c.ab : null,
-  }
-}
-
 type LeagueOps = Record<'all' | 'L' | 'R', { obp: number | null; slg: number | null }>
 
 /**
@@ -133,31 +112,6 @@ async function getLeagueOps(f: PitcherFilter): Promise<LeagueOps> {
   return { all: obpSlg(all), L: obpSlg(L), R: obpSlg(R) }
 }
 
-export interface PitchingConstants extends WobaConstants {
-  cFIP: number
-  lgFIP: number
-  lgHRFB: number
-}
-
-export interface PitcherSplit {
-  bf: number
-  ip: number               // decimal innings (outs / 3)
-  so: number
-  bb: number               // walks including intentional, like MLB's baseOnBalls
-  hbp: number
-  hr: number
-  h: number
-  kbbPct: number | null    // (K − BB) / BF × 100
-  whip: number | null
-  fip: number | null
-  fipMinus: number | null  // park-adjusted, 100 = average; FIP+ = 200 − FIP-
-  xfip: number | null
-  wobaAgainst: number | null
-  opsAgainst: number | null
-  /** 100 × (OBP/lgOBP + SLG/lgSLG − 1) vs the league in the same split; lower is better. */
-  opsPlusAgainst: number | null
-}
-
 export interface PitcherLine extends PitcherSplit {
   vsL: PitcherSplit        // vs left-handed batters
   vsR: PitcherSplit
@@ -165,37 +119,6 @@ export interface PitcherLine extends PitcherSplit {
 
 const COUNT_KEYS = ['bf', 'outs', 'ab', 'h1', 'h2', 'h3', 'hr', 'ubb', 'ibb', 'hbp', 'sf', 'so', 'fb'] as const
 const empty = (): PitcherCounts => ({ bf: 0, outs: 0, ab: 0, h1: 0, h2: 0, h3: 0, hr: 0, ubb: 0, ibb: 0, hbp: 0, sf: 0, so: 0, fb: 0 })
-const round = (x: number | null, d: number) => (x == null || !Number.isFinite(x) ? null : Math.round(x * 10 ** d) / 10 ** d)
-
-function split(c: PitcherCounts, k: PitchingConstants, pf: number, lg: LeagueOps[keyof LeagueOps]): PitcherSplit {
-  const ip = c.outs / 3
-  const bb = c.ubb + c.ibb
-  const h = c.h1 + c.h2 + c.h3 + c.hr
-  const fip = ip > 0 ? (13 * c.hr + 3 * (bb + c.hbp) - 2 * c.so) / ip + k.cFIP : null
-  const xfip = ip > 0 ? (13 * c.fb * k.lgHRFB + 3 * (bb + c.hbp) - 2 * c.so) / ip + k.cFIP : null
-  // FanGraphs FIP-: (FIP + (FIP − FIP × PF)) / lgFIP × 100, with an all-MLB lgFIP (no AL/NL split).
-  const fipMinus = fip != null ? ((fip + (fip - fip * pf)) / k.lgFIP) * 100 : null
-  const asBatter: BatterCounts = {
-    batter_id: 0, pa: c.bf, ab: c.ab, h1: c.h1, h2: c.h2, h3: c.h3, hr: c.hr,
-    ubb: c.ubb, ibb: c.ibb, hbp: c.hbp, sf: c.sf, so: c.so, rbi: 0,
-  }
-  const { obp, slg } = obpSlg(c)
-  return {
-    bf: c.bf,
-    ip: round(ip, 3)!,
-    so: c.so, bb, hbp: c.hbp, hr: c.hr, h,
-    kbbPct: c.bf ? round(((c.so - bb) / c.bf) * 100, 1) : null,
-    whip: ip > 0 ? round((h + bb) / ip, 2) : null,
-    fip: round(fip, 2),
-    fipMinus: fipMinus == null ? null : Math.round(fipMinus),
-    xfip: round(xfip, 2),
-    wobaAgainst: c.bf ? round(woba(asBatter, k), 3) : null,
-    opsAgainst: obp != null && slg != null ? round(obp + slg, 3) : null,
-    opsPlusAgainst: obp != null && slg != null && lg.obp && lg.slg
-      ? Math.round(100 * (obp / lg.obp + slg / lg.slg - 1))
-      : null,
-  }
-}
 
 /**
  * FIP, FIP-, xFIP, WHIP, K-BB% and wOBA against (overall, vs LHB, vs RHB) per
@@ -226,7 +149,7 @@ export async function getPitcherLines(f: PitcherFilter): Promise<Map<number, Pit
 
   const out = new Map<number, PitcherLine>()
   for (const [id, a] of acc) {
-    const line = (x: Acc, side: keyof LeagueOps) => split(x.c, constants, x.c.bf ? x.pfBf / x.c.bf : 1, lg[side])
+    const line = (x: Acc, side: keyof LeagueOps) => pitcherSplit(x.c, constants, x.c.bf ? x.pfBf / x.c.bf : 1, lg[side])
     out.set(id, { ...line(a.all, 'all'), vsL: line(a.L, 'L'), vsR: line(a.R, 'R') })
   }
   return out

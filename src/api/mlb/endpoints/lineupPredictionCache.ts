@@ -1,4 +1,4 @@
-import { format } from 'date-fns'
+import { etDate } from '@/utils/etDate'
 import type { TeamPredictions } from './predictedLineup'
 
 const PREFIX = 'dlp-lineup-pred-v5'
@@ -18,7 +18,7 @@ export function getCachedPredictions(teamId: number): TeamPredictions | null {
     const raw = localStorage.getItem(key(teamId))
     if (!raw) return null
     const entry: CacheEntry = JSON.parse(raw)
-    const today = format(new Date(), 'yyyy-MM-dd')
+    const today = etDate()
     if (entry.date !== today) return null
     if (Date.now() - entry.data.generatedAt > TTL_MS) return null
     return entry.data
@@ -29,7 +29,7 @@ export function getCachedPredictions(teamId: number): TeamPredictions | null {
 
 export function setCachedPredictions(teamId: number, data: TeamPredictions): void {
   try {
-    const entry: CacheEntry = { date: format(new Date(), 'yyyy-MM-dd'), data }
+    const entry: CacheEntry = { date: etDate(), data }
     localStorage.setItem(key(teamId), JSON.stringify(entry))
   } catch {
     // localStorage unavailable (private browsing, storage full) — silently skip

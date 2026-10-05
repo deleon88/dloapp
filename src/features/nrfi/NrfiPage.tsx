@@ -1,3 +1,4 @@
+import { etDate } from '@/utils/etDate'
 import { useState, useMemo } from 'react'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
@@ -32,7 +33,7 @@ function buildLineupMap(): Map<number, Array<{ id: number; fullName: string }>> 
 }
 
 export default function NrfiPage() {
-  const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  const [date, setDate] = useState(() => etDate())
   const [bet,  setBet]  = useState<Bet>('nrfi')
 
   const lineupMap = useMemo(() => buildLineupMap(), [])

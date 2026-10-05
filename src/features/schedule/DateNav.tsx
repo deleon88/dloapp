@@ -1,15 +1,18 @@
 import { format, parseISO } from 'date-fns'
+import { etDate } from '@/utils/etDate'
 import styles from './DateNav.module.css'
 
 interface Props {
   date: string
   onPrev: () => void
   onNext: () => void
+  /** The page's "today" (YYYY-MM-DD). MLB pages use ET, the default. */
+  today?: string
 }
 
-export default function DateNav({ date, onPrev, onNext }: Props) {
+export default function DateNav({ date, onPrev, onNext, today = etDate() }: Props) {
   const parsed = parseISO(date)
-  const isToday = date === format(new Date(), 'yyyy-MM-dd')
+  const isToday = date === today
   const label = format(parsed, 'EEE, MMM d')
 
   return (

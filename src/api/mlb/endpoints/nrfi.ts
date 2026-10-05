@@ -1,3 +1,4 @@
+import { etDate } from '@/utils/etDate'
 import { mlbApi } from '../client'
 import type { LineupSlot } from './boxscore'
 
@@ -669,7 +670,7 @@ function streakFromEnd(
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
+  return etDate()
 }
 
 function emptyTrend(): FirstInningTrendSummary {

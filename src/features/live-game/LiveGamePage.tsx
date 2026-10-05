@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getGame } from '@/api/mlb/endpoints/schedule'
 import { fetchTeamRecentResults } from '@/api/mlb/endpoints/teamRecentResults'
 import { applyPitcherHand, fetchPitcherStats } from '@/api/mlb/endpoints/pitcherStats'
-import { getGameLineup } from '@/api/mlb/endpoints/boxscore'
+import { getGameLineup, type LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchDepthChart } from '@/api/mlb/endpoints/teamRoster'
 import { fetchTeamPredictions } from '@/api/mlb/endpoints/predictedLineup'
@@ -17,6 +17,9 @@ import { batterSplitFor, type HandFilters } from '@/utils/handFilter'
 import { loadSavedPeriod, saveSavedPeriod, loadSavedHandFilters, saveSavedHandFilters } from '@/utils/filterPreferences'
 import GameMatchupView from './GameMatchupView'
 import styles from './LiveGamePage.module.css'
+
+// Stable empty lineup, so memos that depend on the lineup don't recompute every render.
+const NO_PLAYERS: LineupSlot[] = []
 
 export default function LiveGamePage() {
   const { gamePk } = useParams<{ gamePk: string }>()
@@ -124,16 +127,17 @@ export default function LiveGamePage() {
     : homePredictedQuery.data?.vsRHP) ?? homePredictedQuery.data?.vsRHP ?? null
 
   // Effective lineups: confirmed from boxscore, or predicted for Preview games
-  const confirmedAway = lineupQuery.data?.away ?? []
-  const confirmedHome = lineupQuery.data?.home ?? []
-  const awayLineup = confirmedAway.length > 0 ? confirmedAway : (awayPredicted ?? [])
-  const homeLineup = confirmedHome.length > 0 ? confirmedHome : (homePredicted ?? [])
+  const confirmedAway = lineupQuery.data?.away ?? NO_PLAYERS
+  const confirmedHome = lineupQuery.data?.home ?? NO_PLAYERS
+  const awayLineup = confirmedAway.length > 0 ? confirmedAway : (awayPredicted ?? NO_PLAYERS)
+  const homeLineup = confirmedHome.length > 0 ? confirmedHome : (homePredicted ?? NO_PLAYERS)
 
   const awayLineupStatus = awayLineup.length === 0 ? undefined : confirmedAway.length > 0 ? 'confirmed' as const : 'projected' as const
   const homeLineupStatus = homeLineup.length === 0 ? undefined : confirmedHome.length > 0 ? 'confirmed' as const : 'projected' as const
 
   // 5. Recent results (last 5 W/L per team)
-  const gameDate = game?.gameDate ? game.gameDate.split('T')[0] : undefined
+  // MLB's official (ET) date: the UTC gameDate of a night game is the next day.
+  const gameDate = game?.officialDate ?? undefined
   const recentResultsQuery = useQuery({
     queryKey: ['recent-results', gameDate],
     queryFn: () => fetchTeamRecentResults(gameDate!),

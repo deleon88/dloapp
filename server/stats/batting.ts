@@ -2,6 +2,10 @@
 // filtrables por temporada, ventana de fechas y mano del pitcher, más wOBA y
 // wRC+ con las constantes de league_constants.
 import { sql } from '../db.js'
+import { woba, wrcPlus, type WobaConstants } from './formulas.js'
+
+// Re-exported so existing importers (scripts, pitching.ts) keep working.
+export { woba, wrcPlus, type WobaConstants }
 
 // Turnos que no cuentan como turno oficial (AB). La interferencia del bateador
 // sí es AB (el bateador queda out), a diferencia de la del receptor.
@@ -90,11 +94,6 @@ function getBatterSplitRows(f: Omit<BatterFilter, 'vsHand' | 'teamId'>) {
   `
 }
 
-export interface WobaConstants {
-  wBB: number; wHBP: number; w1B: number; w2B: number; w3B: number; wHR: number
-  lgwOBA: number; wOBAScale: number; lgRPA: number
-}
-
 /** Constantes de la temporada; si aún no existen (inicio de año), las más recientes anteriores. */
 export async function getConstants(season: number, source = 're24'): Promise<WobaConstants> {
   const [row] = await sql<{ constants: WobaConstants }[]>`
@@ -115,19 +114,6 @@ export async function getParkFactors(season: number, source = 'fangraphs'): Prom
     ORDER BY team_id, season DESC
   `
   return new Map(rows.map(r => [r.team_id, r.basic_5yr / 100]))
-}
-
-export function woba(b: BatterCounts, c: WobaConstants): number | null {
-  const denom = b.ab + b.ubb + b.hbp + b.sf
-  if (!denom) return null
-  return (c.wBB * b.ubb + c.wHBP * b.hbp + c.w1B * b.h1 + c.w2B * b.h2 + c.w3B * b.h3 + c.wHR * b.hr) / denom
-}
-
-/** wRC+ con base de toda MLB: (wRAA/PA / lgR/PA + (2 − PF)) × 100. */
-export function wrcPlus(b: BatterCounts, c: WobaConstants, parkFactor = 1): number | null {
-  const w = woba(b, c)
-  if (w == null || !b.pa) return null
-  return ((w - c.lgwOBA) / c.wOBAScale / c.lgRPA + (2 - parkFactor)) * 100
 }
 
 // ── Periodos ─────────────────────────────────────────────────────────────────

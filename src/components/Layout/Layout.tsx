@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useTeamsVersion } from '@/data/teams'
 import { loadTeams } from '@/data/loadTeams'
 import NavBar from './NavBar'
+import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary'
 import styles from './Layout.module.css'
 
 // Pantallas del flujo de cuenta: desde aquí no se redirige a ningún lado.
@@ -36,7 +37,9 @@ export default function Layout() {
     <div className={styles.root}>
       <NavBar />
       <main className={styles.main} key={teamsVersion}>
-        <Outlet />
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       {supabase && <AuthModal />}
     </div>

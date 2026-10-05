@@ -25,6 +25,9 @@ export const translations = {
     couldNotLoadGame: 'Failed to load game.',
     loading: 'Loading…',
     back: '← Back',
+    somethingBroke: 'Something went wrong on this page',
+    somethingBrokeHint: 'Reload to try again. The rest of the app still works.',
+    reload: 'Reload',
     // GameCard stat bars
     starters: 'Starter',
     offense: 'Offense',
@@ -134,6 +137,9 @@ export const translations = {
     couldNotLoadGame: 'No se pudo cargar el juego.',
     loading: 'Cargando…',
     back: '← Atrás',
+    somethingBroke: 'Algo falló en esta página',
+    somethingBrokeHint: 'Recarga para intentar de nuevo. El resto de la app sigue funcionando.',
+    reload: 'Recargar',
     // GameCard stat bars
     starters: 'Abridor',
     offense: 'Ofensiva',

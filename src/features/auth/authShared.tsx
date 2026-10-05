@@ -1,6 +1,10 @@
+// Shared helpers and the provider buttons for the auth screens. Mixing them in
+// one file only costs fast refresh on edits here.
+/* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react'
 import { AuthError } from '@supabase/supabase-js'
 import { supabase, authRedirectUrl } from '@/lib/supabase'
+import { isSafeReturnPath } from '@/utils/safePath'
 import type { TKey } from '@/i18n/useT'
 import styles from './Auth.module.css'
 
@@ -9,14 +13,14 @@ export const MIN_PASSWORD = 8
 
 /** Remember where to go back after a login that leaves the app (OAuth, email links). */
 export function rememberReturnTo(path: string | undefined): void {
-  try { sessionStorage.setItem(RETURN_KEY, path && path.startsWith('/') ? path : '/schedule') } catch { /* ignore */ }
+  try { sessionStorage.setItem(RETURN_KEY, isSafeReturnPath(path) ? path : '/schedule') } catch { /* ignore */ }
 }
 
 export function takeReturnTo(): string {
   try {
     const path = sessionStorage.getItem(RETURN_KEY)
     sessionStorage.removeItem(RETURN_KEY)
-    if (path && path.startsWith('/') && !path.startsWith('//')) return path
+    if (isSafeReturnPath(path)) return path
   } catch { /* ignore */ }
   return '/schedule'
 }
