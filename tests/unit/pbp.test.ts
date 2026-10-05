@@ -43,6 +43,23 @@ test('anything other than a walk goes to the reliever, even in a hitter\'s count
   assert.equal(rows[1].pitcher_id, B)
 })
 
+// Two changes in one PA (game 825022): A leaves at 0-0, B pitches to 2-0, C
+// enters and finishes the walk → the walk is B's, who was replaced in a
+// hitter's count. B has no matchup of his own, so his hand comes later
+// (fetchGamePlays looks it up).
+test('with two changes in one PA, the last change decides and the replaced pitcher is charged', () => {
+  const C = 300
+  const rows = parsePlays(1, '2026-09-30', [
+    play(0, 'Groundout', A, 'L', [pitch(0, 0)]),
+    play(1, 'Walk', C, 'R', [
+      { ...change, player: { id: B } }, pitch(1, 0), pitch(2, 0),
+      { ...change, player: { id: C } }, pitch(2, 1), pitch(3, 1), pitch(4, 1),
+    ]),
+  ])
+  assert.equal(rows[1].pitcher_id, B)
+  assert.equal(rows[1].pitch_hand, null)
+})
+
 test('an intentional walk issued right after the change (0-0) is the reliever\'s', () => {
   const rows = parsePlays(1, '2026-09-30', [
     play(0, 'Groundout', A, 'L', [pitch(0, 0)]),

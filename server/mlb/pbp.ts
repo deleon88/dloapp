@@ -13,7 +13,7 @@ const PBP_FIELDS = [
   'runners', 'movement', 'originBase', 'end',
   'playEvents', 'hitData', 'trajectory',
   // Mid-PA pitching changes (rule 9.16(h), see responsiblePitcher).
-  'isPitch', 'balls', 'strikes', 'details', 'isSubstitution', 'position', 'abbreviation',
+  'isPitch', 'balls', 'strikes', 'details', 'isSubstitution', 'position', 'abbreviation', 'player',
 ].join(',')
 
 export const PA_EVENTS = new Set([
@@ -72,31 +72,36 @@ interface RawPlay {
     details?: { eventType?: string }
     isSubstitution?: boolean
     position?: { abbreviation?: string }
+    player?: { id?: number }
   }>
 }
 
 const WALKS = new Set(['Walk', 'Intent Walk'])
 
-type Pitcher = { id: number | null; hand: string | null }
-
 /**
- * Pitcher charged with the plate appearance. Official scoring rule 9.16(h):
- * when the pitcher is changed mid-PA with the count at 2-0, 2-1, 3-0, 3-1 or
- * 3-2 and the batter walks, the batter and the walk go to the preceding
- * pitcher. Anything else the batter does goes to the reliever. `previous` is
- * the last pitcher on the mound for the fielding side before this play.
+ * Pitcher charged with the plate appearance (id only; the hand is looked up
+ * afterwards). Official scoring rule 9.16(h): when the pitcher is changed
+ * mid-PA with the count at 2-0, 2-1, 3-0, 3-1 or 3-2 and the batter walks, the
+ * batter and the walk go to the pitcher who was replaced. Anything else the
+ * batter does goes to the reliever. With several changes in one PA, the last
+ * one decides. `previous` is the pitcher on the mound for the fielding side
+ * before this play.
  */
-function responsiblePitcher(play: RawPlay, event: string, current: Pitcher, previous: Pitcher | undefined): Pitcher {
-  if (!WALKS.has(event) || !previous?.id || previous.id === current.id) return current
+function responsiblePitcherId(play: RawPlay, event: string, current: number | null, previous: number | undefined): number | null {
+  if (!WALKS.has(event)) return current
   const events = play.playEvents ?? []
-  const change = events.findIndex(e =>
-    e.details?.eventType === 'pitching_substitution' || (e.isSubstitution && e.position?.abbreviation === 'P'))
-  if (change < 0) return current
-  const lastPitch = events.slice(0, change).filter(e => e.isPitch).pop()
+  const changes = events.flatMap((e, i) =>
+    e.details?.eventType === 'pitching_substitution' || (e.isSubstitution && e.position?.abbreviation === 'P') ? [i] : [])
+  if (!changes.length) return current
+  const last = changes[changes.length - 1]
+  const lastPitch = events.slice(0, last).filter(e => e.isPitch).pop()
   const balls = lastPitch?.count?.balls ?? 0
   const strikes = lastPitch?.count?.strikes ?? 0
-  const hittersCount = balls === 3 || (balls === 2 && strikes <= 1)
-  return hittersCount ? previous : current
+  if (!(balls === 3 || (balls === 2 && strikes <= 1))) return current
+  // Replaced pitcher: whoever entered at the previous change in this PA, or
+  // the pitcher who started it.
+  const replaced = changes.length > 1 ? events[changes[changes.length - 2]].player?.id : previous
+  return replaced ?? current
 }
 
 export async function getJson<T>(url: string, retries = 3): Promise<T> {
@@ -140,7 +145,13 @@ export function parsePlays(gamePk: number, gameDate: string, allPlays: RawPlay[]
   let curInning: number | null = null
   let curHalf: string | null = null
   // Last pitcher on the mound for each fielding side (top half = home pitches).
-  const lastPitcher = new Map<string, Pitcher>()
+  const lastPitcher = new Map<string, number>()
+  // Throwing hand of every pitcher that appears in a matchup in this game.
+  const hands = new Map<number, string>()
+  for (const p of allPlays) {
+    const id = p.matchup?.pitcher?.id
+    if (id && p.matchup?.pitchHand?.code) hands.set(id, p.matchup.pitchHand.code)
+  }
 
   for (const play of allPlays) {
     const inning = play.about?.inning ?? 0
@@ -155,9 +166,9 @@ export function parsePlays(gamePk: number, gameDate: string, allPlays: RawPlay[]
     const postOuts = play.count?.outs ?? prevOuts
     const event = (play.result?.event ?? '').trim()
     const { next, runs } = updateBases(bases, play.runners ?? [])
-    const onMound: Pitcher = { id: play.matchup?.pitcher?.id ?? null, hand: play.matchup?.pitchHand?.code ?? null }
-    const charged = responsiblePitcher(play, event, onMound, lastPitcher.get(half))
-    if (onMound.id) lastPitcher.set(half, onMound)
+    const onMound = play.matchup?.pitcher?.id ?? null
+    const charged = responsiblePitcherId(play, event, onMound, lastPitcher.get(half))
+    if (onMound) lastPitcher.set(half, onMound)
 
     rows.push({
       game_pk: gamePk,
@@ -166,9 +177,10 @@ export function parsePlays(gamePk: number, gameDate: string, allPlays: RawPlay[]
       inning,
       half: half === 'bottom' ? 'b' : 't',
       batter_id: play.matchup?.batter?.id ?? null,
-      pitcher_id: charged.id,
+      pitcher_id: charged,
       bat_side: play.matchup?.batSide?.code ?? null,
-      pitch_hand: charged.hand,
+      // null only for a pitcher with no matchup of his own in the game; fetchGamePlays fills it in.
+      pitch_hand: charged === onMound ? play.matchup?.pitchHand?.code ?? null : (charged && hands.get(charged)) || null,
       event,
       event_type: play.result?.eventType ?? null,
       is_pa: PA_EVENTS.has(event),
@@ -193,7 +205,19 @@ export async function fetchGamePlays(gamePk: number, gameDate: string): Promise<
   const data = await getJson<{ allPlays?: RawPlay[] }>(
     `${MLB_API}/game/${gamePk}/playByPlay?fields=${PBP_FIELDS}`,
   )
-  return parsePlays(gamePk, gameDate, data.allPlays ?? [])
+  const rows = parsePlays(gamePk, gameDate, data.allPlays ?? [])
+
+  // A pitcher charged under rule 9.16(h) who never had a matchup of his own in
+  // the game: get his throwing hand from his player record.
+  const missing = [...new Set(rows.filter(r => r.pitcher_id && !r.pitch_hand).map(r => r.pitcher_id!))]
+  if (missing.length) {
+    const people = await getJson<{ people?: Array<{ id: number; pitchHand?: { code?: string } }> }>(
+      `${MLB_API}/people?personIds=${missing.join(',')}&fields=people,id,pitchHand,code`,
+    )
+    const hand = new Map((people.people ?? []).map(p => [p.id, p.pitchHand?.code ?? null]))
+    for (const r of rows) if (r.pitcher_id && !r.pitch_hand) r.pitch_hand = hand.get(r.pitcher_id) ?? null
+  }
+  return rows
 }
 
 // ── Calendario ────────────────────────────────────────────────────────────────
