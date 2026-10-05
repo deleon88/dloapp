@@ -118,9 +118,21 @@ function PodiumCard({ row, first, isMe }: { row: RankingRow; first: boolean; isM
       <span className={styles.podiumRank}>#{row.rank}{first ? ` · ${t('leader')}` : ''}</span>
       <UserAvatar name={row.username} teamId={row.favoriteTeamId} size={first ? 44 : 38} />
       <span className={styles.podiumName}>{row.username}{isMe ? ` · ${t('you')}` : ''}</span>
+      <StreakBadge n={row.streak} />
       <span className={styles.podiumHits}>{row.correct}</span>
       <span className={styles.podiumFoot}>{t('hitsLabel')} · {row.pct}%</span>
     </div>
+  )
+}
+
+/** Hot streak: 3+ correct picks in a row. */
+function StreakBadge({ n }: { n: number }) {
+  const t = useT()
+  if (n < 3) return null
+  return (
+    <span className={styles.streak} title={t('streakTitle').replace('{n}', String(n))}>
+      <span aria-hidden="true">🔥</span>{n}
+    </span>
   )
 }
 
@@ -132,6 +144,7 @@ function TableRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
       <span className={styles.user}>
         <UserAvatar name={row.username} teamId={row.favoriteTeamId} size={28} />
         <span className={styles.userName}>{row.username}{isMe ? ` · ${t('you')}` : ''}</span>
+        <StreakBadge n={row.streak} />
       </span>
       <span className={`${styles.num} ${styles.hits}`}>{row.correct}</span>
       <span className={`${styles.num} ${styles.pct}`}>{row.pct}%</span>

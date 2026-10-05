@@ -21,20 +21,29 @@ export default function PickHistory({ userId }: { userId: string }) {
     queryFn: fetchPickHistory,
     staleTime: 60_000,
   })
-  const picks = query.data ?? []
-  const decided = picks.filter(p => p.result === 'won' || p.result === 'lost')
-  const won = decided.filter(p => p.result === 'won').length
+  const picks = query.data?.picks ?? []
+  const s = query.data?.summary
+  const decided = s ? s.won + s.lost : 0
+  // Current run: "+3" correct in a row, "−2" missed in a row.
+  const streak = s?.streak ? `${s.streak.kind === 'won' ? '+' : '−'}${s.streak.n}` : '—'
 
   return (
     <section className={styles.card} aria-labelledby="my-picks">
       <div className={styles.head}>
         <h2 id="my-picks" className={styles.title}>{t('myPicks')}</h2>
-        {decided.length > 0 && (
-          <span className={styles.summary}>
-            {won}/{decided.length} · {Math.round((won / decided.length) * 100)}%
-          </span>
-        )}
+        {s && s.pending > 0 && <span className={styles.summary}>{t('pendingCount').replace('{n}', String(s.pending))}</span>}
       </div>
+      {s && decided > 0 && (
+        <dl className={styles.stats}>
+          <div><dt>{t('recordLabel')}</dt><dd>{s.won}-{s.lost}</dd></div>
+          <div><dt>{t('hitRate')}</dt><dd>{s.pct}%</dd></div>
+          <div>
+            <dt>{t('streakCol')}</dt>
+            <dd className={s.streak?.kind === 'won' ? styles.hot : s.streak ? styles.cold : undefined}>{streak}</dd>
+          </div>
+          <div><dt>{t('bestStreak')}</dt><dd>{s.bestStreak}</dd></div>
+        </dl>
+      )}
       {query.isLoading ? (
         <p className={styles.empty}>{t('loading')}</p>
       ) : picks.length === 0 ? (
@@ -55,7 +64,9 @@ function PickRow({ pick }: { pick: Pick }) {
   const picked = getTeamMeta(pick.teamId)
   const date = new Intl.DateTimeFormat(lang === 'es' ? 'es-MX' : 'en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' })
     .format(new Date(`${pick.date}T12:00:00Z`))
-  const score = pick.awayScore != null && pick.homeScore != null ? `${pick.awayScore}–${pick.homeScore}` : '@'
+  // The score only once the game is over (a game that hasn't started can come back 0–0).
+  const over = pick.result === 'won' || pick.result === 'lost'
+  const score = over && pick.awayScore != null && pick.homeScore != null ? `${pick.awayScore}–${pick.homeScore}` : '@'
   const result = RESULT[pick.result]
 
   return (

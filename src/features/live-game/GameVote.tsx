@@ -52,7 +52,12 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
   const [pending, setPending] = useState<number | null>(null)
   const vote = useMutation({
     mutationFn: (teamId: number) => castVote(game.gamePk, teamId),
-    onSuccess: data => { qc.setQueryData<GameVotes>(key, data); setPending(null) },
+    onSuccess: data => {
+      qc.setQueryData<GameVotes>(key, data)
+      setPending(null)
+      // Your picks show up in the profile too.
+      void qc.invalidateQueries({ queryKey: ['pick-history'] })
+    },
     onError: () => setPending(null),
   })
   useEffect(() => {
@@ -87,9 +92,13 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
   const total = data?.total ?? 0
   const countLabel = total === 1 ? t('oneVote') : t('votesCount').replace('{n}', String(total))
   const pendingSide = sides.find(s => s.id === pending)
+  // Game over and you picked: did you get it right?
+  const winner = state === 'Final' ? sides.find(s => s.won) : undefined
+  const verdict = winner && myVote != null ? (winner.id === myVote ? 'right' : 'wrong') : null
   const footnote = closedByServer ? t('votingClosed')
     : vote.isError ? t('voteFailed')
     : pendingSide ? t('tapAgainToConfirm').replace('{team}', pendingSide.name)
+    : verdict ? `${t(verdict === 'right' ? 'pickRight' : 'pickWrong')} · ${countLabel}`
     : !session ? t('signInToVote')
     : !open ? `${countLabel} · ${t('votingClosed')}`
     : `${countLabel} · ${t('canChangeBeforeStart')}`
@@ -137,7 +146,7 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
       )}
 
       <p
-        className={`${styles.footnote} ${vote.isError ? styles.error : ''} ${pendingSide ? styles.footnoteHint : ''}`}
+        className={`${styles.footnote} ${vote.isError ? styles.error : ''} ${pendingSide ? styles.footnoteHint : ''} ${verdict && !pendingSide && !vote.isError ? styles[verdict] : ''}`}
         role={vote.isError ? 'alert' : undefined}
         aria-live="polite"
       >

@@ -7,6 +7,7 @@ import { getJson } from './mlb/pbp.js'
 import { etDate, syncSchedule, upsertGames } from './ingest.js'
 import type { ScheduleGame } from './mlb/pbp.js'
 import { periodRange, type RankingPeriod } from './rankingPeriod.js'
+import { pickResult, summarize, type PickResult, type PickSummary } from './picks.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 
@@ -79,7 +80,7 @@ export async function getGameVotes(gamePk: number, userId: string | null): Promi
   }
 }
 
-export type PickResult = 'won' | 'lost' | 'pending' | 'void'
+export type { PickResult, PickSummary }
 
 export interface Pick {
   gamePk: number
@@ -93,14 +94,8 @@ export interface Pick {
   result: PickResult
 }
 
-const pickResult = (status: string, state: string, winner: number | null, team: number): PickResult =>
-  /^(Postponed|Cancelled)/.test(status) ? 'void'
-    : state !== 'Final' ? 'pending'
-    : winner == null ? 'void'
-    : winner === team ? 'won' : 'lost'
-
-/** The user's picks, newest first. */
-export async function getPickHistory(userId: string, limit = 60): Promise<Pick[]> {
+/** The user's latest picks, newest first, and the summary of all of them (record, streaks). */
+export async function getPickHistory(userId: string, limit = 60): Promise<{ picks: Pick[]; summary: PickSummary }> {
   const rows = await sql<Array<{
     game_pk: number; game_date: string; game_time: Date | null; away_team_id: number; home_team_id: number
     away_score: number | null; home_score: number | null; winner_team_id: number | null
@@ -111,14 +106,14 @@ export async function getPickHistory(userId: string, limit = 60): Promise<Pick[]
     FROM votes v JOIN games g USING (game_pk)
     WHERE v.user_id = ${userId}
     ORDER BY g.game_date DESC, g.game_time DESC NULLS LAST
-    LIMIT ${limit}
   `
-  return rows.map(r => ({
+  const picks = rows.map(r => ({
     gamePk: r.game_pk, date: r.game_date, gameTime: r.game_time?.toISOString() ?? null,
     awayTeamId: r.away_team_id, homeTeamId: r.home_team_id,
     awayScore: r.away_score, homeScore: r.home_score, teamId: r.team_id,
     result: pickResult(r.status, r.abstract_state, r.winner_team_id, r.team_id),
   }))
+  return { picks: picks.slice(0, limit), summary: summarize(picks.map(p => p.result)) }
 }
 
 // ── Leaderboard ─────────────────────────────────────────────────────────────
@@ -132,6 +127,28 @@ export interface RankingRow {
   correct: number
   decided: number
   pct: number            // correct / decided, 0–100
+  streak: number         // current run of correct picks (all time, not just the period)
+}
+
+/** Current run of correct picks per username, over all their finished picks. */
+async function winStreaks(usernames: string[]): Promise<Map<string, number>> {
+  if (!usernames.length) return new Map()
+  const rows = await sql<{ username: string; won: boolean }[]>`
+    SELECT p.username, v.team_id = g.winner_team_id AS won
+    FROM votes v JOIN games g USING (game_pk) JOIN profiles p ON p.id = v.user_id
+    WHERE g.winner_team_id IS NOT NULL AND p.username = ANY(${usernames})
+    ORDER BY p.username, g.game_date DESC, g.game_time DESC NULLS LAST
+  `
+  const byUser = new Map<string, PickResult[]>()
+  for (const r of rows) {
+    const list = byUser.get(r.username) ?? []
+    list.push(r.won ? 'won' : 'lost')
+    byUser.set(r.username, list)
+  }
+  return new Map([...byUser].map(([u, results]) => {
+    const s = summarize(results).streak
+    return [u, s?.kind === 'won' ? s.n : 0]
+  }))
 }
 
 /**
@@ -157,11 +174,13 @@ export async function getRankings(period: RankingPeriod): Promise<{ from: string
     FROM tally
     ORDER BY rank, lower(username)
   `
+  const streaks = await winStreaks(rows.map(r => r.username))
   return {
     from, to,
     rows: rows.map(r => ({
       rank: r.rank, username: r.username, favoriteTeamId: r.favorite_team_id,
       correct: r.correct, decided: r.decided, pct: Math.round((r.correct / r.decided) * 100),
+      streak: streaks.get(r.username) ?? 0,
     })),
   }
 }

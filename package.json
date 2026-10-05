@@ -12,6 +12,7 @@
     "test": "tsx --test \"tests/unit/*.test.ts\"",
     "db:migrate": "tsx --env-file=.env.local scripts/db/migrate.ts",
     "db:backfill": "tsx --env-file=.env.local scripts/db/backfill.ts",
+    "db:backfill-lineups": "tsx --env-file=.env.local scripts/db/backfill-lineups.ts",
     "db:constants": "tsx --env-file=.env.local scripts/db/constants.ts",
     "db:calibrate": "tsx --env-file=.env.local scripts/db/calibrate.ts",
     "db:validate-batting": "tsx --env-file=.env.local scripts/db/validate-batting.ts",

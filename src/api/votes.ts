@@ -22,6 +22,20 @@ export interface Pick {
   result: PickResult
 }
 
+export interface PickSummary {
+  won: number
+  lost: number
+  pending: number
+  pct: number | null
+  streak: { kind: 'won' | 'lost'; n: number } | null
+  bestStreak: number
+}
+
+export interface PickHistory {
+  picks: Pick[]
+  summary: PickSummary
+}
+
 export type RankingPeriod = 'today' | 'week' | 'month' | 'season'
 
 export interface RankingRow {
@@ -31,6 +45,7 @@ export interface RankingRow {
   correct: number
   decided: number
   pct: number
+  streak: number          // current run of correct picks
 }
 
 export interface Rankings {
@@ -67,10 +82,9 @@ export async function castVote(gamePk: number, teamId: number): Promise<GameVote
   }))
 }
 
-export async function fetchPickHistory(): Promise<Pick[]> {
-  return (await json<{ picks: Pick[] }>(await fetch('/api/votes/history', { headers: await authHeaders() }))).picks
+export async function fetchPickHistory(): Promise<PickHistory> {
+  return json(await fetch('/api/votes/history', { headers: await authHeaders() }))
 }
-
 export async function fetchRankings(period: RankingPeriod): Promise<Rankings> {
   return json(await fetch(`/api/rankings?period=${period}`))
 }

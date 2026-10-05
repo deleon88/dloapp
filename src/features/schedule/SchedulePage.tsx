@@ -7,8 +7,7 @@ import { fetchBullpenFipPlusMap } from '@/api/mlb/endpoints/bullpenStats'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { applyPitcherHand, fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
-import { getGoToLineup } from '@/api/mlb/endpoints/goToLineupStore'
-import { fetchTeamPredictionsNoDepth } from '@/api/mlb/endpoints/predictedLineup'
+import { fetchGoToLineups, goToFor } from '@/api/lineups'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { batterSplitFor } from '@/utils/handFilter'
 import { useStatFilters } from '@/utils/useStatFilters'
@@ -81,22 +80,14 @@ export default function SchedulePage() {
     placeholderData: prev => prev,
   })
 
-  // Proactively fetch and cache go-to lineup predictions for every team on the schedule.
-  // Teams already stored in the go-to store are skipped. Runs once per date (staleTime: 20h).
-  // After resolving, projectedInfo recomputes and picks up the freshly stored lineups.
-  const schedPredQuery = useQuery({
-    queryKey: ['sched-predictions', date, uniqueTeamIds.slice().sort().join(',')],
-    queryFn: async () => {
-      const needed = uniqueTeamIds.filter(id => !getGoToLineup(id))
-      for (let i = 0; i < needed.length; i += 3) {
-        await Promise.all(needed.slice(i, i + 3).map(fetchTeamPredictionsNoDepth))
-      }
-      return Date.now()
-    },
+  // Go-to lineups (vs RHP / vs LHP) of every team on the schedule, built on the server.
+  const goToQuery = useQuery({
+    queryKey: ['go-to-lineups', ...uniqueTeamIds.slice().sort((a, b) => a - b)],
+    queryFn: () => fetchGoToLineups(uniqueTeamIds),
     enabled: uniqueTeamIds.length > 0,
-    staleTime: 20 * 60 * 60 * 1000,
-    retry: false,
+    staleTime: 15 * 60_000,
   })
+  const goTo = goToQuery.data
 
   // Confirmed lineup wRC+ from boxscores (PA-weighted)
   const allGamesForLineup = games.map(g => ({
@@ -114,11 +105,9 @@ export default function SchedulePage() {
     placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
   })
 
-  // Projected lineup: read player IDs from go-to store for unconfirmed teams,
-  // pick vsRHP vs vsLHP based on opposing pitcher hand. schedPredQuery.data is
-  // a dependency so this recomputes once proactive predictions are stored.
+  // Projected lineup: the go-to player IDs for teams without a confirmed lineup,
+  // vs RHP or vs LHP depending on the opposing starter's hand.
   const projectedInfo = useMemo(() => {
-    void schedPredQuery.data
     const lineupOffense = lineupOffenseQuery.data
     const pitchHands    = pitchHandQuery.data
 
@@ -131,24 +120,22 @@ export default function SchedulePage() {
 
       if (!gl || gl.awayIds.length === 0) {
         const homePitcherId = gp.teams.home.probablePitcher?.id
-        const hand = homePitcherId ? pitchHands?.get(homePitcherId) as 'R' | 'L' | undefined : undefined
-        const stored = getGoToLineup(game.teams.away.team.id)
-        const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
+        const hand = homePitcherId ? pitchHands?.get(homePitcherId) : undefined
+        const lineup = goToFor(goTo?.get(game.teams.away.team.id), hand)
         if (lineup?.length) teamPlayerIds.set(game.teams.away.team.id, lineup.map(p => p.id))
       }
 
       if (!gl || gl.homeIds.length === 0) {
         const awayPitcherId = gp.teams.away.probablePitcher?.id
-        const hand = awayPitcherId ? pitchHands?.get(awayPitcherId) as 'R' | 'L' | undefined : undefined
-        const stored = getGoToLineup(homeTeamId)
-        const lineup = hand === 'L' ? stored?.vsLHP : stored?.vsRHP
+        const hand = awayPitcherId ? pitchHands?.get(awayPitcherId) : undefined
+        const lineup = goToFor(goTo?.get(homeTeamId), hand)
         if (lineup?.length) teamPlayerIds.set(homeTeamId, lineup.map(p => p.id))
       }
     }
 
     const allIds = [...new Set([...teamPlayerIds.values()].flat())]
     return { teamPlayerIds, allIds }
-  }, [games, lineupOffenseQuery.data, pitchHandQuery.data, schedPredQuery.data])
+  }, [games, lineupOffenseQuery.data, pitchHandQuery.data, goTo])
 
   const projectedWrcQuery = useQuery({
     queryKey: ['projected-sched-wrc', projectedInfo.allIds.slice().sort().join(','), period],
@@ -219,8 +206,8 @@ export default function SchedulePage() {
           const gameLineup    = lineupOffense?.games.get(game.gamePk)
           const awayConfirmed = (gameLineup?.awayIds.length ?? 0) > 0
           const homeConfirmed = (gameLineup?.homeIds.length ?? 0) > 0
-          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.away.team.id) ? 'projected' as const : undefined
-          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : getGoToLineup(game.teams.home.team.id) ? 'projected' as const : undefined
+          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : projectedInfo.teamPlayerIds.has(game.teams.away.team.id) ? 'projected' as const : undefined
+          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : projectedInfo.teamPlayerIds.has(game.teams.home.team.id) ? 'projected' as const : undefined
 
           // Hand filter: each lineup faces the OTHER team's starter.
           const awaySplit = batterSplitFor(handFilters.batter, homePitcherId ? pitchHands?.get(homePitcherId) : undefined)

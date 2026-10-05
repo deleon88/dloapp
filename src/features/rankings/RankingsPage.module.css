@@ -187,6 +187,22 @@
   text-overflow: ellipsis;
 }
 
+/* 🔥3 — hot streak next to the name */
+.streak {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px 1px 4px;
+  border-radius: var(--radius-full);
+  background: rgba(249, 115, 22, 0.14);
+  color: #fb923c;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .hits { font-weight: 700; color: var(--text-primary); }
 .pct { color: var(--text-secondary); }

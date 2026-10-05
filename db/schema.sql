@@ -207,6 +207,38 @@ CREATE INDEX IF NOT EXISTS pitcher_appearances_team_idx ON pitcher_appearances (
 
 ALTER TABLE pitcher_appearances ENABLE ROW LEVEL SECURITY;
 
+-- ── Lineups ──────────────────────────────────────────────────────────────────
+-- Orden al bat inicial de cada equipo por juego (battingOrder del boxscore),
+-- con la posición que jugó y sus entradas a la defensiva. Se llena junto con
+-- plays. La mano del abridor rival sale de pitcher_appearances + plays.
+CREATE TABLE IF NOT EXISTS lineups (
+  game_pk    integer  NOT NULL REFERENCES games ON DELETE CASCADE,
+  team_id    integer  NOT NULL,
+  spot       smallint NOT NULL,   -- 1-9
+  player_id  integer  NOT NULL,
+  position   text     NOT NULL,   -- C, 1B... DH
+  innings    real     NOT NULL,   -- entradas a la defensiva (DH = 9)
+  PRIMARY KEY (game_pk, team_id, spot)
+);
+CREATE INDEX IF NOT EXISTS lineups_team_idx ON lineups (team_id);
+
+-- Lineup "go-to" de cada equipo contra abridor zurdo (L) y derecho (R): los
+-- últimos 5 lineups contra esa mano, corregidos con el depth chart y la lista
+-- de lesionados (server/lineups). Lo recalcula el cron y, si está viejo, la API.
+CREATE TABLE IF NOT EXISTS go_to_lineups (
+  team_id      integer     NOT NULL,
+  season       smallint    NOT NULL,
+  hand         char(1)     NOT NULL CHECK (hand IN ('L', 'R')),
+  lineup       jsonb,                 -- null = sin juegos suficientes
+  games        integer[]   NOT NULL DEFAULT '{}',   -- juegos usados, más reciente primero
+  fallback     boolean     NOT NULL DEFAULT false,  -- <2 juegos vs esa mano: se usaron los últimos 5 en general
+  computed_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (team_id, season, hand)
+);
+
+ALTER TABLE lineups       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE go_to_lineups ENABLE ROW LEVEL SECURITY;
+
 -- ── Votaciones ───────────────────────────────────────────────────────────────
 -- Un voto por usuario y juego: quién gana. Se puede cambiar hasta que empieza
 -- el juego. Solo se escribe desde el servidor (api/votes.ts verifica la sesión
@@ -239,5 +271,6 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
   error              text
 );
 CREATE INDEX IF NOT EXISTS ingest_runs_started_idx ON ingest_runs (started_at DESC);
+ALTER TABLE ingest_runs ADD COLUMN IF NOT EXISTS lineups_refreshed integer;  -- equipos con go-to recalculado
 
 ALTER TABLE ingest_runs ENABLE ROW LEVEL SECURITY;

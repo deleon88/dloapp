@@ -6,9 +6,7 @@ import { fetchTeamRecentResults } from '@/api/mlb/endpoints/teamRecentResults'
 import { applyPitcherHand, fetchPitcherStats } from '@/api/mlb/endpoints/pitcherStats'
 import { getGameLineup, type LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
-import { fetchDepthChart } from '@/api/mlb/endpoints/teamRoster'
-import { fetchTeamPredictions } from '@/api/mlb/endpoints/predictedLineup'
-import { getCachedPredictions, setCachedPredictions } from '@/api/mlb/endpoints/lineupPredictionCache'
+import { fetchGoToLineups, goToFor } from '@/api/lineups'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
@@ -68,58 +66,20 @@ export default function LiveGamePage() {
     staleTime: 300_000,
   })
 
-  // 4. IL sets + predicted lineups (Preview games only)
+  // 4. Projected lineups (Preview games only)
   const awayPitcherHand = awayPitcherId ? pitcherQuery.data?.get(awayPitcherId)?.pitchHand : undefined
   const homePitcherHand = homePitcherId ? pitcherQuery.data?.get(homePitcherId)?.pitchHand : undefined
 
-  const awayDepthQuery = useQuery({
-    queryKey: ['depth-chart', awayTeamId],
-    queryFn: () => fetchDepthChart(awayTeamId!),
-    enabled: isPreview && !!awayTeamId,
-    staleTime: 3_600_000,
+  // Go-to lineups (server: last 5 lineups vs that hand + roster/IL/depth chart).
+  // Each side faces the other team's starter; vs RHP while that hand is unknown.
+  const goToQuery = useQuery({
+    queryKey: ['go-to-lineups', awayTeamId, homeTeamId],
+    queryFn: () => fetchGoToLineups([awayTeamId!, homeTeamId!]),
+    enabled: isPreview && !!awayTeamId && !!homeTeamId,
+    staleTime: 15 * 60_000,
   })
-  const homeDepthQuery = useQuery({
-    queryKey: ['depth-chart', homeTeamId],
-    queryFn: () => fetchDepthChart(homeTeamId!),
-    enabled: isPreview && !!homeTeamId,
-    staleTime: 3_600_000,
-  })
-
-  // Predict both vsRHP and vsLHP in one call per team; serve from localStorage cache when fresh.
-  // No pitcher hand required to start — we default to vsRHP when hand is unknown.
-  const awayPredictedQuery = useQuery({
-    queryKey: ['team-predictions', awayTeamId],
-    queryFn: async () => {
-      const cached = getCachedPredictions(awayTeamId!)
-      if (cached) return cached
-      const result = await fetchTeamPredictions(awayTeamId!, awayDepthQuery.data!)
-      setCachedPredictions(awayTeamId!, result)
-      return result
-    },
-    enabled: isPreview && !!awayTeamId && !!awayDepthQuery.data,
-    staleTime: 3_600_000,
-  })
-  const homePredictedQuery = useQuery({
-    queryKey: ['team-predictions', homeTeamId],
-    queryFn: async () => {
-      const cached = getCachedPredictions(homeTeamId!)
-      if (cached) return cached
-      const result = await fetchTeamPredictions(homeTeamId!, homeDepthQuery.data!)
-      setCachedPredictions(homeTeamId!, result)
-      return result
-    },
-    enabled: isPreview && !!homeTeamId && !!homeDepthQuery.data,
-    staleTime: 3_600_000,
-  })
-
-  // Pick the hand-specific prediction; default to vsRHP when pitcher hand is unknown
-  const awayPredicted = (homePitcherHand === 'L'
-    ? awayPredictedQuery.data?.vsLHP
-    : awayPredictedQuery.data?.vsRHP) ?? awayPredictedQuery.data?.vsRHP ?? null
-
-  const homePredicted = (awayPitcherHand === 'L'
-    ? homePredictedQuery.data?.vsLHP
-    : homePredictedQuery.data?.vsRHP) ?? homePredictedQuery.data?.vsRHP ?? null
+  const awayPredicted = goToFor(goToQuery.data?.get(awayTeamId!), homePitcherHand)
+  const homePredicted = goToFor(goToQuery.data?.get(homeTeamId!), awayPitcherHand)
 
   // Effective lineups: confirmed from boxscore, or predicted for Preview games
   const confirmedAway = lineupQuery.data?.away ?? NO_PLAYERS
@@ -218,7 +178,7 @@ export default function LiveGamePage() {
           wrcMap={wrcMap}
           lineupLoading={
             lineupQuery.isLoading || saberQuery.isLoading ||
-            (isPreview && (awayPredictedQuery.isLoading || homePredictedQuery.isLoading))
+            (isPreview && goToQuery.isLoading)
           }
           awayLineupStatus={awayLineupStatus}
           homeLineupStatus={homeLineupStatus}

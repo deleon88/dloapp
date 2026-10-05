@@ -1,6 +1,6 @@
 import { sql } from './db.js'
 import { fetchGamePlays, fetchSchedule, type ScheduleGame } from './mlb/pbp.js'
-import { fetchAppearances } from './mlb/appearances.js'
+import { fetchBoxscoreRows } from './mlb/appearances.js'
 
 /** Inserta o actualiza los juegos del calendario. No toca el estado de ingesta. */
 export async function upsertGames(games: ScheduleGame[]): Promise<void> {
@@ -51,17 +51,19 @@ export async function pendingGames(opts: { season?: number; recheckSince?: strin
 }
 
 /**
- * Descarga y guarda el play-by-play de un juego y las apariciones de sus
- * pitchers (boxscore). Idempotente: reemplaza sus filas.
+ * Descarga y guarda el play-by-play de un juego, las apariciones de sus
+ * pitchers y los lineups (boxscore). Idempotente: reemplaza sus filas.
  */
 export async function ingestGame(gamePk: number, gameDate: string): Promise<number> {
   try {
-    const [rows, appearances] = await Promise.all([fetchGamePlays(gamePk, gameDate), fetchAppearances(gamePk)])
+    const [rows, { appearances, lineups }] = await Promise.all([fetchGamePlays(gamePk, gameDate), fetchBoxscoreRows(gamePk)])
     await sql.begin(async tx => {
       await tx`DELETE FROM plays WHERE game_pk = ${gamePk}`
       if (rows.length) await tx`INSERT INTO plays ${tx(rows)}`
       await tx`DELETE FROM pitcher_appearances WHERE game_pk = ${gamePk}`
       if (appearances.length) await tx`INSERT INTO pitcher_appearances ${tx(appearances)}`
+      await tx`DELETE FROM lineups WHERE game_pk = ${gamePk}`
+      if (lineups.length) await tx`INSERT INTO lineups ${tx(lineups)}`
       await tx`
         UPDATE games
         SET pbp_ingested_at = now(), pbp_error = NULL,

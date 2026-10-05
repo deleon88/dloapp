@@ -147,6 +147,10 @@
 
 .error { color: var(--accent-red); }
 
+/* After the final: your pick was right / wrong */
+.right { color: var(--accent-emerald); font-weight: 700; }
+.wrong { color: #f87171; font-weight: 600; }
+
 /* "Tap X again to confirm" */
 .footnoteHint { color: var(--text-primary); font-weight: 600; }
 

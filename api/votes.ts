@@ -1,5 +1,4 @@
-// GET  /api/votes?game=849825      → vote counts (+ your vote, with a session)
-// POST /api/votes {game, team}     → cast or change your vote (session required,
+// GET  /api/votes?game=849825      → vote counts (+ your vote, with a session)// POST /api/votes {game, team}     → cast or change your vote (session required,
 //                                    only before the game starts)
 import { getUser } from '../server/auth.js'
 import { castVote, getGameVotes } from '../server/votes.js'
