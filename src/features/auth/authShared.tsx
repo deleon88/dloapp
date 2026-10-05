@@ -70,12 +70,17 @@ export function ProviderButtons({ t, onError, returnTo }: {
       <button type="button" disabled={busy} className={`${styles.providerBtn} ${styles.google}`} onClick={() => go('google')}>
         <GoogleIcon /> {t('continueWithGoogle')}
       </button>
-      <button type="button" disabled={busy} className={`${styles.providerBtn} ${styles.apple}`} onClick={() => go('apple')}>
-        <AppleIcon /> {t('continueWithApple')}
-      </button>
+      {SHOW_APPLE && (
+        <button type="button" disabled={busy} className={`${styles.providerBtn} ${styles.apple}`} onClick={() => go('apple')}>
+          <AppleIcon /> {t('continueWithApple')}
+        </button>
+      )}
     </>
   )
 }
+
+// Apple sign-in hidden until the Apple Developer setup (Services ID, key) is done.
+const SHOW_APPLE = false
 
 function GoogleIcon() {
   return (
