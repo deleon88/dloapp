@@ -72,7 +72,6 @@
   white-space: nowrap;
 }
 
-.check { flex-shrink: 0; font-size: 0.7rem; }
 
 /* % pushed to the outer edge of each button */
 .pct {

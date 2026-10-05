@@ -91,7 +91,6 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
               onClick={() => pick(s.id)}
             >
               <span className={styles.name}>{s.name}</span>
-              {selected && <span className={styles.check} aria-hidden="true">✓</span>}
               {showResults && <span className={styles.pct}>{pct(s.id)}%</span>}
               {s.won && state === 'Final' && <span className={styles.winner}>W</span>}
             </button>
