@@ -17,13 +17,6 @@
   overflow: hidden;
 }
 
-/* Joined to the vote row below it: square bottom corners, no bottom border */
-.headerJoined {
-  border-bottom: none;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
 .header > [data-card-bg] {
   position: absolute;
   inset: 0;
