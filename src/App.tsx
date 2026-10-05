@@ -14,6 +14,7 @@ import AuthCallbackPage from '@/features/auth/AuthCallbackPage'
 import ProfilePage from '@/features/auth/ProfilePage'
 import RankingsPage from '@/features/rankings/RankingsPage'
 import { supabase } from '@/lib/supabase'
+import { votingEnabled } from '@/lib/features'
 
 export default function App() {
   return (
@@ -34,7 +35,7 @@ export default function App() {
             <Route path="forgot-password" element={<OpenAuthRoute view="forgot" />} />
             <Route path="auth/callback" element={<AuthCallbackPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="rankings" element={<RankingsPage />} />
+            {votingEnabled && <Route path="rankings" element={<RankingsPage />} />}
           </>}
           <Route path="*" element={<Navigate to="/schedule" replace />} />
         </Route>

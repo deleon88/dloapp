@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
+import { votingEnabled } from '@/lib/features'
 import { useT } from '@/i18n/useT'
 import UserAvatar from '@/components/UserAvatar/UserAvatar'
 import styles from './NavBar.module.css'
@@ -25,7 +26,7 @@ export default function NavBar() {
               {t('games')}
             </NavLink>
           </li>
-          {supabase && (
+          {votingEnabled && (
             <li>
               <NavLink
                 to="/rankings"

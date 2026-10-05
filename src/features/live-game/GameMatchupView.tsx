@@ -166,7 +166,7 @@ export default function GameMatchupView({
       </div>
 
       {/* ── Who wins? (votes) ─────────────────────────────── */}
-      <GameVote game={game} />
+      <GameVote game={game} awayColor={ac} homeColor={hc} awayBarColor={acBar} homeBarColor={hcBar} mode={mode} />
 
       {/* ── Pitcher matchup ────────────────────────────────── */}
       <PitcherMatchup

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import TeamField from './TeamPicker'
 import PickHistory from './PickHistory'
+import { votingEnabled } from '@/lib/features'
 import UserAvatar from '@/components/UserAvatar/UserAvatar'
 import LangToggle from '@/components/LangToggle/LangToggle'
 import { useT, type TKey } from '@/i18n/useT'
@@ -107,7 +108,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {!completing && <PickHistory userId={session.user.id} />}
+      {!completing && votingEnabled && <PickHistory userId={session.user.id} />}
     </div>
   )
 }
