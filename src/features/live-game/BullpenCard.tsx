@@ -51,13 +51,29 @@ function PlayerPhoto({ id }: { id: number }) {
 
 const fmtWoba = (w: number | null | undefined) => (w != null ? w.toFixed(3).replace(/^0/, '') : '—')
 
+const byHand = (hand: BullpenStats['hand']) => hand != null && hand !== 'all'
+
 /**
- * ERA, or — with a batter-hand filter, where ERA doesn't exist — wOBA allowed
- * vs that hand plus the sample (batters faced), so small splits read as such.
+ * Hand · ERA, or — with a batter-hand filter, where ERA doesn't exist — wOBA
+ * allowed vs that hand plus the sample (batters faced), so small splits read
+ * as such. On phones the labels move to the column header ("ERA" /
+ * "wOBA · BF") so the line fits next to the photo.
  */
-function rowStat(p: BullpenPitcher, hand: BullpenStats['hand']): string {
-  if (hand && hand !== 'all') return `${fmtWoba(p.wobaAgainst)} wOBA · ${p.bf ?? 0} BF`
-  return `${p.era ?? '—'} ERA`
+function RowStat({ p, hand }: { p: BullpenPitcher; hand: BullpenStats['hand'] }) {
+  if (!byHand(hand)) {
+    return (
+      <>
+        <span className={`${styles.meta} ${styles.nameDesktop}`}>{p.hand} · {p.era ?? '—'} ERA</span>
+        <span className={`${styles.meta} ${styles.nameMobile}`}>{p.hand} · {p.era ?? '—'}</span>
+      </>
+    )
+  }
+  return (
+    <>
+      <span className={`${styles.meta} ${styles.nameDesktop}`}>{p.hand} · {fmtWoba(p.wobaAgainst)} wOBA · {p.bf ?? 0} BF</span>
+      <span className={`${styles.meta} ${styles.nameMobile}`}>{fmtWoba(p.wobaAgainst)} · {p.bf ?? 0}</span>
+    </>
+  )
 }
 
 /* ── Usage strip ─────────────────────────────────────────────── */
@@ -212,13 +228,14 @@ function ComparisonView({
       {/* Column header */}
       <div className={styles.compHeader}>
         <span />
-        <span />
+        {/* Labels for the row stat (rows drop them on phones to fit). */}
+        <span className={`${styles.statHeader} ${styles.statHeaderAway}`}>{byHand(away.hand) ? 'wOBA · BF' : 'ERA'}</span>
         <div className={styles.fipHeader}>
           <span className={styles.fip100Away}>100</span>
           <span className={styles.compBarLabel}>FIP+</span>
           <span className={styles.fip100Home}>100</span>
         </div>
-        <span />
+        <span className={styles.statHeader}>{byHand(home.hand) ? 'wOBA · BF' : 'ERA'}</span>
         <span />
       </div>
 
@@ -241,7 +258,7 @@ function ComparisonView({
                   <>
                     <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(a.name)}</span>
                     <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(a.name)}</span>
-                    <span className={styles.meta}>{a.hand} · {rowStat(a, away.hand)}</span>
+                    <RowStat p={a} hand={away.hand} />
                   </>
                 ) : <span className={styles.empty}>—</span>}
               </div>
@@ -267,7 +284,7 @@ function ComparisonView({
                   <>
                     <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(h.name)}</span>
                     <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(h.name)}</span>
-                    <span className={styles.meta}>{h.hand} · {rowStat(h, home.hand)}</span>
+                    <RowStat p={h} hand={home.hand} />
                   </>
                 ) : <span className={styles.empty}>—</span>}
               </div>
