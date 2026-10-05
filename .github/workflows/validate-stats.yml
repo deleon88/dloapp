@@ -1,0 +1,28 @@
+name: Validate stats
+
+# Compares the stats computed from the database against MLB and FanGraphs and
+# fails when they drift out of tolerance (scripts/db/validate-*.ts). Needs the
+# POSTGRES_URL repository secret; without it the job is skipped.
+on:
+  schedule:
+    - cron: '0 13 * * 1'   # Mondays, after the daily ingest
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.POSTGRES_URL != ''
+      - uses: actions/setup-node@v4
+        if: env.POSTGRES_URL != ''
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: env.POSTGRES_URL != ''
+      # The npm scripts read .env.local; in CI the variable comes from the secret.
+      - run: touch .env.local && npm run db:validate
+        if: env.POSTGRES_URL != ''

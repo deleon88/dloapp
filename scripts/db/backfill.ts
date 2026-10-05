@@ -5,6 +5,7 @@
 import { parseArgs } from 'node:util'
 import { sql } from '../../server/db'
 import { ingestMany, pendingGames, syncSchedule } from '../../server/ingest'
+import { computeConstants, saveConstants } from '../../server/stats/constants'
 
 const { values } = parseArgs({
   options: {
@@ -38,5 +39,11 @@ const [tot] = await sql<{ games: number; pa: number }[]>`
   WHERE g.season = ${season} AND g.game_type = 'R'
 `
 console.log(`Temporada regular ${season} en la base: ${tot.games} juegos, ${tot.pa.toLocaleString()} turnos.`)
+
+// Same as the daily cron: constants follow the regular-season games in the base.
+if (tot.games && res.ok) {
+  await saveConstants(season, await computeConstants(season))
+  console.log(`Constantes ${season} recalculadas.`)
+}
 await sql.end()
 if (res.failed.length) process.exitCode = 1

@@ -12,6 +12,8 @@ const PBP_FIELDS = [
   'count', 'outs', 'matchup', 'batter', 'pitcher', 'id', 'pitchHand', 'batSide', 'code',
   'runners', 'movement', 'originBase', 'end',
   'playEvents', 'hitData', 'trajectory',
+  // Mid-PA pitching changes (rule 9.16(h), see responsiblePitcher).
+  'isPitch', 'balls', 'strikes', 'details', 'isSubstitution', 'position', 'abbreviation',
 ].join(',')
 
 export const PA_EVENTS = new Set([
@@ -63,7 +65,38 @@ interface RawPlay {
     pitchHand?: { code?: string }
   }
   runners?: Array<{ movement?: { originBase?: string | null; end?: string | null } }>
-  playEvents?: Array<{ hitData?: { trajectory?: string } }>
+  playEvents?: Array<{
+    hitData?: { trajectory?: string }
+    isPitch?: boolean
+    count?: { balls?: number; strikes?: number }
+    details?: { eventType?: string }
+    isSubstitution?: boolean
+    position?: { abbreviation?: string }
+  }>
+}
+
+const WALKS = new Set(['Walk', 'Intent Walk'])
+
+type Pitcher = { id: number | null; hand: string | null }
+
+/**
+ * Pitcher charged with the plate appearance. Official scoring rule 9.16(h):
+ * when the pitcher is changed mid-PA with the count at 2-0, 2-1, 3-0, 3-1 or
+ * 3-2 and the batter walks, the batter and the walk go to the preceding
+ * pitcher. Anything else the batter does goes to the reliever. `previous` is
+ * the last pitcher on the mound for the fielding side before this play.
+ */
+function responsiblePitcher(play: RawPlay, event: string, current: Pitcher, previous: Pitcher | undefined): Pitcher {
+  if (!WALKS.has(event) || !previous?.id || previous.id === current.id) return current
+  const events = play.playEvents ?? []
+  const change = events.findIndex(e =>
+    e.details?.eventType === 'pitching_substitution' || (e.isSubstitution && e.position?.abbreviation === 'P'))
+  if (change < 0) return current
+  const lastPitch = events.slice(0, change).filter(e => e.isPitch).pop()
+  const balls = lastPitch?.count?.balls ?? 0
+  const strikes = lastPitch?.count?.strikes ?? 0
+  const hittersCount = balls === 3 || (balls === 2 && strikes <= 1)
+  return hittersCount ? previous : current
 }
 
 export async function getJson<T>(url: string, retries = 3): Promise<T> {
@@ -106,6 +139,8 @@ export function parsePlays(gamePk: number, gameDate: string, allPlays: RawPlay[]
   let bases = new Set<string>()
   let curInning: number | null = null
   let curHalf: string | null = null
+  // Last pitcher on the mound for each fielding side (top half = home pitches).
+  const lastPitcher = new Map<string, Pitcher>()
 
   for (const play of allPlays) {
     const inning = play.about?.inning ?? 0
@@ -120,6 +155,9 @@ export function parsePlays(gamePk: number, gameDate: string, allPlays: RawPlay[]
     const postOuts = play.count?.outs ?? prevOuts
     const event = (play.result?.event ?? '').trim()
     const { next, runs } = updateBases(bases, play.runners ?? [])
+    const onMound: Pitcher = { id: play.matchup?.pitcher?.id ?? null, hand: play.matchup?.pitchHand?.code ?? null }
+    const charged = responsiblePitcher(play, event, onMound, lastPitcher.get(half))
+    if (onMound.id) lastPitcher.set(half, onMound)
 
     rows.push({
       game_pk: gamePk,
@@ -128,9 +166,9 @@ export function parsePlays(gamePk: number, gameDate: string, allPlays: RawPlay[]
       inning,
       half: half === 'bottom' ? 'b' : 't',
       batter_id: play.matchup?.batter?.id ?? null,
-      pitcher_id: play.matchup?.pitcher?.id ?? null,
+      pitcher_id: charged.id,
       bat_side: play.matchup?.batSide?.code ?? null,
-      pitch_hand: play.matchup?.pitchHand?.code ?? null,
+      pitch_hand: charged.hand,
       event,
       event_type: play.result?.eventType ?? null,
       is_pa: PA_EVENTS.has(event),

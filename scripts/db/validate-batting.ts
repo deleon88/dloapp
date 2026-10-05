@@ -1,5 +1,6 @@
 // Valida los conteos de bateo calculados desde plays contra la MLB Stats API
 // (temporada, vs LHP, vs RHP) y el wRC+ resultante contra FanGraphs.
+// Sale con código 1 si algo pasa de la tolerancia, para usarlo como prueba.
 // Uso: npm run db:validate-batting -- [--team 135] [--season 2026]
 import { readFile } from 'node:fs/promises'
 import { parseArgs } from 'node:util'
@@ -14,6 +15,11 @@ const { values } = parseArgs({
 })
 const teamId = Number(values.team)
 const season = Number(values.season)
+
+// Tolerancias. Los conteos deben ser idénticos; wOBA en milésimas y wRC+ en
+// puntos contra FanGraphs (redondeo y constantes propias dejan un margen chico).
+const TOL = { countMismatches: 0, wobaMean: 1.0, wobaMax: 3, wrcMean: 1.5, wrcMax: 5 }
+const failures: string[] = []
 const MLB = 'https://statsapi.mlb.com/api/v1'
 type ApiStat = Record<string, number>
 
@@ -30,7 +36,11 @@ const api = await (await fetch(`${MLB}/people?personIds=${ids.join(',')}&hydrate
   people: Array<{
     id: number
     fullName: string
-    stats?: Array<{ type: { displayName: string }; splits?: Array<{ split?: { code: string }; stat: ApiStat }> }>
+    stats?: Array<{
+      type: { displayName: string }
+      // A traded player has one row per team (with `team`) plus a total row (without).
+      splits?: Array<{ split?: { code: string }; team?: { id: number }; stat: ApiStat }>
+    }>
   }>
 }
 
@@ -41,43 +51,49 @@ const fromApi = (s: ApiStat) => ({
 })
 const FIELDS = ['pa', 'ab', 'h1', 'h2', 'h3', 'hr', 'ubb', 'ibb', 'hbp', 'sf', 'so', 'rbi'] as const
 
-const [dbAll, dbL, dbR] = await Promise.all([
+const byId = (rows: BatterCounts[]) => new Map(rows.map(r => [r.batter_id, r]))
+// Player totals (all teams) and lines with this team only.
+const [dbAll, dbL, dbR, tmAll, tmL, tmR] = await Promise.all([
   getBatterCounts({ season, batterIds: ids }),
   getBatterCounts({ season, batterIds: ids, vsHand: 'L' }),
   getBatterCounts({ season, batterIds: ids, vsHand: 'R' }),
+  getBatterCounts({ season, batterIds: ids, teamId }),
+  getBatterCounts({ season, batterIds: ids, teamId, vsHand: 'L' }),
+  getBatterCounts({ season, batterIds: ids, teamId, vsHand: 'R' }),
 ])
-const byId = (rows: BatterCounts[]) => new Map(rows.map(r => [r.batter_id, r]))
-const db = { season: byId(dbAll), vl: byId(dbL), vr: byId(dbR) }
+const db = {
+  total: { season: byId(dbAll), vl: byId(dbL), vr: byId(dbR) },
+  team: { season: byId(tmAll), vl: byId(tmL), vr: byId(tmR) },
+}
 
 let checked = 0
 const mismatches: string[] = []
 for (const person of api.people) {
   for (const g of person.stats ?? []) {
-    const splits = g.type.displayName === 'season'
-      ? [{ key: 'season' as const, stat: g.splits?.[0]?.stat }]   // splits[0] = total de todos sus equipos
-      : (g.splits ?? []).map(s => ({ key: s.split?.code as 'vl' | 'vr', stat: s.stat }))
-    for (const { key, stat } of splits) {
-      if (!stat || !(key === 'season' || key === 'vl' || key === 'vr')) continue
-      const a = fromApi(stat)
-      const d = db[key].get(person.id)
+    for (const s of g.splits ?? []) {
+      const key = g.type.displayName === 'season' ? 'season' : s.split?.code
+      if (!(key === 'season' || key === 'vl' || key === 'vr')) continue
+      // Total row → player totals; this team's row → our lines with this team;
+      // other teams' rows aren't checked (their games are covered by their own run).
+      const scope = !s.team ? 'total' : s.team.id === teamId ? 'team' : null
+      if (!scope) continue
+      const a = fromApi(s.stat)
+      const d = db[scope][key].get(person.id)
       checked++
       const diffs = FIELDS.filter(f => (d?.[f] ?? 0) !== (a[f] ?? 0)).map(f => `${f} db=${d?.[f] ?? 0} mlb=${a[f]}`)
-      if (diffs.length) mismatches.push(`${person.fullName} [${key}]: ${diffs.join(', ')}`)
+      if (diffs.length) mismatches.push(`${person.fullName} [${key}, ${scope}]: ${diffs.join(', ')}`)
     }
   }
 }
-console.log(`Conteos: ${checked - mismatches.length}/${checked} líneas idénticas a la API de MLB.`)
+console.log(`Conteos: ${checked - mismatches.length}/${checked} líneas idénticas a la API de MLB (totales y con este equipo).`)
 for (const m of mismatches) console.log('  ≠ ' + m)
+if (mismatches.length > TOL.countMismatches)
+  failures.push(`${mismatches.length} líneas de conteo distintas a MLB (tolerancia ${TOL.countMismatches})`)
 
 // ── 2. wRC+ (solo turnos con este equipo) contra FanGraphs ──────────────────
 const c = await getConstants(season)
 const pf = (await getParkFactors(season)).get(teamId) ?? 1
-const [tAll, tL, tR] = await Promise.all([
-  getBatterCounts({ season, batterIds: ids, teamId }),
-  getBatterCounts({ season, batterIds: ids, teamId, vsHand: 'L' }),
-  getBatterCounts({ season, batterIds: ids, teamId, vsHand: 'R' }),
-])
-const team = [byId(tAll), byId(tL), byId(tR)]
+const team = [db.team.season, db.team.vl, db.team.vr]
 
 // Referencias de FanGraphs: [wOBA, wRC+] por bateador, solo con este equipo.
 type Ref = [number, number] | null
@@ -86,11 +102,14 @@ const fixtures = JSON.parse(await readFile(fixtureFile, 'utf-8').catch(() => '{}
   Record<string, Record<string, { gen: Ref; vsL: Ref; vsR: Ref }>>
 const refs = fixtures[String(teamId)]
 
-function summary(label: string, errs: number[]) {
+function summary(label: string, errs: number[], tolMean: number, tolMax: number) {
   const abs = errs.map(Math.abs)
-  const mean = (xs: number[]) => (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(2)
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
+  const meanAbs = mean(abs), max = Math.max(...abs)
   console.log(`  ${label}: ${errs.length} comparaciones · exactas ${abs.filter(x => x === 0).length}` +
-    ` · ±1 ${abs.filter(x => x <= 1).length} · error medio ${mean(abs)} · sesgo ${mean(errs)} · máx ${Math.max(...abs)}`)
+    ` · ±1 ${abs.filter(x => x <= 1).length} · error medio ${meanAbs.toFixed(2)} · sesgo ${mean(errs).toFixed(2)} · máx ${max}` +
+    ` (tolerancia: medio ≤ ${tolMean}, máx ≤ ${tolMax})`)
+  if (meanAbs > tolMean || max > tolMax) failures.push(`${label} fuera de tolerancia`)
 }
 
 if (refs) {
@@ -113,7 +132,15 @@ if (refs) {
     console.log(`  ${p.name.padEnd(20)} ${cells.join('   ')}`)
   }
   console.log('')
-  summary('wOBA (en milésimas)', wobaErr)
-  summary('wRC+', wrcErr)
+  summary('wOBA (en milésimas)', wobaErr, TOL.wobaMean, TOL.wobaMax)
+  summary('wRC+', wrcErr, TOL.wrcMean, TOL.wrcMax)
+} else {
+  console.log(`\nSin referencias de FanGraphs para el equipo ${teamId} (fixtures/fangraphs_${season}.json): solo se validaron conteos.`)
 }
 await sql.end()
+
+if (failures.length) {
+  console.error(`\nFALLÓ: ${failures.join('; ')}`)
+  process.exit(1)
+}
+console.log('\nOK: todo dentro de tolerancia.')

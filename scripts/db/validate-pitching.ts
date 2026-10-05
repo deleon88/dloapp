@@ -1,6 +1,7 @@
 // Validates pitcher lines computed from plays against the MLB Stats API:
 // counts (BF, outs, K, BB, HR, HBP) must match exactly; FIP, xFIP, WHIP and
-// FIP- are compared against MLB's own sabermetrics.
+// FIP- are compared against MLB's own sabermetrics. Exits with code 1 when
+// anything is out of tolerance, so it works as a test.
 // Usage: npm run db:validate-pitching -- [--season 2026] [--min-ip 30]
 import { parseArgs } from 'node:util'
 import { sql } from '../../server/db'
@@ -76,16 +77,39 @@ for (const id of ids) {
   if (o.whip != null) diffs.whip.push(o.whip - Number(m.whip))
 }
 
+// Tolerances. FIP- has a wide one on purpose: MLB's uses an AL/NL league base,
+// ours an all-MLB base (a deliberate choice), so they differ by design.
+const TOL = {
+  countMismatches: 0,
+  fip: { mean: 0.02, max: 0.10 },
+  xfip: { mean: 0.10, max: 0.50 },
+  whip: { mean: 0.005, max: 0.03 },
+  fipMinus: { mean: 3, max: 15 },
+}
+const failures: string[] = []
+
 console.log(`Pitchers con ≥${minIp} IP en ${season}: ${ids.length}`)
 console.log(`Conteos idénticos a MLB (BF, outs, K, BB, HR, HBP): ${exact}/${ids.length}`)
 for (const m of mismatches.slice(0, 15)) console.log('  ≠ ' + m)
-const fmt = (xs: number[], d: number) => {
+if (mismatches.length > TOL.countMismatches)
+  failures.push(`${mismatches.length} pitchers con conteos distintos a MLB (tolerancia ${TOL.countMismatches})`)
+
+const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length
+function check(label: string, xs: number[], d: number, tol: { mean: number; max: number }) {
   const abs = xs.map(Math.abs)
-  const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length
-  return `n=${xs.length} · error medio ${mean(abs).toFixed(d)} · sesgo ${mean(xs).toFixed(d)} · máx ${Math.max(...abs).toFixed(d)}`
+  const m = mean(abs), max = Math.max(...abs)
+  console.log(`${label.padEnd(5)} vs MLB: n=${xs.length} · error medio ${m.toFixed(d)} · sesgo ${mean(xs).toFixed(d)}` +
+    ` · máx ${max.toFixed(d)} (tolerancia: medio ≤ ${tol.mean}, máx ≤ ${tol.max})`)
+  if (m > tol.mean || max > tol.max) failures.push(`${label} fuera de tolerancia`)
 }
-console.log(`FIP   vs MLB: ${fmt(diffs.fip, 3)}`)
-console.log(`xFIP  vs MLB: ${fmt(diffs.xfip, 3)}`)
-console.log(`WHIP  vs MLB: ${fmt(diffs.whip, 3)}`)
-console.log(`FIP-  vs MLB: ${fmt(diffs.fipMinus, 1)}`)
+check('FIP', diffs.fip, 3, TOL.fip)
+check('xFIP', diffs.xfip, 3, TOL.xfip)
+check('WHIP', diffs.whip, 3, TOL.whip)
+check('FIP-', diffs.fipMinus, 1, TOL.fipMinus)
 await sql.end()
+
+if (failures.length) {
+  console.error(`\nFALLÓ: ${failures.join('; ')}`)
+  process.exit(1)
+}
+console.log('\nOK: todo dentro de tolerancia.')
