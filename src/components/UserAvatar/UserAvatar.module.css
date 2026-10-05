@@ -1,0 +1,16 @@
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid rgba(59, 130, 246, 0.55);
+  background: var(--accent-blue-dim);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Team colors: keep the letter readable on any primary color. */
+.team {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}

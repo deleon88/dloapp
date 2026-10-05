@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { useLangStore } from '@/stores/langStore'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/lib/supabase'
 import { useT } from '@/i18n/useT'
+import UserAvatar from '@/components/UserAvatar/UserAvatar'
 import styles from './NavBar.module.css'
 
 export default function NavBar() {
-  const { lang, setLang } = useLangStore()
   const { loading, session, profile, openAuth } = useAuthStore()
   const t = useT()
 
@@ -28,28 +27,15 @@ export default function NavBar() {
           </li>
         </ul>
 
-        <div className={styles.langToggle}>
-          <button
-            className={`${styles.langBtn} ${lang === 'en' ? styles.langBtnActive : ''}`}
-            onClick={() => setLang('en')}
-          >
-            EN
-          </button>
-          <button
-            className={`${styles.langBtn} ${lang === 'es' ? styles.langBtnActive : ''}`}
-            onClick={() => setLang('es')}
-          >
-            ES
-          </button>
-        </div>
-
+        {/* The language pill lives on the profile page; without an account the
+            language follows the browser (see langStore). */}
         {/* Sin el cliente de Supabase configurado no se muestra; mientras carga la sesión, tampoco (evita el parpadeo). */}
         {supabase && !loading && (
           session ? (
-            // Con sesión: el mismo cuadro, con la inicial del usuario.
-            <NavLink to="/profile" className={`${styles.accountBtn} ${styles.accountBtnSignedIn}`}
+            // Con sesión: la inicial del usuario, con los colores de su equipo favorito.
+            <NavLink to="/profile" className={styles.accountLink}
               aria-label={t('profileTitle')} title={profile?.username ?? session.user.email}>
-              {(profile?.username ?? session.user.email ?? '?').charAt(0).toUpperCase()}
+              <UserAvatar name={profile?.username ?? session.user.email ?? '?'} teamId={profile?.favorite_team_id} />
             </NavLink>
           ) : (
             <button type="button" onClick={() => openAuth('login')} className={styles.accountBtn}

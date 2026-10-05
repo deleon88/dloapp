@@ -23,6 +23,23 @@
   color: var(--text-primary);
 }
 
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.identityText {
+  min-width: 0;
+}
+
+.identityText .subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .subtitle {
   font-size: var(--text-sm);
   color: var(--text-secondary);

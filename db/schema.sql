@@ -133,6 +133,21 @@ BEGIN
   NEW.updated_at = now();
   RETURN NEW;
 END $$;
+-- El nombre de usuario se elige una sola vez: después de guardarlo ya no se
+-- puede cambiar (ni desde la app ni llamando a la API directamente).
+CREATE OR REPLACE FUNCTION public.lock_username() RETURNS trigger
+LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF OLD.username IS NOT NULL AND NEW.username IS DISTINCT FROM OLD.username THEN
+    RAISE EXCEPTION 'username cannot be changed' USING ERRCODE = 'P0001', HINT = 'username_locked';
+  END IF;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS profiles_lock_username ON profiles;
+CREATE TRIGGER profiles_lock_username BEFORE UPDATE OF username ON profiles
+  FOR EACH ROW EXECUTE FUNCTION public.lock_username();
+
 DROP TRIGGER IF EXISTS profiles_touch_updated_at ON profiles;
 CREATE TRIGGER profiles_touch_updated_at BEFORE UPDATE ON profiles
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();

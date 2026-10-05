@@ -121,47 +121,17 @@
   flex-shrink: 0;
 }
 
-/* Language toggle */
-.langToggle {
-  display: flex;
-  align-items: center;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
+/* Account: icon-only rounded square (logged out: person icon; logged in: the
+   user's initial on their favorite team's colors, see UserAvatar) */
+.accountBtn,
+.accountLink {
   margin-left: auto;
+  flex-shrink: 0;
 }
 
-.langBtn {
-  padding: 3px 8px;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: none;
-  border: none;
-  transition: color var(--transition-fast), background var(--transition-fast);
-  line-height: 1.4;
-  cursor: pointer;
-}
-
-.langBtn:hover {
-  color: var(--text-secondary);
-}
-
-.langBtnActive {
-  background: var(--bg-highlight);
-  color: var(--text-primary);
-}
-
-/* Account: icon-only rounded square (logged out: person icon; logged in: initial) */
 .accountBtn {
-  /* Same height as the EN/ES pill next to it */
   width: 26px;
   height: 26px;
-  flex-shrink: 0;
   display: grid;
   place-items: center;
   border-radius: var(--radius-sm);
@@ -176,10 +146,7 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.accountBtnSignedIn {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #fff;
-  background: var(--accent-blue-dim);
-  border-color: rgba(59, 130, 246, 0.55);
+.accountLink {
+  display: grid;
+  border-radius: var(--radius-sm);
 }

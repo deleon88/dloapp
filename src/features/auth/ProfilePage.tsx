@@ -4,6 +4,8 @@ import { OpenAuthRoute } from './AuthModal'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import TeamField from './TeamPicker'
+import UserAvatar from '@/components/UserAvatar/UserAvatar'
+import LangToggle from '@/components/LangToggle/LangToggle'
 import { useT, type TKey } from '@/i18n/useT'
 import { takeReturnTo } from './authShared'
 import styles from './Auth.module.css'
@@ -36,12 +38,13 @@ export default function ProfilePage() {
     e.preventDefault()
     if (!supabase || !session) return setError('authUnavailable')
     const name = username.trim()
-    if (!USERNAME.test(name)) return setError('usernameInvalid')
+    if (completing && !USERNAME.test(name)) return setError('usernameInvalid')
     setBusy(true)
     setError(null)
+    // The username is chosen once (the database rejects changes): after that, only the team.
     const { error } = await supabase
       .from('profiles')
-      .update({ username: name, favorite_team_id: teamId })
+      .update(completing ? { username: name, favorite_team_id: teamId } : { favorite_team_id: teamId })
       .eq('id', session.user.id)
     setBusy(false)
     if (error) {
@@ -56,20 +59,39 @@ export default function ProfilePage() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>{t('profileTitle')}</h1>
-        <p className={styles.subtitle}>{completing ? t('completeProfileHint') : session.user.email}</p>
+        {completing ? (
+          <>
+            <h1 className={styles.title}>{t('profileTitle')}</h1>
+            <p className={styles.subtitle}>{t('completeProfileHint')}</p>
+          </>
+        ) : (
+          // Avatar on the chosen team's colors (updates as soon as a team is confirmed).
+          <div className={styles.identity}>
+            <UserAvatar name={profile?.username ?? '?'} teamId={teamId} size={52} />
+            <div className={styles.identityText}>
+              <h1 className={styles.title}>{profile?.username}</h1>
+              <p className={styles.subtitle}>{session.user.email}</p>
+            </div>
+          </div>
+        )}
 
         <form className={styles.form} onSubmit={onSubmit} noValidate>
-          <label className={styles.field}>
-            <span className={styles.label}>{t('username')}</span>
-            <input className={styles.input} autoComplete="username" maxLength={20}
-              aria-invalid={error === 'usernameInvalid' || error === 'usernameTaken'}
-              value={username} onChange={e => { setUsername(e.target.value); setError(null); setSaved(false) }} />
-            <span className={styles.hint}>{t('usernameHint')}</span>
-          </label>
+          {completing && (
+            <label className={styles.field}>
+              <span className={styles.label}>{t('username')}</span>
+              <input className={styles.input} autoComplete="username" maxLength={20}
+                aria-invalid={error === 'usernameInvalid' || error === 'usernameTaken'}
+                value={username} onChange={e => { setUsername(e.target.value); setError(null); setSaved(false) }} />
+              <span className={styles.hint}>{t('usernameHint')} · {t('usernamePermanent')}</span>
+            </label>
+          )}
           <div className={styles.field}>
             <span className={styles.label}>{t('favoriteTeam')}</span>
             <TeamField value={teamId} onChange={id => { setTeamId(id); setSaved(false) }} />
+          </div>
+          <div className={styles.field}>
+            <span className={styles.label}>{t('language')}</span>
+            <LangToggle />
           </div>
           {error && <p className={styles.error} role="alert">{t(error)}</p>}
           {saved && <p className={styles.success} role="status">{t('profileSaved')}</p>}
