@@ -39,6 +39,9 @@ export interface BullpenPitcher {
   holds: number
   blownSaves: number
   strandRate: number | null
+  /** wOBA allowed and batters faced, for the period / batter hand (shown instead of ERA with a hand filter). */
+  wobaAgainst: number | null
+  bf: number | null
 }
 
 export interface BullpenUsage {
@@ -53,6 +56,8 @@ export interface Bullpen {
   teamEra: string | null
   teamWhip: string | null
   usage: BullpenUsage
+  /** Batter-hand filter these numbers are for. */
+  hand: BullpenHand
 }
 
 interface RosterEntry {
@@ -152,7 +157,7 @@ export async function getBullpen(teamId: number, opts: { season: number; period:
     pitches: Object.fromEntries(top.map(id => [id, strip.map(g =>
       apps.get(g.gamePk)?.find(a => a.pitcher_id === id)?.pitches ?? 0)])),
   }
-  if (!top.length) return { pitchers: [], teamFipMinus: null, teamEra: null, teamWhip: null, usage: usageOut }
+  if (!top.length) return { pitchers: [], teamFipMinus: null, teamEra: null, teamWhip: null, usage: usageOut, hand }
 
   // ── Relief stats from MLB (names, hands, ERA, saves…) for the shown arms and the whole pen ──
   const allDc = depthChart.map(a => a.id).filter(id => !injured.has(id))
@@ -179,6 +184,8 @@ export async function getBullpen(teamId: number, opts: { season: number; period:
       era: str(r.era), whip: str(r.whip), ip: str(r.inningsPitched), k9: str(r.strikeoutsPer9Inn),
       saves: Number(r.saves ?? 0), holds: Number(r.holds ?? 0), blownSaves: Number(r.blownSaves ?? 0),
       strandRate: ir > 0 ? Math.round((1 - irs / ir) * 100) : null,
+      wobaAgainst: null,   // filled below with our lines
+      bf: null,
     }
   })
 
@@ -210,6 +217,8 @@ export async function getBullpen(teamId: number, opts: { season: number; period:
       ip: s ? formatIp(s.ip) : null,
       k9: s && s.ip > 0 ? ((s.so / s.ip) * 9).toFixed(1) : null,
       era: eraFor(p.era, p.id),
+      wobaAgainst: s?.wobaAgainst ?? null,
+      bf: s?.bf ?? null,
     }
   })
 
@@ -230,5 +239,6 @@ export async function getBullpen(teamId: number, opts: { season: number; period:
     teamWhip: ipSum > 0 ? (whipSum / ipSum).toFixed(2) : null,
     teamEra: hand !== 'all' ? null : period === 'season' ? mlbTeamEra : eraIp > 0 ? (eraSum / eraIp).toFixed(2) : null,
     usage: usageOut,
+    hand,
   }
 }

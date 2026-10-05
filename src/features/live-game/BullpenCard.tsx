@@ -47,6 +47,19 @@ function PlayerPhoto({ id }: { id: number }) {
   )
 }
 
+/* ── Row stat ────────────────────────────────────────────────── */
+
+const fmtWoba = (w: number | null | undefined) => (w != null ? w.toFixed(3).replace(/^0/, '') : '—')
+
+/**
+ * ERA, or — with a batter-hand filter, where ERA doesn't exist — wOBA allowed
+ * vs that hand plus the sample (batters faced), so small splits read as such.
+ */
+function rowStat(p: BullpenPitcher, hand: BullpenStats['hand']): string {
+  if (hand && hand !== 'all') return `${fmtWoba(p.wobaAgainst)} wOBA · ${p.bf ?? 0} BF`
+  return `${p.era ?? '—'} ERA`
+}
+
 /* ── Usage strip ─────────────────────────────────────────────── */
 
 type UsageDay = BullpenUsage['days'][number]
@@ -228,7 +241,7 @@ function ComparisonView({
                   <>
                     <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(a.name)}</span>
                     <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(a.name)}</span>
-                    <span className={styles.meta}>{a.hand} · {a.era ?? '—'} ERA</span>
+                    <span className={styles.meta}>{a.hand} · {rowStat(a, away.hand)}</span>
                   </>
                 ) : <span className={styles.empty}>—</span>}
               </div>
@@ -254,7 +267,7 @@ function ComparisonView({
                   <>
                     <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(h.name)}</span>
                     <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(h.name)}</span>
-                    <span className={styles.meta}>{h.hand} · {h.era ?? '—'} ERA</span>
+                    <span className={styles.meta}>{h.hand} · {rowStat(h, home.hand)}</span>
                   </>
                 ) : <span className={styles.empty}>—</span>}
               </div>
@@ -308,14 +321,16 @@ function SingleView({ stats, color, usage }: {
 }) {
   if (!stats) return <p className={styles.stateMsg}>—</p>
   const showUsage = (usage?.days.length ?? 0) > 0
+  // With a batter-hand filter there's no ERA: wOBA allowed and batters faced instead.
+  const byHand = stats.hand != null && stats.hand !== 'all'
 
   return (
     <div>
       <div className={styles.singleHeader}>
         <span />
         <span>Pitcher</span>
-        <span>ERA</span>
-        <span>IP</span>
+        <span>{byHand ? 'wOBA' : 'ERA'}</span>
+        <span>{byHand ? 'BF' : 'IP'}</span>
         <div className={styles.singleBarWrap}>
           <div style={{ flex: 1 }} />
           <span style={{ minWidth: '26px', textAlign: 'center' }}>FIP+</span>
@@ -333,8 +348,8 @@ function SingleView({ stats, color, usage }: {
                 <span className={styles.name}>{fmtName(p.name)}</span>
                 <span className={styles.meta}>{p.hand}</span>
               </div>
-              <span className={styles.statVal}>{p.era ?? '—'}</span>
-              <span className={styles.statVal}>{p.ip ?? '—'}</span>
+              <span className={styles.statVal}>{byHand ? fmtWoba(p.wobaAgainst) : p.era ?? '—'}</span>
+              <span className={styles.statVal}>{byHand ? p.bf ?? 0 : p.ip ?? '—'}</span>
               <div className={styles.singleBarWrap}>
                 <div className={styles.barTrack}>
                   <BarFill className={styles.barFillLeft} width={pct} color={color} delay={i * ROW_STAGGER_MS} />

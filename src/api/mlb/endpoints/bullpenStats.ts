@@ -21,6 +21,9 @@ export interface BullpenPitcher {
   holds: number
   blownSaves: number
   strandRate: number | null
+  /** wOBA allowed and batters faced for the period / batter hand. */
+  wobaAgainst?: number | null
+  bf?: number | null
 }
 
 export interface BullpenUsage {
@@ -35,6 +38,8 @@ export interface BullpenStats {
   teamEra: string | null
   teamWhip: string | null
   usage?: BullpenUsage
+  /** Batter-hand filter the numbers are for. */
+  hand?: 'all' | 'L' | 'R'
 }
 
 type BullpenHand = 'all' | 'L' | 'R'
