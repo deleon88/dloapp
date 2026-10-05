@@ -126,6 +126,55 @@
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Pre-selected, waiting for Confirm: dashed outline in the team color */
+.optionPending { border-style: dashed; border-width: 1.5px; }
+
+/* Confirm step, in place of the footnote: "Vote for X?  Cancel  Confirm" */
+.confirmRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.confirmText {
+  min-width: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cancelBtn,
+.confirmBtn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  border: 1px solid var(--border-active);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.confirmBtn {
+  border: none;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.cancelBtn:disabled, .confirmBtn:disabled { opacity: 0.6; cursor: default; }
+.cancelBtn:focus-visible, .confirmBtn:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
 .footnote {
   margin: 0;
   text-align: center;
