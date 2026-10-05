@@ -10,7 +10,7 @@
   line-height: 1;
 }
 
-/* Team colors: keep the letter readable on any primary color. */
+/* Team colors: the fill and the letter carry them; the border stays neutral. */
 .team {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.18);
 }
