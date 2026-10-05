@@ -168,3 +168,22 @@ CREATE TABLE IF NOT EXISTS teams (
 
 ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams  ENABLE ROW LEVEL SECURITY;
+
+-- ── Bitácora de la ingesta ────────────────────────────────────────────────────
+-- Una fila por corrida del cron (api/cron/ingest-games.ts). /api/health la lee
+-- para avisar si la ingesta se atrasa.
+CREATE TABLE IF NOT EXISTS ingest_runs (
+  id                 bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  started_at         timestamptz NOT NULL DEFAULT now(),
+  finished_at        timestamptz,
+  ok                 boolean,              -- null = sigue corriendo (o se cortó)
+  scheduled          integer,              -- juegos sincronizados del calendario
+  ingested           integer,
+  failed             jsonb       NOT NULL DEFAULT '[]',
+  deferred           integer     NOT NULL DEFAULT 0,  -- no alcanzó el tiempo: quedan para la próxima
+  constants_season   smallint,             -- temporada cuyas constantes se recalcularon
+  error              text
+);
+CREATE INDEX IF NOT EXISTS ingest_runs_started_idx ON ingest_runs (started_at DESC);
+
+ALTER TABLE ingest_runs ENABLE ROW LEVEL SECURITY;

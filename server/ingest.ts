@@ -31,8 +31,8 @@ export async function syncSchedule(startDate: string, endDate: string): Promise<
 
 /** Juegos terminados cuyo play-by-play falta (o hay que revisar desde `recheckSince`). */
 export async function pendingGames(opts: { season?: number; recheckSince?: string; limit?: number } = {}) {
-  return sql<{ game_pk: number; game_date: string }[]>`
-    SELECT game_pk, to_char(game_date, 'YYYY-MM-DD') AS game_date
+  return sql<{ game_pk: number; game_date: string; season: number; game_type: string }[]>`
+    SELECT game_pk, to_char(game_date, 'YYYY-MM-DD') AS game_date, season, game_type
     FROM games
     WHERE abstract_state = 'Final'
       AND status NOT IN ('Postponed', 'Cancelled')
@@ -70,20 +70,28 @@ export interface IngestResult {
   ok: number
   failed: Array<{ gamePk: number; error: string }>
   plays: number
+  /** Juegos que no se empezaron porque se llegó a `deadline`. */
+  deferred: number
 }
 
-/** Ingresa varios juegos con concurrencia limitada para no saturar la API de MLB. */
+/**
+ * Ingresa varios juegos con concurrencia limitada para no saturar la API de MLB.
+ * Con `deadline` (epoch ms) no empieza juegos nuevos después de esa hora: los
+ * que falten quedan pendientes para la siguiente corrida.
+ */
 export async function ingestMany(
   games: Array<{ game_pk: number; game_date: string }>,
   concurrency = 5,
   onProgress?: (done: number, total: number) => void,
+  deadline?: number,
 ): Promise<IngestResult> {
-  const result: IngestResult = { ok: 0, failed: [], plays: 0 }
+  const result: IngestResult = { ok: 0, failed: [], plays: 0, deferred: 0 }
   let next = 0
   let done = 0
 
   async function worker() {
     while (next < games.length) {
+      if (deadline && Date.now() > deadline) break
       const g = games[next++]
       try {
         // Await antes del +=: con `x += await` cada worker sumaría sobre un valor viejo.
@@ -98,6 +106,7 @@ export async function ingestMany(
   }
 
   await Promise.all(Array.from({ length: Math.min(concurrency, games.length) }, worker))
+  result.deferred = games.length - next
   return result
 }
 
