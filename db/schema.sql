@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS games (
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS games_season_date_idx ON games (season, game_date);
+-- Hora de inicio y resultado, para las votaciones (quién ganó, si ya empezó).
+ALTER TABLE games ADD COLUMN IF NOT EXISTS game_time      timestamptz;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS away_score     smallint;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS home_score     smallint;
+ALTER TABLE games ADD COLUMN IF NOT EXISTS winner_team_id integer;   -- null hasta que termina
 
 -- Una fila por jugada del play-by-play (allPlays). is_pa distingue los turnos
 -- completos de las jugadas que cierran entrada sin terminar el turno (ej. CS).
@@ -201,6 +206,22 @@ CREATE TABLE IF NOT EXISTS pitcher_appearances (
 CREATE INDEX IF NOT EXISTS pitcher_appearances_team_idx ON pitcher_appearances (team_id);
 
 ALTER TABLE pitcher_appearances ENABLE ROW LEVEL SECURITY;
+
+-- ── Votaciones ───────────────────────────────────────────────────────────────
+-- Un voto por usuario y juego: quién gana. Se puede cambiar hasta que empieza
+-- el juego. Solo se escribe desde el servidor (api/votes.ts verifica la sesión
+-- y que el juego no haya empezado), por eso no hay políticas para el cliente.
+CREATE TABLE IF NOT EXISTS votes (
+  user_id     uuid        NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  game_pk     integer     NOT NULL REFERENCES games ON DELETE CASCADE,
+  team_id     integer     NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, game_pk)
+);
+CREATE INDEX IF NOT EXISTS votes_game_idx ON votes (game_pk);
+
+ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 
 -- ── Bitácora de la ingesta ────────────────────────────────────────────────────
 -- Una fila por corrida del cron (api/cron/ingest-games.ts). /api/health la lee

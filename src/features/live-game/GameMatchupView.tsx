@@ -14,6 +14,7 @@ import PitcherMatchup from './PitcherMatchup'
 import WeatherCard from './WeatherCard'
 import LineupComparison from './LineupComparison'
 import BullpenCard from './BullpenCard'
+import GameVote from './GameVote'
 import styles from './GameMatchupView.module.css'
 
 interface HydratedGame extends ScheduledGame {
@@ -163,6 +164,9 @@ export default function GameMatchupView({
           )}
         </div>
       </div>
+
+      {/* ── Who wins? (votes) ─────────────────────────────── */}
+      <GameVote game={game} />
 
       {/* ── Pitcher matchup ────────────────────────────────── */}
       <PitcherMatchup

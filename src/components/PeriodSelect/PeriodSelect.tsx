@@ -1,21 +1,25 @@
 import { useState, useRef, useEffect } from 'react'
 import { PERIOD_OPTIONS, periodLabel, type StatPeriod } from '@/utils/period'
 import { useT } from '@/i18n/useT'
+import { useAuthStore } from '@/stores/authStore'
 import styles from './PeriodSelect.module.css'
 
 interface Props {
   value: StatPeriod
   onChange: (v: StatPeriod) => void
+  /** Not signed in: shows the full season with a lock and asks to log in. */
+  locked?: boolean
 }
 
 // Todos los periodos están disponibles. Para reservar alguno a usuarios de pago,
 // basta con quitarlo de esta lista: se muestra con candado y no se puede elegir.
 const FREE_PERIODS: StatPeriod[] = PERIOD_OPTIONS.map(o => o.value)
 
-export default function PeriodSelect({ value, onChange }: Props) {
+export default function PeriodSelect({ value, onChange, locked = false }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const t = useT()
+  const openAuth = useAuthStore(s => s.openAuth)
 
   const selectedLabel = periodLabel(value, t)
 
@@ -34,17 +38,20 @@ export default function PeriodSelect({ value, onChange }: Props) {
     <div className={styles.wrapper} ref={ref}>
       <button
         className={styles.trigger}
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
+        onClick={() => (locked ? openAuth('login') : setOpen((o) => !o))}
+        aria-haspopup={locked ? 'dialog' : 'listbox'}
         aria-expanded={open}
+        title={locked ? t('filtersNeedAccount') : undefined}
       >
         <span>{selectedLabel}</span>
-        <svg
-          className={[styles.chevron, open ? styles.chevronOpen : ''].join(' ')}
-          width="10" height="10" viewBox="0 0 16 16" fill="currentColor"
-        >
-          <path d="M8 11L3 6h10z" />
-        </svg>
+        {locked ? <LockIcon /> : (
+          <svg
+            className={[styles.chevron, open ? styles.chevronOpen : ''].join(' ')}
+            width="10" height="10" viewBox="0 0 16 16" fill="currentColor"
+          >
+            <path d="M8 11L3 6h10z" />
+          </svg>
+        )}
       </button>
 
       {open && (

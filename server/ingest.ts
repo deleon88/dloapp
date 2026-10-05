@@ -9,8 +9,12 @@ export async function upsertGames(games: ScheduleGame[]): Promise<void> {
     const chunk = games.slice(i, i + 500)
     await sql`
       INSERT INTO games ${sql(chunk, 'game_pk', 'season', 'game_date', 'game_type', 'abstract_state',
-        'status', 'away_team_id', 'home_team_id', 'venue_id')}
+        'status', 'away_team_id', 'home_team_id', 'venue_id', 'game_time', 'away_score', 'home_score', 'winner_team_id')}
       ON CONFLICT (game_pk) DO UPDATE SET
+        game_time      = EXCLUDED.game_time,
+        away_score     = EXCLUDED.away_score,
+        home_score     = EXCLUDED.home_score,
+        winner_team_id = EXCLUDED.winner_team_id,
         season         = EXCLUDED.season,
         game_date      = EXCLUDED.game_date,
         game_type      = EXCLUDED.game_type,

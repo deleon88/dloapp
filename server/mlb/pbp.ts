@@ -232,6 +232,10 @@ export interface ScheduleGame {
   away_team_id: number
   home_team_id: number
   venue_id: number | null
+  game_time: string | null       // scheduled first pitch (UTC ISO)
+  away_score: number | null
+  home_score: number | null
+  winner_team_id: number | null  // only once the game is final
 }
 
 interface RawSchedule {
@@ -239,10 +243,14 @@ interface RawSchedule {
     games?: Array<{
       gamePk: number
       gameType: string
+      gameDate?: string
       officialDate: string
       season?: string
       status?: { abstractGameState?: string; detailedState?: string }
-      teams?: { away?: { team?: { id?: number } }; home?: { team?: { id?: number } } }
+      teams?: {
+        away?: { team?: { id?: number }; score?: number; isWinner?: boolean }
+        home?: { team?: { id?: number }; score?: number; isWinner?: boolean }
+      }
       venue?: { id?: number }
     }>
   }>
@@ -256,7 +264,7 @@ const DEAD_STATUSES = new Set(['Postponed', 'Cancelled'])
  * "Postponed" y fecha de reposición); nos quedamos con la entrada viva.
  */
 export async function fetchSchedule(startDate: string, endDate: string): Promise<ScheduleGame[]> {
-  const fields = 'dates,games,gamePk,gameType,officialDate,season,status,abstractGameState,detailedState,teams,away,home,team,id,venue'
+  const fields = 'dates,games,gamePk,gameType,gameDate,officialDate,season,status,abstractGameState,detailedState,teams,away,home,team,id,score,isWinner,venue'
   const data = await getJson<RawSchedule>(
     `${MLB_API}/schedule?sportId=1&gameType=R,F,D,L,W&startDate=${startDate}&endDate=${endDate}&fields=${fields}`,
   )
@@ -274,6 +282,13 @@ export async function fetchSchedule(startDate: string, endDate: string): Promise
         away_team_id: g.teams?.away?.team?.id ?? 0,
         home_team_id: g.teams?.home?.team?.id ?? 0,
         venue_id: g.venue?.id ?? null,
+        game_time: g.gameDate ?? null,
+        away_score: g.teams?.away?.score ?? null,
+        home_score: g.teams?.home?.score ?? null,
+        winner_team_id: g.status?.abstractGameState !== 'Final' ? null
+          : g.teams?.away?.isWinner ? g.teams.away.team?.id ?? null
+          : g.teams?.home?.isWinner ? g.teams.home.team?.id ?? null
+          : null,
       }
       const prev = byPk.get(row.game_pk)
       if (!prev || DEAD_STATUSES.has(prev.status) || !DEAD_STATUSES.has(row.status)) {

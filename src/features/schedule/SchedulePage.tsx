@@ -10,9 +10,8 @@ import { applyPitcherHand, fetchPitcherStats, fipPlus } from '@/api/mlb/endpoint
 import { getGoToLineup } from '@/api/mlb/endpoints/goToLineupStore'
 import { fetchTeamPredictionsNoDepth } from '@/api/mlb/endpoints/predictedLineup'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
-import { type StatPeriod } from '@/utils/period'
-import { batterSplitFor, type HandFilters } from '@/utils/handFilter'
-import { loadSavedPeriod, saveSavedPeriod, loadSavedHandFilters, saveSavedHandFilters } from '@/utils/filterPreferences'
+import { batterSplitFor } from '@/utils/handFilter'
+import { useStatFilters } from '@/utils/useStatFilters'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
 import GameCard from './GameCard'
@@ -23,12 +22,8 @@ import styles from './SchedulePage.module.css'
 
 export default function SchedulePage() {
   const [date, setDate] = useState(() => etDate())
-  // Initialized from localStorage so the filters survive navigation to/from
-  // LiveGamePage (and a reload) — see filterPreferences.ts.
-  const [period, setPeriodState] = useState<StatPeriod>(loadSavedPeriod)
-  const [handFilters, setHandFiltersState] = useState<HandFilters>(loadSavedHandFilters)
-  const setPeriod = (p: StatPeriod) => { setPeriodState(p); saveSavedPeriod(p) }
-  const setHandFilters = (f: HandFilters) => { setHandFiltersState(f); saveSavedHandFilters(f) }
+  // Saved across pages; signed-in users only (see useStatFilters).
+  const { period, setPeriod, handFilters, setHandFilters, locked: filtersLocked } = useStatFilters()
   const [glossaryOpen, setGlossaryOpen] = useState(false)
 
   const scheduleQuery = useQuery({
@@ -183,8 +178,8 @@ export default function SchedulePage() {
           <h1 className={styles.heading}>{t('mlbGames')}</h1>
         </div>
         <div className={styles.headerRight}>
-          <PeriodSelect value={period} onChange={setPeriod} />
-          <HandSelect value={handFilters} onChange={setHandFilters} />
+          <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
+          <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
           <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
         </div>
       </div>

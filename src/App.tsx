@@ -10,9 +10,9 @@ import LmbSchedulePage from '@/features/lmb/LmbSchedulePage'
 import LmbGamePage from '@/features/lmb/LmbGamePage'
 import NrfiPage from '@/features/nrfi/NrfiPage'
 import { OpenAuthRoute } from '@/features/auth/AuthModal'
-import ResetPasswordPage from '@/features/auth/ResetPasswordPage'
 import AuthCallbackPage from '@/features/auth/AuthCallbackPage'
 import ProfilePage from '@/features/auth/ProfilePage'
+import RankingsPage from '@/features/rankings/RankingsPage'
 import { supabase } from '@/lib/supabase'
 
 export default function App() {
@@ -32,9 +32,9 @@ export default function App() {
             <Route path="login" element={<OpenAuthRoute view="login" />} />
             <Route path="signup" element={<OpenAuthRoute view="signup" />} />
             <Route path="forgot-password" element={<OpenAuthRoute view="forgot" />} />
-            <Route path="reset-password" element={<ResetPasswordPage />} />
             <Route path="auth/callback" element={<AuthCallbackPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="rankings" element={<RankingsPage />} />
           </>}
           <Route path="*" element={<Navigate to="/schedule" replace />} />
         </Route>

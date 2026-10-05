@@ -9,7 +9,6 @@ import type { TKey } from '@/i18n/useT'
 import styles from './Auth.module.css'
 
 const RETURN_KEY = 'dlp-auth-return'
-export const MIN_PASSWORD = 8
 
 /** Remember where to go back after a login that leaves the app (OAuth, email links). */
 export function rememberReturnTo(path: string | undefined): void {

@@ -15,8 +15,6 @@ interface AuthStore {
   loading: boolean
   session: Session | null
   profile: Profile | null
-  /** true cuando el usuario llegó desde el enlace de "recuperar contraseña". */
-  recovering: boolean
   /** Vista abierta del modal de acceso; null = cerrado. */
   authView: AuthView | null
   openAuth: (view?: AuthView) => void
@@ -40,7 +38,6 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   loading: true,
   session: null,
   profile: null,
-  recovering: false,
   authView: null,
   openAuth: (view = 'login') => set({ authView: view }),
   closeAuth: () => set({ authView: null }),
@@ -50,12 +47,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       set({ loading: false })
       return () => {}
     }
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      set({ session, loading: false, ...(event === 'PASSWORD_RECOVERY' ? { recovering: true } : {}) })
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      set({ session, loading: false })
       // Entró: cerrar el modal de acceso si estaba abierto.
       if (session) set({ authView: null })
       if (!session) {
-        set({ profile: null, recovering: false })
+        set({ profile: null })
         return
       }
       // Fuera del callback: Supabase no permite otra llamada a la API dentro de él.
@@ -71,6 +68,6 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   signOut: async () => {
     await supabase?.auth.signOut()
-    set({ session: null, profile: null, recovering: false })
+    set({ session: null, profile: null })
   },
 }))

@@ -4,6 +4,7 @@ import { OpenAuthRoute } from './AuthModal'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import TeamField from './TeamPicker'
+import PickHistory from './PickHistory'
 import UserAvatar from '@/components/UserAvatar/UserAvatar'
 import LangToggle from '@/components/LangToggle/LangToggle'
 import { useT, type TKey } from '@/i18n/useT'
@@ -105,6 +106,8 @@ export default function ProfilePage() {
           {t('signOut')}
         </button>
       </div>
+
+      {!completing && <PickHistory userId={session.user.id} />}
     </div>
   )
 }

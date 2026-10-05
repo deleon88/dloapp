@@ -4,12 +4,15 @@ import {
   type HandFilters,
 } from '@/utils/handFilter'
 import { useT } from '@/i18n/useT'
+import { useAuthStore } from '@/stores/authStore'
 import periodStyles from '@/components/PeriodSelect/PeriodSelect.module.css'
 import styles from './HandSelect.module.css'
 
 interface Props {
   value: HandFilters
   onChange: (v: HandFilters) => void
+  /** Not signed in: the button asks to log in instead of opening the filter. */
+  locked?: boolean
 }
 
 /**
@@ -21,10 +24,11 @@ interface Props {
  * Dropdown visuals reuse PeriodSelect.module.css so both controls match; only
  * the icon-only trigger button gets its own styling here.
  */
-export default function HandSelect({ value, onChange }: Props) {
+export default function HandSelect({ value, onChange, locked = false }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const t = useT()
+  const openAuth = useAuthStore(s => s.openAuth)
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -39,15 +43,16 @@ export default function HandSelect({ value, onChange }: Props) {
   return (
     <div className={styles.wrapper} ref={ref}>
       <button
-        className={[styles.trigger, isActive ? styles.triggerActive : ''].join(' ')}
-        onClick={() => setOpen(o => !o)}
-        aria-haspopup="listbox"
+        className={[styles.trigger, isActive ? styles.triggerActive : '', locked ? styles.triggerLocked : ''].join(' ')}
+        onClick={() => (locked ? openAuth('login') : setOpen(o => !o))}
+        aria-haspopup={locked ? 'dialog' : 'listbox'}
         aria-expanded={open}
-        aria-label={t('handFilterLabel')}
-        title={t('handFilterLabel')}
+        aria-label={locked ? t('filtersNeedAccount') : t('handFilterLabel')}
+        title={locked ? t('filtersNeedAccount') : t('handFilterLabel')}
       >
         <FilterIcon />
-        {isActive && <span className={styles.activeDot} />}
+        {isActive && !locked && <span className={styles.activeDot} />}
+        {locked && <span className={styles.lockBadge}><LockIcon /></span>}
       </button>
 
       {open && (

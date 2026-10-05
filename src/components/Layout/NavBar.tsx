@@ -25,6 +25,16 @@ export default function NavBar() {
               {t('games')}
             </NavLink>
           </li>
+          {supabase && (
+            <li>
+              <NavLink
+                to="/rankings"
+                className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
+              >
+                {t('rankingsNav')}
+              </NavLink>
+            </li>
+          )}
         </ul>
 
         {/* The language pill lives on the profile page; without an account the

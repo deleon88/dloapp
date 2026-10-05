@@ -12,9 +12,8 @@ import { getCachedPredictions, setCachedPredictions } from '@/api/mlb/endpoints/
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
-import type { StatPeriod } from '@/utils/period'
-import { batterSplitFor, type HandFilters } from '@/utils/handFilter'
-import { loadSavedPeriod, saveSavedPeriod, loadSavedHandFilters, saveSavedHandFilters } from '@/utils/filterPreferences'
+import { batterSplitFor } from '@/utils/handFilter'
+import { useStatFilters } from '@/utils/useStatFilters'
 import GameMatchupView from './GameMatchupView'
 import styles from './LiveGamePage.module.css'
 
@@ -26,12 +25,8 @@ export default function LiveGamePage() {
   const navigate = useNavigate()
   const pk = Number(gamePk)
 
-  // Initialized from localStorage so the filters survive navigation to/from
-  // SchedulePage (and a reload) — see filterPreferences.ts.
-  const [period, setPeriodState] = useState<StatPeriod>(loadSavedPeriod)
-  const [handFilters, setHandFiltersState] = useState<HandFilters>(loadSavedHandFilters)
-  const setPeriod = (p: StatPeriod) => { setPeriodState(p); saveSavedPeriod(p) }
-  const setHandFilters = (f: HandFilters) => { setHandFiltersState(f); saveSavedHandFilters(f) }
+  // Saved across pages; signed-in users only (see useStatFilters).
+  const { period, setPeriod, handFilters, setHandFilters, locked: filtersLocked } = useStatFilters()
 
   // 1. Base game info (pitchers, venue, weather)
   const gameQuery = useQuery({
@@ -207,8 +202,8 @@ export default function LiveGamePage() {
       <div className={`${styles.pageHeader} ${filtersFloating ? styles.pageHeaderFloating : ''}`}>
         <button className={styles.backBtn} onClick={() => navigate(-1)} tabIndex={filtersFloating ? -1 : 0}>← Back</button>
         <div className={styles.headerRight}>
-          <PeriodSelect value={period} onChange={setPeriod} />
-          <HandSelect value={handFilters} onChange={setHandFilters} />
+          <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
+          <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
         </div>
       </div>
 
