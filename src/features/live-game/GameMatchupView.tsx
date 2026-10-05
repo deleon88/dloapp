@@ -197,8 +197,6 @@ export default function GameMatchupView({
       <BullpenCard
         away={awayBullpen}
         home={homeBullpen}
-        awayTeamId={teams.away.team.id}
-        homeTeamId={teams.home.team.id}
         awayColor={ac}
         homeColor={hc}
         awayBarColor={acBar}

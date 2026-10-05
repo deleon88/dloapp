@@ -184,6 +184,24 @@ CREATE TABLE IF NOT EXISTS teams (
 ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams  ENABLE ROW LEVEL SECURITY;
 
+-- ── Apariciones de pitchers ──────────────────────────────────────────────────
+-- Una fila por pitcher por juego, del boxscore oficial (pitcheos, bateadores,
+-- outs). La usa la disponibilidad del bullpen (server/bullpen.ts): quién lanzó
+-- ayer, cuántos pitcheos, días de descanso. Se llena junto con plays.
+CREATE TABLE IF NOT EXISTS pitcher_appearances (
+  game_pk        integer  NOT NULL REFERENCES games ON DELETE CASCADE,
+  pitcher_id     integer  NOT NULL,
+  team_id        integer  NOT NULL,
+  seq            smallint NOT NULL,   -- orden en que entró; 0 = abridor
+  pitches        smallint NOT NULL,
+  batters_faced  smallint NOT NULL,
+  outs           smallint NOT NULL,
+  PRIMARY KEY (game_pk, pitcher_id)
+);
+CREATE INDEX IF NOT EXISTS pitcher_appearances_team_idx ON pitcher_appearances (team_id);
+
+ALTER TABLE pitcher_appearances ENABLE ROW LEVEL SECURITY;
+
 -- ── Bitácora de la ingesta ────────────────────────────────────────────────────
 -- Una fila por corrida del cron (api/cron/ingest-games.ts). /api/health la lee
 -- para avisar si la ingesta se atrasa.

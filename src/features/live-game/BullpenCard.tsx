@@ -1,7 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import type { BullpenStats, BullpenPitcher } from '@/api/mlb/endpoints/bullpenStats'
-import { fetchBullpenUsage } from '@/api/mlb/endpoints/bullpenUsage'
-import type { BullpenUsage, UsageDay } from '@/api/mlb/endpoints/bullpenUsage'
+import type { BullpenStats, BullpenPitcher, BullpenUsage } from '@/api/mlb/endpoints/bullpenStats'
 import type { ViewMode } from './LineupComparison'
 import { BarFill, CountUp } from '@/components/AnimatedBar/AnimatedBar'
 import CardBgLayers from './CardBgLayers'
@@ -52,6 +49,8 @@ function PlayerPhoto({ id }: { id: number }) {
 
 /* ── Usage strip ─────────────────────────────────────────────── */
 
+type UsageDay = BullpenUsage['days'][number]
+
 function UsageDayBox({ day, pitches, color }: { day: UsageDay; pitches: number; color: string }) {
   const opacity = pitches <= 14 ? 0.35 : pitches <= 24 ? 0.65 : 0.92
   return (
@@ -74,7 +73,7 @@ function UsageDays({ pitcherId, usage, color }: {
   usage: BullpenUsage
   color: string
 }) {
-  const counts = usage.pitchMap.get(pitcherId) ?? Array(usage.days.length).fill(0)
+  const counts = usage.pitches[String(pitcherId)] ?? Array(usage.days.length).fill(0)
   return (
     <>
       {usage.days.map((day, i) => (
@@ -87,8 +86,6 @@ function UsageDays({ pitcherId, usage, color }: {
 interface Props {
   away?: BullpenStats
   home?: BullpenStats
-  awayTeamId?: number
-  homeTeamId?: number
   awayColor: string
   homeColor: string
   awayBarColor?: string
@@ -102,7 +99,6 @@ interface Props {
 
 export default function BullpenCard({
   away, home,
-  awayTeamId, homeTeamId,
   awayColor, homeColor,
   awayBarColor, homeBarColor,
   awayLabel, homeLabel,
@@ -116,18 +112,9 @@ export default function BullpenCard({
   const pillIndex = mode === 'away' ? 0 : mode === 'comparison' ? 1 : 2
   const pillColor  = mode === 'away' ? awayColor : mode === 'home' ? homeColor : null
 
-  const awayUsageQuery = useQuery({
-    queryKey: ['bullpen-usage', awayTeamId],
-    queryFn: () => fetchBullpenUsage(awayTeamId!),
-    enabled: !!awayTeamId,
-    staleTime: 5 * 60_000,
-  })
-  const homeUsageQuery = useQuery({
-    queryKey: ['bullpen-usage', homeTeamId],
-    queryFn: () => fetchBullpenUsage(homeTeamId!),
-    enabled: !!homeTeamId,
-    staleTime: 5 * 60_000,
-  })
+  // The pitch-count strip comes with the bullpen data (/api/bullpen).
+  const awayUsage = away?.usage
+  const homeUsage = home?.usage
 
   return (
     <div className={styles.card}>
@@ -164,8 +151,8 @@ export default function BullpenCard({
               <ComparisonView
                 away={away} home={home}
                 awayColor={ac} homeColor={hc}
-                awayUsage={awayUsageQuery.data}
-                homeUsage={homeUsageQuery.data}
+                awayUsage={awayUsage}
+                homeUsage={homeUsage}
               />
             </div>
           )}
@@ -174,15 +161,15 @@ export default function BullpenCard({
               <ComparisonView
                 away={away} home={home}
                 awayColor={ac} homeColor={hc}
-                awayUsage={awayUsageQuery.data}
-                homeUsage={homeUsageQuery.data}
+                awayUsage={awayUsage}
+                homeUsage={homeUsage}
               />
             )}
             {mode !== 'comparison' && (
               <SingleView
                 stats={mode === 'away' ? away : home}
                 color={mode === 'away' ? ac : hc}
-                usage={mode === 'away' ? awayUsageQuery.data : homeUsageQuery.data}
+                usage={mode === 'away' ? awayUsage : homeUsage}
               />
             )}
           </div>
