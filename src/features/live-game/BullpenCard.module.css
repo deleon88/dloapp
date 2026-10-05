@@ -231,22 +231,60 @@
   text-overflow: ellipsis;
 }
 
-/* "ERA" / "wOBA · BF" over the name columns: only on phones, where the rows drop the labels */
-.statHeader {
-  font-size: 0.5rem;
+/* Photo with the throwing hand as a corner badge */
+.photoBox {
+  position: relative;
+  align-self: center;
+  justify-self: center;
+}
+
+.handBadge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  color: var(--text-secondary);
+  font-size: 0.45rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+/* Row stats: each value over its small label (ERA, or wOBA + BF with a hand filter) */
+.rowStats {
+  display: flex;
+  gap: 8px;
+  margin-top: 1px;
+}
+
+.rowStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.rowStatValue {
+  font-size: 0.6rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.rowStatLabel {
+  font-size: 0.45rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  white-space: nowrap;
-  min-width: 0;
-  visibility: hidden;
-}
-
-.statHeaderAway { text-align: right; }
-
-@media (max-width: 480px) {
-  .statHeader { visibility: visible; }
 }
 
 .empty {
@@ -493,4 +531,22 @@
   }
 
   .usageDot { width: 18px; height: 18px; }
+}
+
+/* ── Very narrow phones (320–359px): shorter bars so the name / stat column fits ── */
+@media (max-width: 359px) {
+  .compHeader,
+  .compRow,
+  .compUsageRow {
+    grid-template-columns: 22px 1fr 62px 62px 1fr 22px;
+    gap: 3px;
+  }
+
+  .compRow .photoWrap { width: 22px; height: 22px; }
+
+  /* barTrack = 62px - 26px - 5px = 31px; center = 15.5px */
+  .fip100Away { left: calc((62px - 26px - 5px) / 2); }
+  .fip100Home { left: calc(62px + 3px + 26px + 5px + (62px - 26px - 5px) / 2); }
+
+  .rowStats { gap: 5px; }
 }

@@ -33,8 +33,8 @@ function lastName(n: string) {
 const PHOTO = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_64,q_auto:best/v1/people/${id}/headshot/67/current`
 
-function PlayerPhoto({ id }: { id: number }) {
-  return (
+function PlayerPhoto({ id, hand }: { id: number; hand?: string }) {
+  const photo = (
     <div className={styles.photoWrap}>
       <img
         className={styles.photo}
@@ -45,6 +45,14 @@ function PlayerPhoto({ id }: { id: number }) {
       />
     </div>
   )
+  if (!hand) return photo
+  // Throwing hand as a corner badge: takes no width from the name / stat column.
+  return (
+    <div className={styles.photoBox}>
+      {photo}
+      <span className={styles.handBadge} aria-label={hand === 'L' ? 'LHP' : 'RHP'}>{hand}</span>
+    </div>
+  )
 }
 
 /* ── Row stat ────────────────────────────────────────────────── */
@@ -53,26 +61,34 @@ const fmtWoba = (w: number | null | undefined) => (w != null ? w.toFixed(3).repl
 
 const byHand = (hand: BullpenStats['hand']) => hand != null && hand !== 'all'
 
-/**
- * Hand · ERA, or — with a batter-hand filter, where ERA doesn't exist — wOBA
- * allowed vs that hand plus the sample (batters faced), so small splits read
- * as such. On phones the labels move to the column header ("ERA" /
- * "wOBA · BF") so the line fits next to the photo.
- */
-function RowStat({ p, hand }: { p: BullpenPitcher; hand: BullpenStats['hand'] }) {
-  if (!byHand(hand)) {
-    return (
-      <>
-        <span className={`${styles.meta} ${styles.nameDesktop}`}>{p.hand} · {p.era ?? '—'} ERA</span>
-        <span className={`${styles.meta} ${styles.nameMobile}`}>{p.hand} · {p.era ?? '—'}</span>
-      </>
-    )
-  }
+/** Full name on desktop, last name on phones (the hand is a badge on the photo). */
+function NameLine({ p }: { p: BullpenPitcher }) {
   return (
     <>
-      <span className={`${styles.meta} ${styles.nameDesktop}`}>{p.hand} · {fmtWoba(p.wobaAgainst)} wOBA · {p.bf ?? 0} BF</span>
-      <span className={`${styles.meta} ${styles.nameMobile}`}>{fmtWoba(p.wobaAgainst)} · {p.bf ?? 0}</span>
+      <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(p.name)}</span>
+      <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(p.name)}</span>
     </>
+  )
+}
+
+/**
+ * ERA, or — with a batter-hand filter, where ERA doesn't exist — wOBA allowed
+ * vs that hand plus the sample (batters faced), so small splits read as such.
+ * Each value sits over its label, which keeps the block narrow next to the photo.
+ */
+function RowStat({ p, hand }: { p: BullpenPitcher; hand: BullpenStats['hand'] }) {
+  const stats = byHand(hand)
+    ? [{ value: fmtWoba(p.wobaAgainst), label: 'wOBA' }, { value: String(p.bf ?? 0), label: 'BF' }]
+    : [{ value: p.era ?? '—', label: 'ERA' }]
+  return (
+    <span className={styles.rowStats}>
+      {stats.map(s => (
+        <span key={s.label} className={styles.rowStat}>
+          <span className={styles.rowStatValue}>{s.value}</span>
+          <span className={styles.rowStatLabel}>{s.label}</span>
+        </span>
+      ))}
+    </span>
   )
 }
 
@@ -228,14 +244,13 @@ function ComparisonView({
       {/* Column header */}
       <div className={styles.compHeader}>
         <span />
-        {/* Labels for the row stat (rows drop them on phones to fit). */}
-        <span className={`${styles.statHeader} ${styles.statHeaderAway}`}>{byHand(away.hand) ? 'wOBA · BF' : 'ERA'}</span>
+        <span />
         <div className={styles.fipHeader}>
           <span className={styles.fip100Away}>100</span>
           <span className={styles.compBarLabel}>FIP+</span>
           <span className={styles.fip100Home}>100</span>
         </div>
-        <span className={styles.statHeader}>{byHand(home.hand) ? 'wOBA · BF' : 'ERA'}</span>
+        <span />
         <span />
       </div>
 
@@ -251,13 +266,12 @@ function ComparisonView({
         return (
           <div key={i} className={styles.compGroup}>
             <div className={styles.compRow}>
-              {a ? <PlayerPhoto id={a.id} /> : <div className={styles.photoWrap} />}
+              {a ? <PlayerPhoto id={a.id} hand={a.hand} /> : <div className={styles.photoWrap} />}
 
               <div className={styles.playerAway}>
                 {a ? (
                   <>
-                    <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(a.name)}</span>
-                    <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(a.name)}</span>
+                    <NameLine p={a} />
                     <RowStat p={a} hand={away.hand} />
                   </>
                 ) : <span className={styles.empty}>—</span>}
@@ -282,14 +296,13 @@ function ComparisonView({
               <div className={styles.playerHome}>
                 {h ? (
                   <>
-                    <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(h.name)}</span>
-                    <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(h.name)}</span>
+                    <NameLine p={h} />
                     <RowStat p={h} hand={home.hand} />
                   </>
                 ) : <span className={styles.empty}>—</span>}
               </div>
 
-              {h ? <PlayerPhoto id={h.id} /> : <div className={styles.photoWrap} />}
+              {h ? <PlayerPhoto id={h.id} hand={h.hand} /> : <div className={styles.photoWrap} />}
             </div>
 
             {showUsage && (
