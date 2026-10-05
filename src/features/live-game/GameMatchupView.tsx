@@ -15,6 +15,7 @@ import WeatherCard from './WeatherCard'
 import LineupComparison from './LineupComparison'
 import BullpenCard from './BullpenCard'
 import GameVote from './GameVote'
+import { votingEnabled } from '@/lib/features'
 import styles from './GameMatchupView.module.css'
 
 interface HydratedGame extends ScheduledGame {
@@ -103,7 +104,8 @@ export default function GameMatchupView({
     <div className={styles.root}>
 
       {/* ── Game header ──────────────────────────────────────── */}
-      <div className={styles.header}>
+      {/* With votes on, the vote drawer slides out from under the header. */}
+      <div className={`${styles.header} ${votingEnabled ? styles.headerOverVote : ''}`}>
         <CardBgLayers awayColor={ac} homeColor={hc} mode={mode} />
         <div className={styles.teamBlock}>
           <div className={styles.teamBlockInner}>

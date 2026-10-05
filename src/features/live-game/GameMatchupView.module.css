@@ -17,6 +17,14 @@
   overflow: hidden;
 }
 
+/* With the vote drawer: the header sits on top of it (opaque, raised with a
+   soft shadow) so the vote row reads as sliding out from underneath. */
+.headerOverVote {
+  z-index: 2;
+  background: var(--bg-deep);   /* same as the page, so the card looks unchanged */
+  box-shadow: 0 8px 16px -6px rgba(0, 0, 0, 0.6);
+}
+
 .header > [data-card-bg] {
   position: absolute;
   inset: 0;

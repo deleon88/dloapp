@@ -1,15 +1,28 @@
-/* Hangs right under the game header (pulled up over the page gap) with its own
-   rounded corners, so the seam between the two still shows. */
+/* A drawer that slides out from under the game header: a bit narrower than
+   the header, its top tucked behind it (TUCK px), and a shade darker, as if it
+   sat one layer below. The header is raised above it (GameMatchupView.module.css). */
 .card {
+  --tuck: 18px;
   position: relative;
-  margin-top: -12px;                     /* .root gap in GameMatchupView.module.css */
+  z-index: 1;
+  margin: calc(-12px - var(--tuck)) 8px 0;   /* -12px cancels the .root gap */
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: hidden;
-  padding: 8px 12px 6px;
+  padding: calc(8px + var(--tuck)) 12px 6px;
   display: flex;
   flex-direction: column;
   gap: 5px;
+  background: rgba(0, 0, 0, 0.28);
+  transform-origin: top center;
+  animation: drawerOut 520ms cubic-bezier(0.34, 1.4, 0.64, 1) 180ms both;
+}
+
+@keyframes drawerOut {
+  from { transform: translateY(-70%); opacity: 0; }
+  60%  { opacity: 1; }
+  to   { transform: translateY(0); opacity: 1; }
 }
 
 .card > [data-card-bg] {
@@ -26,11 +39,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .question {
-  max-width: 64px;
+  max-width: 54px;
   font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -47,7 +60,7 @@
   gap: 6px;
   min-width: 0;
   height: 36px;
-  padding: 0 10px;
+  padding: 0 8px;
   border: 1px solid var(--border-active);
   border-radius: var(--radius-sm);
   background: rgba(4, 10, 24, 0.35);
@@ -80,7 +93,7 @@
   margin-left: auto;
   flex-shrink: 0;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--text-secondary);
 }
 
@@ -123,5 +136,6 @@
 .error { color: var(--accent-red); }
 
 @media (prefers-reduced-motion: reduce) {
+  .card { animation: none; }
   .bar span { transition: none; }
 }
