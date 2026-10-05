@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { castVote, fetchGameVotes, VoteError, type GameVotes } from '@/api/votes'
 import type { ScheduledGame } from '@/api/mlb/types'
@@ -9,6 +9,9 @@ import { useT } from '@/i18n/useT'
 import CardBgLayers from './CardBgLayers'
 import type { ViewMode } from './LineupComparison'
 import styles from './GameVote.module.css'
+
+/** How long a first tap stays armed waiting for the second one. */
+const CONFIRM_WINDOW_MS = 5000
 
 interface Props {
   game: ScheduledGame
@@ -43,14 +46,20 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
     refetchInterval: open ? 60_000 : false,
     staleTime: 20_000,
   })
-  // Tapping a team only pre-selects it; the vote is saved on Confirm. Keeps
-  // picks deliberate instead of flipping back and forth.
+  // Two taps on the same team to vote: the first pre-selects it, the second
+  // saves it. Keeps picks deliberate instead of flipping back and forth. An
+  // unconfirmed selection clears itself after a few seconds.
   const [pending, setPending] = useState<number | null>(null)
   const vote = useMutation({
     mutationFn: (teamId: number) => castVote(game.gamePk, teamId),
     onSuccess: data => { qc.setQueryData<GameVotes>(key, data); setPending(null) },
     onError: () => setPending(null),
   })
+  useEffect(() => {
+    if (pending == null) return
+    const id = setTimeout(() => setPending(null), CONFIRM_WINDOW_MS)
+    return () => clearTimeout(id)
+  }, [pending])
   // The game started while the page was open: the server says voting is closed.
   const closedByServer = vote.error instanceof VoteError && vote.error.code === 'voting_closed'
 
@@ -71,17 +80,19 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
     if (!session) return openAuth('login')
     if (!canVote || vote.isPending) return
     vote.reset()
-    setPending(teamId === myVote ? null : teamId)   // tapping your current pick clears the selection
+    if (teamId === pending) return vote.mutate(teamId)       // second tap: save
+    setPending(teamId === myVote ? null : teamId)             // first tap (your current pick: nothing to do)
   }
 
   const total = data?.total ?? 0
   const countLabel = total === 1 ? t('oneVote') : t('votesCount').replace('{n}', String(total))
+  const pendingSide = sides.find(s => s.id === pending)
   const footnote = closedByServer ? t('votingClosed')
     : vote.isError ? t('voteFailed')
+    : pendingSide ? t('tapAgainToConfirm').replace('{team}', pendingSide.name)
     : !session ? t('signInToVote')
     : !open ? `${countLabel} · ${t('votingClosed')}`
     : `${countLabel} · ${t('canChangeBeforeStart')}`
-  const pendingSide = sides.find(s => s.id === pending)
   const titleId = `vote-${game.gamePk}`
 
   return (
@@ -125,24 +136,13 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
         </div>
       )}
 
-      {pendingSide ? (
-        <div className={styles.confirmRow} role="group" aria-live="polite">
-          <span className={styles.confirmText}>
-            {(myVote != null ? t('confirmChangeTo') : t('confirmVoteFor')).replace('{team}', pendingSide.name)}
-          </span>
-          <button type="button" className={styles.cancelBtn} onClick={() => setPending(null)} disabled={vote.isPending}>
-            {t('cancel')}
-          </button>
-          <button type="button" className={styles.confirmBtn} onClick={() => vote.mutate(pendingSide.id)}
-            disabled={vote.isPending} style={{ background: pendingSide.color }}>
-            {t('confirm')}
-          </button>
-        </div>
-      ) : (
-        <p className={`${styles.footnote} ${vote.isError ? styles.error : ''}`} role={vote.isError ? 'alert' : undefined}>
-          {footnote}
-        </p>
-      )}
+      <p
+        className={`${styles.footnote} ${vote.isError ? styles.error : ''} ${pendingSide ? styles.footnoteHint : ''}`}
+        role={vote.isError ? 'alert' : undefined}
+        aria-live="polite"
+      >
+        {footnote}
+      </p>
     </section>
   )
 }
