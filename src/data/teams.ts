@@ -67,6 +67,22 @@ export function getTeamMeta(id: number): MlbTeamMeta | undefined {
   return byId.get(id)
 }
 
+const ALL_STAR_IDS = new Set([159, 160])
+// American League clubs, for when the database data (leagueId) hasn't loaded.
+const AL_IDS = new Set([108, 110, 111, 114, 116, 117, 118, 133, 136, 139, 140, 141, 142, 145, 147])
+
+/** The 30 MLB clubs (no All-Star teams), current data. */
+export function getMlbClubs(): MlbTeamMeta[] {
+  return [...byId.values()].filter(t => !ALL_STAR_IDS.has(t.id))
+}
+
+/** 'AL' or 'NL' for a club. */
+export function teamLeague(t: MlbTeamMeta): 'AL' | 'NL' {
+  if (t.leagueId === 103) return 'AL'
+  if (t.leagueId === 104) return 'NL'
+  return AL_IDS.has(t.id) ? 'AL' : 'NL'
+}
+
 /**
  * Replaces the team data (from /api/teams). Returns true only if something
  * visible changed (colors, names, logo); park / league data is swapped in

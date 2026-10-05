@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { OpenAuthRoute } from './AuthModal'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { TEAMS } from '@/data/teams'
+import TeamField from './TeamPicker'
 import { useT, type TKey } from '@/i18n/useT'
 import { takeReturnTo } from './authShared'
 import styles from './Auth.module.css'
@@ -16,18 +16,17 @@ export default function ProfilePage() {
   const { loading, session, profile, refreshProfile, signOut } = useAuthStore()
 
   const [username, setUsername] = useState('')
-  const [teamId, setTeamId] = useState('')
+  const [teamId, setTeamId] = useState<number | null>(null)
   const [error, setError] = useState<TKey | null>(null)
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
 
   const completing = profile != null && profile.username == null
-  const teams = useMemo(() => [...TEAMS].sort((a, b) => a.brief.localeCompare(b.brief)), [])
 
   useEffect(() => {
     if (!profile) return
     setUsername(profile.username ?? '')
-    setTeamId(profile.favorite_team_id != null ? String(profile.favorite_team_id) : '')
+    setTeamId(profile.favorite_team_id)
   }, [profile])
 
   if (loading) return <div className={styles.page}><p className={styles.subtitle}>{t('loading')}</p></div>
@@ -42,7 +41,7 @@ export default function ProfilePage() {
     setError(null)
     const { error } = await supabase
       .from('profiles')
-      .update({ username: name, favorite_team_id: teamId ? Number(teamId) : null })
+      .update({ username: name, favorite_team_id: teamId })
       .eq('id', session.user.id)
     setBusy(false)
     if (error) {
@@ -68,14 +67,10 @@ export default function ProfilePage() {
               value={username} onChange={e => { setUsername(e.target.value); setError(null); setSaved(false) }} />
             <span className={styles.hint}>{t('usernameHint')}</span>
           </label>
-          <label className={styles.field}>
+          <div className={styles.field}>
             <span className={styles.label}>{t('favoriteTeam')}</span>
-            <select className={styles.select} value={teamId}
-              onChange={e => { setTeamId(e.target.value); setSaved(false) }}>
-              <option value="">{t('noFavoriteTeam')}</option>
-              {teams.map(team => <option key={team.id} value={team.id}>{team.name} {team.brief}</option>)}
-            </select>
-          </label>
+            <TeamField value={teamId} onChange={id => { setTeamId(id); setSaved(false) }} />
+          </div>
           {error && <p className={styles.error} role="alert">{t(error)}</p>}
           {saved && <p className={styles.success} role="status">{t('profileSaved')}</p>}
           <button className={styles.primaryBtn} type="submit" disabled={busy || !username}>
