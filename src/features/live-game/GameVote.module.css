@@ -1,11 +1,10 @@
-/* Bottom half of the game header card: same border and team-colored background,
-   pulled up over the page gap, square top corners and a hairline divider. */
+/* Hangs right under the game header (pulled up over the page gap) with its own
+   rounded corners, so the seam between the two still shows. */
 .card {
   position: relative;
   margin-top: -12px;                     /* .root gap in GameMatchupView.module.css */
   border: 1px solid var(--border);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   padding: 8px 12px 6px;
   display: flex;
