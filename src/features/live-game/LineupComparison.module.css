@@ -592,3 +592,29 @@
     width: 100%;
   }
 }
+
+/* Photo with the batting side (L / R / S) as a corner badge — same as BullpenCard */
+.photoBox {
+  position: relative;
+  align-self: center;
+  justify-self: center;
+}
+
+.handBadge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  color: var(--text-secondary);
+  font-size: 0.45rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}

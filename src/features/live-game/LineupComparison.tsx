@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { createContext, useContext, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { getBatSides } from '@/api/mlb/endpoints/people'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import type { PlayerStats } from '@/api/mlb/endpoints/lineupStats'
 import { getTeamMeta, getBarColor } from '@/data/teams'
@@ -14,6 +16,9 @@ export type ViewMode = 'away' | 'comparison' | 'home'
 export type LineupStatus = 'confirmed' | 'projected'
 
 interface ProbablePitcher { id: number; fullName: string }
+
+/** Batting side (L / R / S) by player id, for the badge on each photo. */
+const BatSides = createContext<Map<number, string> | undefined>(undefined)
 
 interface Props {
   awayTeamId: number
@@ -106,6 +111,16 @@ export default function LineupComparison({
   const awayLabel = awayMeta?.brief.toUpperCase() ?? 'AWAY'
   const homeLabel = homeMeta?.brief.toUpperCase() ?? 'HOME'
 
+  // Batting side of everyone in both lineups, shown like the bullpen's throwing hand.
+  const batterIds = [...awayLineup, ...homeLineup].map(p => p.id).sort((a, b) => a - b)
+  const batSidesQuery = useQuery({
+    queryKey: ['bat-sides', ...batterIds],
+    queryFn: () => getBatSides(batterIds),
+    enabled: batterIds.length > 0,
+    staleTime: 24 * 3_600_000,
+    placeholderData: prev => prev,
+  })
+
   const pillIndex = mode === 'away' ? 0 : mode === 'comparison' ? 1 : 2
   const pillColor = mode === 'away' ? awayColor : mode === 'home' ? homeColor : null
 
@@ -122,6 +137,7 @@ export default function LineupComparison({
   const opposingPitcher = mode === 'home' ? awayProbablePitcher : homeProbablePitcher
 
   return (
+    <BatSides.Provider value={batSidesQuery.data}>
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
 
@@ -213,6 +229,7 @@ export default function LineupComparison({
         />
       )}
     </div>
+    </BatSides.Provider>
   )
 }
 
@@ -460,8 +477,12 @@ function StatusBadge({ status, align = 'center' }: { status?: LineupStatus; alig
   )
 }
 
+const BAT_LABEL: Record<string, string> = { L: 'Bats left', R: 'Bats right', S: 'Switch hitter' }
+
 function PlayerPhoto({ id, name }: { id?: number; name?: string }) {
-  return (
+  const batSides = useContext(BatSides)
+  const bats = id ? batSides?.get(id) : undefined
+  const img = (
     <div className={styles.photoWrap}>
       {id && (
         <img
@@ -472,6 +493,14 @@ function PlayerPhoto({ id, name }: { id?: number; name?: string }) {
           onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }}
         />
       )}
+    </div>
+  )
+  if (!bats) return img
+  // Batting side as a corner badge, same as the bullpen's throwing hand.
+  return (
+    <div className={styles.photoBox}>
+      {img}
+      <span className={styles.handBadge} aria-label={BAT_LABEL[bats] ?? bats}>{bats}</span>
     </div>
   )
 }
