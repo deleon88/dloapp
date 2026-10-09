@@ -34,8 +34,9 @@ interface Props {
   onModeChange?: (m: ViewMode) => void
 }
 
-const HEADSHOT = (id: number) =>
-  `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
+// MLB's cutout portrait (transparent background); MLB serves a generic silhouette when there's none.
+const CUTOUT = (id: number) =>
+  `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:silo:current.png/w_240,q_auto:best,f_auto/v1/people/${id}/headshot/silo/current`
 
 export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, awayBulkInfo, homeBulkInfo, mode, onModeChange }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
@@ -54,6 +55,12 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
   return (
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
+      {/* Each pitcher's cutout against the team colors, on the outer edge of their
+          half, fading out behind the bars. Keyed by id: switching opener/bulk fades in. */}
+      <div className={styles.hero} data-card-bg aria-hidden="true">
+        {away.info && <img key={away.info.id} className={`${styles.heroPhoto} ${styles.heroAway}`} src={CUTOUT(away.info.id)} alt="" />}
+        {home.info && <img key={home.info.id} className={`${styles.heroPhoto} ${styles.heroHome}`} src={CUTOUT(home.info.id)} alt="" />}
+      </div>
 
       {/* ── Pitcher headers ────────────────────────────────────────── */}
       {/* The Opener | Bulk switches get their own row across both halves, so the
@@ -65,8 +72,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
             <div className={styles.switchCell}>{home.opener && <RoleSwitch view={home} onRole={setHomeRole} onBullpen={() => goToBullpen('home', onModeChange)} />}</div>
           </div>
         )}
-        {/* With a bulk shown both sides align to the top, so names stay level. */}
-        <div className={`${styles.sidesRow} ${away.opener || home.opener ? styles.sidesRowUnderSwitch : ''} ${away.role === 'bulk' || home.role === 'bulk' ? styles.sidesRowTop : ''}`}>
+        <div className={`${styles.sidesRow} ${away.opener || home.opener ? styles.sidesRowUnderSwitch : ''}`}>
           <PitcherHeader side="away" view={away} />
           <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
           <PitcherHeader side="home" view={home} />
@@ -188,23 +194,12 @@ function RoleSwitch({ view, onRole, onBullpen }: { view: SideView; onRole: (r: S
 function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }) {
   const t = useT()
   const right = side === 'home'
-  const { info } = view
-  const s = info?.seasonStats
+  const s = view.info?.seasonStats
 
-  const photo = info && (
-    <img
-      key={info.id}
-      src={HEADSHOT(info.id)}
-      alt={info.fullName}
-      className={styles.headshot}
-      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-    />
-  )
-
+  // The photo is drawn behind (see .hero); this is the text, on the inner side.
   return (
     <div className={`${styles.pitcherSide} ${right ? styles.pitcherSideRight : ''}`}>
-      {!right && photo}
-      <div className={styles.pitcherInfo} style={right ? { textAlign: 'right' } : undefined}>
+      <div className={styles.pitcherInfo}>
         <div className={styles.pitcherName}>{view.name}</div>
         {s && (
           <div className={styles.pitcherRecord}>
@@ -214,7 +209,6 @@ function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }
         {/* The bulk arm is our prediction, never MLB's: always marked as projected. */}
         {view.role === 'bulk' && <span className={styles.projectedTag} title={t('bulkTitle')}>{t('projected')}</span>}
       </div>
-      {right && photo}
     </div>
   )
 }

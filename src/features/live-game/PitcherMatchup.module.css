@@ -29,28 +29,33 @@
   padding: 6px 10px 0;
 }
 
-/* Switch (+ "Projected" when the bulk is shown), centered in the team's half */
+/* Switch, lined up with the pitcher's name (inner side, clear of the photo) */
 .switchCell {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
   min-width: 0;
+  padding-left: var(--photo-gutter);
+}
+
+.switchCell + .switchCell {
+  justify-content: flex-end;
+  padding-left: 0;
+  padding-right: var(--photo-gutter);
 }
 
 .sidesRow {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  min-height: var(--header-min);
 }
 
 /* Right under the switches: less top padding (same on both sides, so they stay aligned) */
 .sidesRowUnderSwitch .pitcherSide { padding-top: 4px; }
 
-/* Bulk shown: name, record and "Projected" fit the photo's height; top-aligned
-   on both sides so the names stay level. The record keeps to one line. */
-.sidesRowTop .pitcherSide { align-items: flex-start; }
-.sidesRowTop .pitcherRecord { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 
 .glossaryBtn {
   position: absolute;
@@ -79,25 +84,57 @@
   color: var(--text-primary);
 }
 
+/* Text on the inner side; the outer side is left to the photo. Top-aligned on
+   both sides so the names line up even when one wraps; the inner padding keeps
+   clear of the "?" in the middle. */
 .pitcherSide {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 14px 12px;
+  align-items: flex-start;
+  padding: 14px 16px 10px var(--photo-gutter);
   min-width: 0;
 }
 
 .pitcherSideRight {
   justify-content: flex-end;
+  text-align: right;
+  padding: 14px var(--photo-gutter) 10px 16px;
 }
 
-.headshot {
-  width: 52px;
-  height: 52px;
-  border-radius: .75rem;
-  object-fit: cover;
-  background: var(--bg-subtle);
-  flex-shrink: 0;
+.pitcherSideRight .pitcherInfo { align-items: flex-end; }
+
+/* ── Hero photos ──────────────────────────────────────────────────── */
+.card {
+  --photo-size: 120px;      /* cutout height */
+  --photo-gutter: 84px;     /* room kept clear for it next to the text */
+  --header-min: 84px;
+}
+
+.hero { overflow: hidden; }
+
+.heroPhoto {
+  position: absolute;
+  top: 0;
+  width: var(--photo-size);
+  height: var(--photo-size);
+  object-fit: contain;
+  object-position: bottom;
+  /* Fades out toward the bars and toward the middle of the card */
+  -webkit-mask-image: linear-gradient(to bottom, #000 52%, transparent 92%);
+          mask-image: linear-gradient(to bottom, #000 52%, transparent 92%);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+  animation: heroIn 0.35s ease-out both;
+}
+
+.heroAway { left: -18px; }
+.heroHome { right: -18px; }
+
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroPhoto { animation: none; }
 }
 
 .pitcherInfo {
@@ -109,7 +146,7 @@
 }
 
 .pitcherName {
-  font-size: 0.9rem;
+  font-size: 0.98rem;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
@@ -119,14 +156,19 @@
 }
 
 .pitcherRecord {
-  font-size: 0.62rem;
-  color: var(--text-muted);
+  font-size: 0.6rem;
+  color: var(--text-secondary);
   font-family: var(--font-mono);
   margin-top: 1px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Bars ─────────────────────────────────────────────────────────── */
 .bars {
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.14));
   padding: 10px 14px 6px;
   display: flex;
   flex-direction: column;
@@ -231,10 +273,11 @@
 }
 
 @media (max-width: 480px) {
-  .pitcherSide { padding: 10px 10px 8px; gap: 8px; }
-  .headshot { width: 38px; height: 38px; }
-  .pitcherName { font-size: 0.75rem; }
-  .pitcherRecord { font-size: 0.58rem; }
+  .card { --photo-size: 108px; --photo-gutter: 74px; --header-min: 76px; }
+  .pitcherSide { padding: 12px 14px 8px var(--photo-gutter); }
+  .pitcherSideRight { padding: 12px var(--photo-gutter) 8px 14px; }
+  .pitcherName { font-size: 0.86rem; }
+  .pitcherRecord { font-size: 0.55rem; }
 }
 
 /* ── Opener / bulk ───────────────────────────────────────────────── */
