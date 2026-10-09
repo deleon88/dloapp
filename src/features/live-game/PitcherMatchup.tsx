@@ -184,6 +184,10 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
               {s.wins}-{s.losses} · {s.inningsPitched} IP · {s.qualityStarts} QS
             </div>
           )}
+          {/* The bulk arm is our prediction, never MLB's: always marked as projected. */}
+          {view.role === 'bulk' && bulk && (
+            <span className={styles.projectedTag} title={t('bulkTitle')}>{t('projected')}</span>
+          )}
         </div>
         {right && photo}
       </div>
