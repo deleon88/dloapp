@@ -197,6 +197,7 @@ export default function GameMatchupView({
         homeBulk={homeBulk}
         awayBulkInfo={awayBulk ? bulkStats?.get(awayBulk.id) : undefined}
         homeBulkInfo={homeBulk ? bulkStats?.get(homeBulk.id) : undefined}
+        onModeChange={setMode}
         mode={mode}
       />
 

@@ -30,12 +30,14 @@ interface Props {
   awayBulkInfo?: PitcherInfo
   homeBulkInfo?: PitcherInfo
   mode: ViewMode
+  /** Shared card view: "Bullpen" on an opener's side switches it to that team. */
+  onModeChange?: (m: ViewMode) => void
 }
 
 const HEADSHOT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, awayBulkInfo, homeBulkInfo, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, awayBulkInfo, homeBulkInfo, mode, onModeChange }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   // Behind an opener, the card can show either arm; the opener (the listed starter) by default.
   const [awayRole, setAwayRole] = useState<SideRole>('opener')
@@ -55,9 +57,9 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
 
       {/* ── Pitcher headers ────────────────────────────────────────── */}
       <div className={styles.pitcherRow}>
-        <PitcherHeader side="away" view={away} onRole={setAwayRole} />
+        <PitcherHeader side="away" view={away} onRole={setAwayRole} onBullpen={() => goToBullpen('away', onModeChange)} />
         <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
-        <PitcherHeader side="home" view={home} onRole={setHomeRole} />
+        <PitcherHeader side="home" view={home} onRole={setHomeRole} onBullpen={() => goToBullpen('home', onModeChange)} />
       </div>
 
       {/* ── Bars ──────────────────────────────────────────────────── */}
@@ -136,7 +138,9 @@ function sideView(probable: PitcherInfo | undefined, fallbackName: string | unde
   }
 }
 
-function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: SideView; onRole: (r: SideRole) => void }) {
+function PitcherHeader({ side, view, onRole, onBullpen }: {
+  side: 'away' | 'home'; view: SideView; onRole: (r: SideRole) => void; onBullpen: () => void
+}) {
   const t = useT()
   const right = side === 'home'
   const { info, bulk } = view
@@ -163,7 +167,7 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
           <button type="button" className={`${styles.roleSegment} ${styles.roleSegmentActive}`} aria-current="true">
             {t('opener')}
           </button>
-          <button type="button" className={styles.roleSegment} onClick={goToBullpen}>
+          <button type="button" className={styles.roleSegment} onClick={onBullpen}>
             {t('bullpen')}
           </button>
         </div>
@@ -200,16 +204,23 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
   )
 }
 
-/** Scrolls to the bullpen card and highlights it for a moment. */
-function goToBullpen() {
-  const card = document.getElementById(BULLPEN_CARD_ID)
-  if (!card) return
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
-  card.removeAttribute('data-flash')
-  void card.offsetWidth   // restart the animation if tapped twice
-  card.setAttribute('data-flash', '')
-  window.setTimeout(() => card.removeAttribute('data-flash'), 1300)
+/**
+ * Shows that team's side (the view is shared by the cards, like their own
+ * switches), then scrolls to the bullpen card and highlights it for a moment.
+ */
+function goToBullpen(side: 'away' | 'home', setMode?: (m: ViewMode) => void) {
+  setMode?.(side)
+  // Wait for the new view to render: the cards above change height with it.
+  window.setTimeout(() => {
+    const card = document.getElementById(BULLPEN_CARD_ID)
+    if (!card) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+    card.removeAttribute('data-flash')
+    void card.offsetWidth   // restart the animation if tapped twice
+    card.setAttribute('data-flash', '')
+    window.setTimeout(() => card.removeAttribute('data-flash'), 1300)
+  }, 60)
 }
 
 /* ── Chip view ───────────────────────────────────────────────────── */
