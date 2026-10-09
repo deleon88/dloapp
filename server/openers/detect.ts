@@ -10,14 +10,15 @@
 //      otherwise a reliever's first start is often a spot start, not an opener.
 //      Looser on teams that use openers (3+ of their last 30 games): 2
 //      appearances and half of them in relief are enough, first start or not.
+//      (Tiers — 3-5 vs 6+ — were tried: they lost true openers, no gain.)
 // Never if their latest start already went past 3 innings or 55+ pitches: they're
 // being stretched out (moving into the rotation, back from the IL).
 // A pitcher without history (debut, call-up) counts as a starter.
-// On 2026 (scripts/db/validate-openers.ts): 83% of the flagged starters went
-// 6 outs or fewer and 95% 3 innings or fewer. 72% of all games where the
-// starter got <= 6 outs and the next pitcher 9+ were flagged, 87% leaving out
-// regular starters cut short (injury, rough outing) — those aren't openers.
-// Most remaining misses are early-season pitchers with no history yet.
+// Backtest on 2026 (scripts/db/validate-openers.ts; each start classified only
+// with earlier games, against a label from the pitcher's role within ±30 days):
+// precision 95%, recall 78%, false-positive rate 0.24% of traditional starts;
+// 83% of flagged starters went 2 IP or less, 95% 3 IP or less. Weakest spots:
+// pitchers with 0-2 appearances (1 of 11 caught) and Aug-Sep (~72% recall).
 
 export interface Appearance {
   isStart: boolean
@@ -71,7 +72,8 @@ export function classifyPitcher(history: Appearance[], team?: TeamContext): Role
   // A reliever's first start is an opener, not a spot start, when they've
   // opened before, are a one-inning arm, or never go long in relief.
   const reliefOuts = recent.filter(a => !a.isStart).slice(0, 5).map(a => a.outs)
-  const neverLong = reliefOuts.length > 0 && Math.max(...reliefOuts) <= OPENER_MAX_OUTS
+  // (3+ relief outings: one short one says nothing about length.)
+  const neverLong = reliefOuts.length >= 3 && Math.max(...reliefOuts) <= OPENER_MAX_OUTS
   const shortReliever = recent.length >= (teamUsesOpeners ? 2 : 3)
     && reliefApps / recent.length >= (teamUsesOpeners ? 0.5 : 0.6)
     && avgOuts != null && avgOuts <= OPENER_MAX_OUTS

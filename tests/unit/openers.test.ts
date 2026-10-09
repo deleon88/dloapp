@@ -45,6 +45,16 @@ test('on a team that uses openers the rule is looser', () => {
   assert.equal(classifyPitcher([relief(9), relief(3)], { openerGames: 0 }).role, 'starter')
 })
 
+test('a reliever who just went 4 IP in a start is a starter (stretched out)', () => {
+  // Relief 3, relief 3, then a 12-out start: averages 6 outs and 2 of 3 in
+  // relief, but the latest start already went long.
+  assert.equal(classifyPitcher([start(12, 60), relief(3), relief(3)]).role, 'starter')
+})
+
+test('one or two short relief outings are not enough to call a first start an opener', () => {
+  assert.equal(classifyPitcher([relief(6), relief(5), start(9, 45)]).role, 'starter')
+})
+
 test('no history: starter', () => {
   const r = classifyPitcher([])
   assert.equal(r.role, 'starter')
