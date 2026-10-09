@@ -8,7 +8,7 @@ import CardBgLayers from './CardBgLayers'
 import CardModal from './CardModal'
 import MatchupBar from '@/components/MatchupBar/MatchupBar'
 import styles from './PitcherMatchup.module.css'
-import { shortName, type BulkArm } from '@/api/pitcherRoles'
+import type { BulkArm } from '@/api/pitcherRoles'
 
 interface Props {
   awayPitcher?: PitcherInfo
@@ -36,9 +36,9 @@ const HEADSHOT = (id: number) =>
 
 export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, awayBulkInfo, homeBulkInfo, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
-  // Behind an opener, the card can show either arm; the bulk by default (most of the innings).
-  const [awayRole, setAwayRole] = useState<SideRole>('bulk')
-  const [homeRole, setHomeRole] = useState<SideRole>('bulk')
+  // Behind an opener, the card can show either arm; the opener (the listed starter) by default.
+  const [awayRole, setAwayRole] = useState<SideRole>('opener')
+  const [homeRole, setHomeRole] = useState<SideRole>('opener')
   const t = useT()
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
@@ -120,7 +120,6 @@ interface SideView {
   opener: boolean         // the probable starter is an opener
   bulk?: BulkArm          // probable bulk arm, when named
   role: SideRole          // which one is shown (only matters with a bulk)
-  openerName: string
 }
 
 function sideView(probable: PitcherInfo | undefined, fallbackName: string | undefined, opener: boolean | undefined,
@@ -133,7 +132,6 @@ function sideView(probable: PitcherInfo | undefined, fallbackName: string | unde
     opener: !!opener,
     bulk: opener ? bulk : undefined,
     role: showBulk ? 'bulk' : 'opener',
-    openerName,
   }
 }
 
@@ -142,11 +140,6 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
   const right = side === 'home'
   const { info, bulk } = view
   const s = info?.seasonStats
-  // Under the name: who else pitches (the opener when the bulk is shown, and vice versa).
-  const note = !view.opener ? null
-    : !bulk ? t('openerNote')
-    : view.role === 'bulk' ? `${t('startsLabel')}: ${shortName(view.openerName)}`
-    : `${t('bulkProbable')}: ${shortName(bulk.fullName)}`
 
   const photo = info && (
     <img
@@ -157,20 +150,25 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
       onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
     />
   )
-  const meta = [info?.primaryNumber && `#${info.primaryNumber}`, info?.pitchHand].filter(Boolean)
-  const tag = view.opener && (
-    <span className={styles.roleTag} title={view.role === 'bulk' ? t('bulkTitle') : undefined}>
-      {view.role === 'bulk' ? t('bulkTag') : t('opener')}
-    </span>
-  )
 
   return (
-    <div className={`${styles.sideWrap} ${right ? styles.sideWrapRight : ''}`}>
-      {bulk && (
-        <div className={styles.roleSwitch} role="tablist" aria-label={t('openerOrBulk')}>
-          {(['opener', 'bulk'] as const).map(r => (
-            <button key={r} type="button" role="tab" aria-selected={view.role === r}
-              className={`${styles.roleOption} ${view.role === r ? styles.roleOptionActive : ''}`}
+    <div className={styles.sideWrap}>
+      {/* Opener | Bulk, same segmented style as the lineup card's switch. Without a
+          named bulk arm it's a single (static) segment that just says "Opener". */}
+      {view.opener && (
+        <div
+          className={`${styles.roleTrack} ${bulk ? '' : styles.roleTrackSingle}`}
+          role={bulk ? 'tablist' : undefined}
+          aria-label={t('openerOrBulk')}
+          title={bulk ? t('bulkTitle') : t('openerNote')}
+        >
+          {bulk && (
+            <div className={styles.rolePill} style={{ transform: `translateX(${view.role === 'bulk' ? 100 : 0}%)` }} />
+          )}
+          {(bulk ? (['opener', 'bulk'] as const) : (['opener'] as const)).map(r => (
+            <button key={r} type="button" role={bulk ? 'tab' : undefined} aria-selected={bulk ? view.role === r : undefined}
+              disabled={!bulk}
+              className={`${styles.roleSegment} ${view.role === r ? styles.roleSegmentActive : ''}`}
               onClick={() => onRole(r)}>
               {r === 'bulk' ? t('bulkTag') : t('opener')}
             </button>
@@ -180,18 +178,12 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
       <div className={`${styles.pitcherSide} ${right ? styles.pitcherSideRight : ''}`}>
         {!right && photo}
         <div className={styles.pitcherInfo} style={right ? { textAlign: 'right' } : undefined}>
-          <div className={styles.pitcherMeta} style={right ? { justifyContent: 'flex-end' } : undefined}>
-            {right && tag}
-            <span>{meta.join(' · ')}</span>
-            {!right && tag}
-          </div>
           <div className={styles.pitcherName}>{view.name}</div>
           {s && (
             <div className={styles.pitcherRecord}>
               {s.wins}-{s.losses} · {s.inningsPitched} IP · {s.qualityStarts} QS
             </div>
           )}
-          {note && <div className={styles.roleNote}>{note}</div>}
         </div>
         {right && photo}
       </div>
