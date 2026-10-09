@@ -154,15 +154,17 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
 
   return (
     <div className={styles.sideWrap}>
-      {/* Opener | Bulk, same segmented style as the lineup card's switch. Without a
-          named bulk arm: a static "Opener" pill and a chip down to the bullpen card. */}
+      {/* Opener | Bulk, same segmented style as the lineup card's switch: switches
+          the arm shown. Without a named bulk arm it's Opener | Bullpen, and
+          "Bullpen" scrolls down to the bullpen card. */}
       {view.opener && !bulk && (
-        <div className={styles.roleRow}>
-          <span className={`${styles.roleTrack} ${styles.roleTrackSingle}`}>
-            <span className={`${styles.roleSegment} ${styles.roleSegmentActive}`}>{t('opener')}</span>
-          </span>
-          <button type="button" className={styles.bullpenLink} onClick={goToBullpen} title={t('openerNote')}>
-            {t('bullpen')} <span aria-hidden="true">↓</span>
+        <div className={styles.roleTrack} title={t('openerNote')}>
+          <div className={styles.rolePill} />
+          <button type="button" className={`${styles.roleSegment} ${styles.roleSegmentActive}`} aria-current="true">
+            {t('opener')}
+          </button>
+          <button type="button" className={styles.roleSegment} onClick={goToBullpen}>
+            {t('bullpen')}
           </button>
         </div>
       )}
