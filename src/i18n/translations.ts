@@ -69,6 +69,7 @@ export const translations = {
     bulkShort: 'Bulk:',
     bulkTitle: 'Expected to pitch most of the game behind the opener (named only when the pattern is clear)',
     bulkTag: 'Bulk',
+    openerBullpen: 'Opener · Bullpen',
     startsLabel: 'Starts',
     openerOrBulk: 'Opener or bulk',
     // Votes
@@ -264,6 +265,7 @@ export const translations = {
     bulkShort: 'Bulk:',
     bulkTitle: 'Se espera que lance la mayor parte del juego detrás del opener (solo se muestra cuando el patrón es claro)',
     bulkTag: 'Bulk',
+    openerBullpen: 'Opener · Bullpen',
     startsLabel: 'Inicia',
     openerOrBulk: 'Opener o bulk',
     // Votes

@@ -154,7 +154,7 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
   return (
     <div className={styles.sideWrap}>
       {/* Opener | Bulk, same segmented style as the lineup card's switch. Without a
-          named bulk arm it's a single (static) segment that just says "Opener". */}
+          named bulk arm it's a single (static) segment: "Opener · Bullpen". */}
       {view.opener && (
         <div
           className={`${styles.roleTrack} ${bulk ? '' : styles.roleTrackSingle}`}
@@ -170,7 +170,7 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
               disabled={!bulk}
               className={`${styles.roleSegment} ${view.role === r ? styles.roleSegmentActive : ''}`}
               onClick={() => onRole(r)}>
-              {r === 'bulk' ? t('bulkTag') : t('opener')}
+              {r === 'bulk' ? t('bulkTag') : bulk ? t('opener') : t('openerBullpen')}
             </button>
           ))}
         </div>
