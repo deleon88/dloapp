@@ -72,10 +72,17 @@ export default function SchedulePage() {
   })
 
   // Opener or real starter: an opener's bar is blended with the team bullpen.
+  const probables = games.flatMap(g => {
+    const gp = g as GameWithPitcher
+    return (['away', 'home'] as const).flatMap(side => {
+      const id = gp.teams[side].probablePitcher?.id
+      return id ? [{ id, teamId: g.teams[side].team.id }] : []
+    })
+  })
   const rolesQuery = useQuery({
-    queryKey: ['pitcher-roles', ...pitcherIds.slice().sort((a, b) => a - b)],
-    queryFn: () => fetchPitcherRoles(pitcherIds),
-    enabled: pitcherIds.length > 0,
+    queryKey: ['pitcher-roles', ...probables.map(p => `${p.id}-${p.teamId}`).sort()],
+    queryFn: () => fetchPitcherRoles(probables),
+    enabled: probables.length > 0,
     staleTime: 3_600_000,
   })
   const isOpener = (id?: number) => id != null && rolesQuery.data?.get(id)?.role === 'opener'

@@ -10,12 +10,19 @@ export interface RoleInfo {
   starts: number
   shortStarts: number
   avgOuts: number | null
+  teamOpeners: number
 }
 
-export async function fetchPitcherRoles(ids: number[]): Promise<Map<number, RoleInfo>> {
-  const unique = [...new Set(ids)].sort((a, b) => a - b)
+export interface Probable {
+  id: number
+  teamId: number
+}
+
+/** Roles of the probable starters; each one's team tells how often it uses openers. */
+export async function fetchPitcherRoles(probables: Probable[]): Promise<Map<number, RoleInfo>> {
+  const unique = [...new Map(probables.map(p => [p.id, p])).values()].sort((a, b) => a.id - b.id)
   if (!unique.length) return new Map()
-  const res = await fetch(`/api/pitcher-roles?ids=${unique.join(',')}`)
+  const res = await fetch(`/api/pitcher-roles?ids=${unique.map(p => p.id).join(',')}&teams=${unique.map(p => p.teamId).join(',')}`)
   if (!res.ok) throw new Error(`pitcher-roles ${res.status}`)
   const body = await res.json() as { roles: Record<string, RoleInfo> }
   return new Map(Object.entries(body.roles).map(([id, r]) => [Number(id), r]))

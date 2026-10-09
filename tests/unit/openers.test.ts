@@ -30,9 +30,19 @@ test('a reliever being stretched out into the rotation is a starter', () => {
   assert.equal(classifyPitcher([start(5, 62), start(3), start(4), start(5)]).role, 'starter')
 })
 
-test("a reliever's first start is a spot start unless they're a one-inning arm", () => {
-  assert.equal(classifyPitcher([relief(6), relief(5), relief(6), relief(4)]).role, 'starter')
+test("a reliever's first start: spot start if they go long in relief, opener if they never do", () => {
+  assert.equal(classifyPitcher([relief(9), relief(3), relief(6), relief(4)]).role, 'starter')
+  assert.equal(classifyPitcher([relief(6), relief(5), relief(6), relief(4)]).role, 'opener')
   assert.equal(classifyPitcher([relief(3), relief(4), relief(3), relief(5)]).role, 'opener')
+})
+
+test('on a team that uses openers the rule is looser', () => {
+  const swingman = [relief(1), start(9), relief(3), start(3), relief(3), start(10)]
+  assert.equal(classifyPitcher(swingman).role, 'starter')
+  assert.equal(classifyPitcher(swingman, { openerGames: 5 }).role, 'opener')
+  // Two appearances are enough there, first start or not.
+  assert.equal(classifyPitcher([relief(9), relief(3)], { openerGames: 4 }).role, 'opener')
+  assert.equal(classifyPitcher([relief(9), relief(3)], { openerGames: 0 }).role, 'starter')
 })
 
 test('no history: starter', () => {

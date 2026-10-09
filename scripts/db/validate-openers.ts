@@ -6,7 +6,7 @@
 // Uso: npm run db:validate-openers -- [--season 2026]
 import { parseArgs } from 'node:util'
 import { sql } from '../../server/db'
-import { classifyPitcher, OPENER_MAX_OUTS, type Appearance } from '../../server/openers/detect'
+import { classifyPitcher, OPENER_MAX_OUTS, TEAM_GAMES, type Appearance } from '../../server/openers/detect'
 
 const { values } = parseArgs({ options: { season: { type: 'string', default: String(new Date().getFullYear()) } } })
 const season = Number(values.season)
@@ -23,6 +23,8 @@ const second = new Map<string, number>()
 for (const r of rows) if (r.seq === 1) second.set(`${r.game_pk}-${r.team_id}`, r.outs)
 
 const history = new Map<number, Appearance[]>()   // newest first
+const teamGames = new Map<number, boolean[]>()     // per team: was it an opener game? newest first
+let injured = 0   // opener games whose starter's latest start went long (cut short, not planned)
 let starts = 0, flagged = 0, flaggedShort = 0, flaggedUnder3 = 0, openerGames = 0, openerCaught = 0
 const misses: string[] = [], falseFlags: string[] = []
 
@@ -30,9 +32,12 @@ for (const r of rows) {
   const past = history.get(r.pitcher_id) ?? []
   if (r.seq === 0 && r.game_type === 'R') {
     starts++
-    const info = classifyPitcher(past)
+    const tg = teamGames.get(r.team_id) ?? []
+    const info = classifyPitcher(past, { openerGames: tg.slice(0, TEAM_GAMES).filter(Boolean).length })
     const isOpenerGame = r.outs <= OPENER_MAX_OUTS && (second.get(`${r.game_pk}-${r.team_id}`) ?? 0) >= 9
     if (isOpenerGame) openerGames++
+    const ls = past.find(a => a.isStart)
+    if (isOpenerGame && ls && (ls.outs >= 10 || (ls.pitches ?? 0) >= 55)) injured++
     if (info.role === 'opener') {
       flagged++
       if (r.outs <= 9) flaggedUnder3++
@@ -43,6 +48,11 @@ for (const r of rows) {
       misses.push(`${r.game_pk} p${r.pitcher_id} (${past.length} apps antes)`)
     }
   }
+  if (r.seq === 0) {
+    const tg = teamGames.get(r.team_id) ?? []
+    tg.unshift(r.outs <= OPENER_MAX_OUTS && (second.get(`${r.game_pk}-${r.team_id}`) ?? 0) >= 9)
+    teamGames.set(r.team_id, tg)
+  }
   past.unshift({ isStart: r.seq === 0, outs: r.outs, pitches: r.pitches })
   history.set(r.pitcher_id, past)
 }
@@ -52,6 +62,7 @@ console.log(`Temporada regular ${season}: ${starts} aperturas, ${openerGames} ju
 console.log(`Marcados como opener: ${flagged} · salieron con ≤${OPENER_MAX_OUTS} outs: ${flaggedShort} (precisión ${pct(flaggedShort, flagged)})`)
 console.log(`  … con 3 entradas o menos (≤9 outs): ${flaggedUnder3} (${pct(flaggedUnder3, flagged)})`)
 console.log(`Juegos con opener detectados: ${openerCaught}/${openerGames} (cobertura ${pct(openerCaught, openerGames)})`)
+console.log(`  … sin contar abridores normales que salieron temprano (${injured}): ${openerCaught}/${openerGames - injured} (${pct(openerCaught, openerGames - injured)})`)
 console.log(`\nEjemplos marcados que sí lanzaron largo:`, falseFlags.slice(0, 8))
 console.log(`Ejemplos de openers no detectados:`, misses.slice(0, 8))
 await sql.end()

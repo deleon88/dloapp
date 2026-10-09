@@ -5,15 +5,19 @@
 // short outing (an injury or a bad start isn't a pattern):
 //   A) at least 3 of their last 5 starts were 6 outs (2 IP) or fewer, or
 //   B) they're a reliever — 60%+ of their last 10 games (at least 3) in
-//      relief — who goes 2 innings or less on average, and has opened before
-//      (or is a true one-inning arm, 1.5 IP or less): a reliever's first start
-//      is often a spot start, not an opener.
+//      relief — who goes 2 innings or less on average, and has opened before,
+//      is a one-inning arm (1.5 IP or less) or never goes past 2 IP in relief:
+//      otherwise a reliever's first start is often a spot start, not an opener.
+//      Looser on teams that use openers (3+ of their last 30 games): 2
+//      appearances and half of them in relief are enough, first start or not.
 // Never if their latest start already went past 3 innings or 55+ pitches: they're
 // being stretched out (moving into the rotation, back from the IL).
 // A pitcher without history (debut, call-up) counts as a starter.
-// On 2026 (scripts/db/validate-openers.ts): 84% of the flagged starters went
-// 6 outs or fewer and 95% 3 innings or fewer; 69% of the opener games were
-// flagged — most misses are pitchers with almost no appearances that season.
+// On 2026 (scripts/db/validate-openers.ts): 83% of the flagged starters went
+// 6 outs or fewer and 95% 3 innings or fewer. 72% of all games where the
+// starter got <= 6 outs and the next pitcher 9+ were flagged, 87% leaving out
+// regular starters cut short (injury, rough outing) — those aren't openers.
+// Most remaining misses are early-season pitchers with no history yet.
 
 export interface Appearance {
   isStart: boolean
@@ -30,15 +34,24 @@ export interface RoleInfo {
   starts: number        // starts among the last 5
   shortStarts: number   // of those, 6 outs or fewer
   avgOuts: number | null
+  teamOpeners: number   // opener games by the pitcher's team in its last TEAM_GAMES games
+}
+
+export interface TeamContext {
+  /** Opener games (starter <= 6 outs, next pitcher 9+) in the team's last TEAM_GAMES games. */
+  openerGames: number
 }
 
 export const OPENER_MAX_OUTS = 6
 const RECENT_APPS = 10
 const RECENT_STARTS = 5
 const STRETCHED_PITCHES = 55
+export const TEAM_GAMES = 30
+/** A team that opened this many of its last TEAM_GAMES games uses openers. */
+export const TEAM_OPENER_MIN = 3
 
 /** `history` = the pitcher's appearances, newest first. */
-export function classifyPitcher(history: Appearance[]): RoleInfo {
+export function classifyPitcher(history: Appearance[], team?: TeamContext): RoleInfo {
   const recent = history.slice(0, RECENT_APPS)
   const starts = history.filter(a => a.isStart).slice(0, RECENT_STARTS)
   const shortStarts = starts.filter(a => a.outs <= OPENER_MAX_OUTS).length
@@ -51,8 +64,18 @@ export function classifyPitcher(history: Appearance[]): RoleInfo {
   const stretchedOut = lastStart != null && (lastStart.outs >= 10 || (lastStart.pitches ?? 0) >= STRETCHED_PITCHES)
 
   const patternOfShortStarts = shortStarts >= 3
-  const shortReliever = recent.length >= 3 && reliefApps / recent.length >= 0.6 && avgOuts != null && avgOuts <= OPENER_MAX_OUTS
-    && (shortStarts >= 1 || avgOuts <= 4.5)
+  // On a team that uses openers, a short reliever handed the ball is an opener
+  // even the first time, two appearances are enough to tell, and a swingman
+  // who splits starts and relief (half and half) counts too.
+  const teamUsesOpeners = (team?.openerGames ?? 0) >= TEAM_OPENER_MIN
+  // A reliever's first start is an opener, not a spot start, when they've
+  // opened before, are a one-inning arm, or never go long in relief.
+  const reliefOuts = recent.filter(a => !a.isStart).slice(0, 5).map(a => a.outs)
+  const neverLong = reliefOuts.length > 0 && Math.max(...reliefOuts) <= OPENER_MAX_OUTS
+  const shortReliever = recent.length >= (teamUsesOpeners ? 2 : 3)
+    && reliefApps / recent.length >= (teamUsesOpeners ? 0.5 : 0.6)
+    && avgOuts != null && avgOuts <= OPENER_MAX_OUTS
+    && (shortStarts >= 1 || avgOuts <= 4.5 || neverLong || teamUsesOpeners)
 
   return {
     role: (patternOfShortStarts || shortReliever) && !stretchedOut ? 'opener' : 'starter',
@@ -61,5 +84,6 @@ export function classifyPitcher(history: Appearance[]): RoleInfo {
     starts: starts.length,
     shortStarts,
     avgOuts: avgOuts == null ? null : Math.round(avgOuts * 10) / 10,
+    teamOpeners: team?.openerGames ?? 0,
   }
 }

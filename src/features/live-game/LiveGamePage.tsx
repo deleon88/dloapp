@@ -57,9 +57,12 @@ export default function LiveGamePage() {
 
   // Opener or real starter (server, from how each one has been used).
   const rolesQuery = useQuery({
-    queryKey: ['pitcher-roles', ...pitcherIds],
-    queryFn: () => fetchPitcherRoles(pitcherIds),
-    enabled: pitcherIds.length > 0,
+    queryKey: ['pitcher-roles', awayPitcherId, game?.teams.away.team.id, homePitcherId, game?.teams.home.team.id],
+    queryFn: () => fetchPitcherRoles([
+      ...(awayPitcherId ? [{ id: awayPitcherId, teamId: game!.teams.away.team.id }] : []),
+      ...(homePitcherId ? [{ id: homePitcherId, teamId: game!.teams.home.team.id }] : []),
+    ]),
+    enabled: pitcherIds.length > 0 && !!game,
     staleTime: 3_600_000,
   })
   const isOpener = (id?: number) => id != null && rolesQuery.data?.get(id)?.role === 'opener'
