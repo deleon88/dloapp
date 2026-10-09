@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { classifyPitcher, type Appearance } from '../../server/openers/detect.js'
 
-const start = (outs: number): Appearance => ({ isStart: true, outs })
+const start = (outs: number, pitches?: number): Appearance => ({ isStart: true, outs, pitches })
 const relief = (outs: number): Appearance => ({ isStart: false, outs })
 
 test('a regular starter is a starter, even after one short outing', () => {
@@ -21,6 +21,18 @@ test('a short reliever handed the start is an opener', () => {
 
 test('a long reliever moving into the rotation is not', () => {
   assert.equal(classifyPitcher([relief(9), relief(10), relief(8), relief(7)]).role, 'starter')
+})
+
+test('a reliever being stretched out into the rotation is a starter', () => {
+  // Starts getting longer: the latest went 4 innings.
+  assert.equal(classifyPitcher([start(12, 59), start(8, 45), relief(3), relief(3), relief(2), relief(3)]).role, 'starter')
+  // Or 50+ pitches even with few outs.
+  assert.equal(classifyPitcher([start(5, 62), start(3), start(4), start(5)]).role, 'starter')
+})
+
+test("a reliever's first start is a spot start unless they're a one-inning arm", () => {
+  assert.equal(classifyPitcher([relief(6), relief(5), relief(6), relief(4)]).role, 'starter')
+  assert.equal(classifyPitcher([relief(3), relief(4), relief(3), relief(5)]).role, 'opener')
 })
 
 test('no history: starter', () => {

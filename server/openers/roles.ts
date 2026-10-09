@@ -8,9 +8,9 @@ import { classifyPitcher, type Appearance, type RoleInfo } from './detect.js'
  */
 export async function getPitcherRoles(pitcherIds: number[], beforeDate?: string): Promise<Map<number, RoleInfo>> {
   if (!pitcherIds.length) return new Map()
-  const rows = await sql<Array<{ pitcher_id: number; seq: number; outs: number }>>`
-    SELECT pitcher_id, seq, outs FROM (
-      SELECT a.pitcher_id, a.seq, a.outs,
+  const rows = await sql<Array<{ pitcher_id: number; seq: number; outs: number; pitches: number }>>`
+    SELECT pitcher_id, seq, outs, pitches FROM (
+      SELECT a.pitcher_id, a.seq, a.outs, a.pitches,
              row_number() OVER (PARTITION BY a.pitcher_id ORDER BY g.game_date DESC, g.game_time DESC NULLS LAST) AS rn
       FROM pitcher_appearances a JOIN games g USING (game_pk)
       WHERE a.pitcher_id = ANY(${pitcherIds}) AND g.game_type <> 'S'
@@ -22,7 +22,7 @@ export async function getPitcherRoles(pitcherIds: number[], beforeDate?: string)
   const history = new Map<number, Appearance[]>()
   for (const r of rows) {
     const list = history.get(r.pitcher_id) ?? []
-    list.push({ isStart: r.seq === 0, outs: r.outs })
+    list.push({ isStart: r.seq === 0, outs: r.outs, pitches: r.pitches })
     history.set(r.pitcher_id, list)
   }
   return new Map(pitcherIds.map(id => [id, classifyPitcher(history.get(id) ?? [])]))
