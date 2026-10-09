@@ -18,9 +18,9 @@
 }
 
 /* ── Pitcher headers ─────────────────────────────────────────────── */
-.pitcherRow {
-  border-bottom: 1px solid var(--border);
-}
+/* No divider under the header: the photos run down behind the bars, a line
+   would cut across them. */
+.pitcherRow { position: relative; }
 
 .sidesRow {
   position: relative;
@@ -29,11 +29,12 @@
   min-height: var(--header-min);
 }
 
+/* Level with the names, up top (not centered: the chips sit lower) */
 .glossaryBtn {
   position: absolute;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  top: 20px;
+  transform: translateX(-50%);
   z-index: 2;
   width: 18px;
   height: 18px;
@@ -130,6 +131,7 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  max-width: 100%;
 }
 
 /* First name small over the last name, like a TV graphic */
@@ -286,10 +288,13 @@
 
 /* Hand and (when it applies) "Opener" chips under the record — same look as
    the schedule's "Projected lineup" tag */
+/* Chips wrap instead of spilling into the other half */
 .tagRow {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: 6px;
+  max-width: 100%;
 }
 
 .pitcherSideRight .tagRow { justify-content: flex-end; }
@@ -307,4 +312,14 @@
   text-transform: uppercase;
   white-space: nowrap;
   line-height: 1;
+}
+
+/* Narrow phones (SE / 320-360px): smaller photo so the last name fits */
+@media (max-width: 360px) {
+  .card { --photo-size: 104px; --photo-gutter: 62px; --header-min: 92px; }
+  .heroAway { left: -24px; }
+  .heroHome { right: -24px; }
+  .pitcherSide { padding-right: 12px; }
+  .pitcherSideRight { padding-left: 12px; padding-right: var(--photo-gutter); }
+  .pitcherName { font-size: 0.84rem; }
 }
