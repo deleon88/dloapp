@@ -288,10 +288,10 @@
 
 /* Hand and (when it applies) "Opener" chips under the record — same look as
    the schedule's "Projected lineup" tag */
-/* Chips wrap instead of spilling into the other half */
+/* Chips stay on one line and shrink to fit their half (smaller on narrow phones) */
 .tagRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   margin-top: 6px;
   max-width: 100%;
@@ -322,4 +322,6 @@
   .pitcherSide { padding-right: 12px; }
   .pitcherSideRight { padding-left: 12px; padding-right: var(--photo-gutter); }
   .pitcherName { font-size: 0.84rem; }
+  .tagRow { gap: 3px; }
+  .tag { padding: 3px 4px; font-size: 0.44rem; letter-spacing: 0.02em; }
 }
