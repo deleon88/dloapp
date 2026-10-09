@@ -50,8 +50,13 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
       {/* TV-graphic look: a big faded team logo behind each half, and each
           pitcher's cutout on its outer edge, fading out behind the bars. */}
       <div className={styles.hero} data-card-bg aria-hidden="true">
-        {awayTeamId && <img className={`${styles.heroLogo} ${styles.heroLogoAway}`} src={TEAM_LOGO(awayTeamId)} alt="" />}
-        {homeTeamId && <img className={`${styles.heroLogo} ${styles.heroLogoHome}`} src={TEAM_LOGO(homeTeamId)} alt="" />}
+        {/* Each logo is clipped to its own half, so they never meet in the middle */}
+        <div className={`${styles.heroHalf} ${styles.heroHalfAway}`}>
+          {awayTeamId && <img className={styles.heroLogo} src={TEAM_LOGO(awayTeamId)} alt="" />}
+        </div>
+        <div className={`${styles.heroHalf} ${styles.heroHalfHome}`}>
+          {homeTeamId && <img className={styles.heroLogo} src={TEAM_LOGO(homeTeamId)} alt="" />}
+        </div>
         {away.info && <img key={away.info.id} className={`${styles.heroPhoto} ${styles.heroAway}`} src={CUTOUT(away.info.id)} alt="" />}
         {home.info && <img key={home.info.id} className={`${styles.heroPhoto} ${styles.heroHome}`} src={CUTOUT(home.info.id)} alt="" />}
       </div>

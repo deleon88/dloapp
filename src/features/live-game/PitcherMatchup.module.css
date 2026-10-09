@@ -101,11 +101,24 @@
 .heroAway { left: -26px; }
 .heroHome { right: -26px; }
 
-/* Big faded team logo behind each half (under the photo) */
+/* Big faded team logo behind each half (under the photo), clipped to that half */
+.heroHalf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  overflow: hidden;
+}
+
+.heroHalfAway { left: 0; }
+.heroHalfHome { right: 0; }
+
+/* Toward the middle (behind the name, beside the photo) but whole, inside its half */
 .heroLogo {
   position: absolute;
   top: -6px;
-  width: 150px;
+  right: 6%;
+  width: min(150px, 86%);
   height: 150px;
   object-fit: contain;
   opacity: 0.08;
@@ -113,8 +126,7 @@
           mask-image: linear-gradient(to bottom, #000 40%, transparent 95%);
 }
 
-.heroLogoAway { left: calc(25% - 75px + 24px); }
-.heroLogoHome { right: calc(25% - 75px + 24px); }
+.heroHalfHome .heroLogo { right: auto; left: 6%; }
 
 @keyframes heroIn {
   from { opacity: 0; transform: translateY(6px); }
@@ -276,9 +288,7 @@
 
 @media (max-width: 480px) {
   .card { --photo-size: 124px; --photo-gutter: 84px; --header-min: 96px; }
-  .heroLogo { width: 118px; height: 118px; }
-  .heroLogoAway { left: calc(25% - 59px + 20px); }
-  .heroLogoHome { right: calc(25% - 59px + 20px); }
+  .heroLogo { width: min(118px, 86%); height: 118px; }
   .firstName { font-size: 0.52rem; }
   .pitcherSide { padding: 12px 14px 8px var(--photo-gutter); }
   .pitcherSideRight { padding: 12px var(--photo-gutter) 8px 14px; }
