@@ -8,11 +8,11 @@
 //      relief — who goes 2 innings or less on average, and has opened before
 //      (or is a true one-inning arm, 1.5 IP or less): a reliever's first start
 //      is often a spot start, not an opener.
-// Never if their latest start already went 3+ innings or 50+ pitches: they're
+// Never if their latest start already went past 3 innings or 55+ pitches: they're
 // being stretched out (moving into the rotation, back from the IL).
 // A pitcher without history (debut, call-up) counts as a starter.
 // On 2026 (scripts/db/validate-openers.ts): 84% of the flagged starters went
-// 6 outs or fewer and 95% 3 innings or fewer; 67% of the opener games were
+// 6 outs or fewer and 95% 3 innings or fewer; 69% of the opener games were
 // flagged — most misses are pitchers with almost no appearances that season.
 
 export interface Appearance {
@@ -35,7 +35,7 @@ export interface RoleInfo {
 export const OPENER_MAX_OUTS = 6
 const RECENT_APPS = 10
 const RECENT_STARTS = 5
-const STRETCHED_PITCHES = 50
+const STRETCHED_PITCHES = 55
 
 /** `history` = the pitcher's appearances, newest first. */
 export function classifyPitcher(history: Appearance[]): RoleInfo {
@@ -45,10 +45,10 @@ export function classifyPitcher(history: Appearance[]): RoleInfo {
   const reliefApps = recent.filter(a => !a.isStart).length
   const avgOuts = recent.length ? recent.reduce((s, a) => s + a.outs, 0) / recent.length : null
 
-  // Being stretched out: the latest start already went 3+ innings or 50+
+  // Being stretched out: the latest start already went past 3 innings or 55+
   // pitches (a reliever moving into the rotation, a starter back from the IL).
   const lastStart = starts[0]
-  const stretchedOut = lastStart != null && (lastStart.outs >= 9 || (lastStart.pitches ?? 0) >= STRETCHED_PITCHES)
+  const stretchedOut = lastStart != null && (lastStart.outs >= 10 || (lastStart.pitches ?? 0) >= STRETCHED_PITCHES)
 
   const patternOfShortStarts = shortStarts >= 3
   const shortReliever = recent.length >= 3 && reliefApps / recent.length >= 0.6 && avgOuts != null && avgOuts <= OPENER_MAX_OUTS
