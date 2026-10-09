@@ -8,8 +8,6 @@ import CardBgLayers from './CardBgLayers'
 import CardModal from './CardModal'
 import MatchupBar from '@/components/MatchupBar/MatchupBar'
 import styles from './PitcherMatchup.module.css'
-import type { BulkArm } from '@/api/pitcherRoles'
-import { BULLPEN_CARD_ID } from './BullpenCard'
 
 interface Props {
   awayPitcher?: PitcherInfo
@@ -20,35 +18,24 @@ interface Props {
   homeBarColor?: string
   awayPitcherName?: string
   homePitcherName?: string
-  /** Probable starter is an opener (an inning or two, then the bullpen). */
+  /** Probable starter is an opener (an inning or two, then the bullpen): tagged. */
   awayOpener?: boolean
   homeOpener?: boolean
-  /** Probable bulk arm behind each opener, when the prediction is confident. */
-  awayBulk?: BulkArm
-  homeBulk?: BulkArm
-  /** The bulk arms' numbers (same period / hand filters as the starters). */
-  awayBulkInfo?: PitcherInfo
-  homeBulkInfo?: PitcherInfo
   mode: ViewMode
-  /** Shared card view: "Bullpen" on an opener's side switches it to that team. */
-  onModeChange?: (m: ViewMode) => void
 }
 
 // MLB's cutout portrait (transparent background); MLB serves a generic silhouette when there's none.
 const CUTOUT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:silo:current.png/w_240,q_auto:best,f_auto/v1/people/${id}/headshot/silo/current`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, awayBulkInfo, homeBulkInfo, mode, onModeChange }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
-  // Behind an opener, the card can show either arm; the opener (the listed starter) by default.
-  const [awayRole, setAwayRole] = useState<SideRole>('opener')
-  const [homeRole, setHomeRole] = useState<SideRole>('opener')
   const t = useT()
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
 
-  const away = sideView(awayPitcher, awayPitcherName, awayOpener, awayBulk, awayBulkInfo, awayRole)
-  const home = sideView(homePitcher, homePitcherName, homeOpener, homeBulk, homeBulkInfo, homeRole)
+  const away: SideView = { info: awayPitcher, name: awayPitcher?.fullName ?? awayPitcherName ?? 'TBD', opener: !!awayOpener }
+  const home: SideView = { info: homePitcher, name: homePitcher?.fullName ?? homePitcherName ?? 'TBD', opener: !!homeOpener }
   const as = away.info?.seasonStats
   const hs = home.info?.seasonStats
 
@@ -56,23 +43,15 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
       {/* Each pitcher's cutout against the team colors, on the outer edge of their
-          half, fading out behind the bars. Keyed by id: switching opener/bulk fades in. */}
+          half, fading out behind the bars. */}
       <div className={styles.hero} data-card-bg aria-hidden="true">
         {away.info && <img key={away.info.id} className={`${styles.heroPhoto} ${styles.heroAway}`} src={CUTOUT(away.info.id)} alt="" />}
         {home.info && <img key={home.info.id} className={`${styles.heroPhoto} ${styles.heroHome}`} src={CUTOUT(home.info.id)} alt="" />}
       </div>
 
       {/* ── Pitcher headers ────────────────────────────────────────── */}
-      {/* The Opener | Bulk switches get their own row across both halves, so the
-          two pitchers always line up whichever side has one. */}
       <div className={styles.pitcherRow}>
-        {(away.opener || home.opener) && (
-          <div className={styles.switchRow}>
-            <div className={styles.switchCell}>{away.opener && <RoleSwitch view={away} onRole={setAwayRole} onBullpen={() => goToBullpen('away', onModeChange)} />}</div>
-            <div className={styles.switchCell}>{home.opener && <RoleSwitch view={home} onRole={setHomeRole} onBullpen={() => goToBullpen('home', onModeChange)} />}</div>
-          </div>
-        )}
-        <div className={`${styles.sidesRow} ${away.opener || home.opener ? styles.sidesRowUnderSwitch : ''}`}>
+        <div className={styles.sidesRow}>
           <PitcherHeader side="away" view={away} />
           <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
           <PitcherHeader side="home" view={home} />
@@ -130,65 +109,12 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
   )
 }
 
-/* ── Opener / bulk ───────────────────────────────────────────────── */
-
-type SideRole = 'opener' | 'bulk'
+/* ── Pitcher header ──────────────────────────────────────────────── */
 
 interface SideView {
-  info?: PitcherInfo      // the arm shown (its numbers drive the bars and chips)
+  info?: PitcherInfo
   name: string
-  opener: boolean         // the probable starter is an opener
-  bulk?: BulkArm          // probable bulk arm, when named
-  role: SideRole          // which one is shown (only matters with a bulk)
-}
-
-function sideView(probable: PitcherInfo | undefined, fallbackName: string | undefined, opener: boolean | undefined,
-  bulk: BulkArm | undefined, bulkInfo: PitcherInfo | undefined, role: SideRole): SideView {
-  const openerName = probable?.fullName ?? fallbackName ?? 'TBD'
-  const showBulk = !!opener && !!bulk && role === 'bulk'
-  return {
-    info: showBulk ? bulkInfo : probable,
-    name: showBulk ? bulk!.fullName : openerName,
-    opener: !!opener,
-    bulk: opener ? bulk : undefined,
-    role: showBulk ? 'bulk' : 'opener',
-  }
-}
-
-/**
- * Opener | Bulk, same segmented style as the lineup card's switch: switches the
- * arm shown. Without a named bulk arm it's Opener | Bullpen, and "Bullpen"
- * takes you to that team's bullpen card.
- */
-function RoleSwitch({ view, onRole, onBullpen }: { view: SideView; onRole: (r: SideRole) => void; onBullpen: () => void }) {
-  const t = useT()
-  if (!view.bulk) {
-    return (
-      <div className={styles.roleTrack} title={t('openerNote')}>
-        <div className={styles.rolePill} />
-        <button type="button" className={`${styles.roleSegment} ${styles.roleSegmentActive}`} aria-current="true">
-          {t('opener')}
-        </button>
-        <button type="button" className={styles.roleSegment} onClick={onBullpen}>
-          {t('bullpen')}
-        </button>
-      </div>
-    )
-  }
-  return (
-    <>
-      <div className={styles.roleTrack} role="tablist" aria-label={t('openerOrBulk')} title={t('bulkTitle')}>
-        <div className={styles.rolePill} style={{ transform: `translateX(${view.role === 'bulk' ? 100 : 0}%)` }} />
-        {(['opener', 'bulk'] as const).map(r => (
-          <button key={r} type="button" role="tab" aria-selected={view.role === r}
-            className={`${styles.roleSegment} ${view.role === r ? styles.roleSegmentActive : ''}`}
-            onClick={() => onRole(r)}>
-            {r === 'bulk' ? t('bulkTag') : t('opener')}
-          </button>
-        ))}
-      </div>
-    </>
-  )
+  opener: boolean     // the probable starter is an opener
 }
 
 function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }) {
@@ -206,30 +132,11 @@ function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }
             {s.wins}-{s.losses} · {s.inningsPitched} IP · {s.qualityStarts} QS
           </div>
         )}
-        {/* The bulk arm is our prediction, never MLB's: always marked as projected. */}
-        {view.role === 'bulk' && <span className={styles.projectedTag} title={t('bulkTitle')}>{t('projected')}</span>}
+        {/* Same look as the schedule's "Projected lineup" tag */}
+        {view.opener && <span className={styles.openerTag} title={t('openerNote')}>{t('opener')}</span>}
       </div>
     </div>
   )
-}
-
-/**
- * Shows that team's side (the view is shared by the cards, like their own
- * switches), then scrolls to the bullpen card and highlights it for a moment.
- */
-function goToBullpen(side: 'away' | 'home', setMode?: (m: ViewMode) => void) {
-  setMode?.(side)
-  // Wait for the new view to render: the cards above change height with it.
-  window.setTimeout(() => {
-    const card = document.getElementById(BULLPEN_CARD_ID)
-    if (!card) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
-    card.removeAttribute('data-flash')
-    void card.offsetWidth   // restart the animation if tapped twice
-    card.setAttribute('data-flash', '')
-    window.setTimeout(() => card.removeAttribute('data-flash'), 1300)
-  }, 60)
 }
 
 /* ── Chip view ───────────────────────────────────────────────────── */

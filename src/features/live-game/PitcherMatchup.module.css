@@ -22,40 +22,12 @@
   border-bottom: 1px solid var(--border);
 }
 
-/* Opener | Bulk switches: their own row, one cell per team */
-.switchRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  padding: 6px 10px 0;
-}
-
-/* Switch, lined up with the pitcher's name (inner side, clear of the photo) */
-.switchCell {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
-  min-width: 0;
-  padding-left: var(--photo-gutter);
-}
-
-.switchCell + .switchCell {
-  justify-content: flex-end;
-  padding-left: 0;
-  padding-right: var(--photo-gutter);
-}
-
 .sidesRow {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: var(--header-min);
 }
-
-/* Right under the switches: less top padding (same on both sides, so they stay aligned) */
-.sidesRowUnderSwitch .pitcherSide { padding-top: 4px; }
-
-
 
 .glossaryBtn {
   position: absolute;
@@ -280,79 +252,21 @@
   .pitcherRecord { font-size: 0.55rem; }
 }
 
-/* ── Opener / bulk ───────────────────────────────────────────────── */
-/* Opener | Bulk — same look as the lineup card's segmented switch, centered
-   in its team's half. */
-.roleTrack {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  flex: 0 1 104px;
-  min-width: 0;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-
-
-
-.rolePill {
-  position: absolute;
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
-  width: calc(50% - 2px);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid var(--border-active);
-  border-radius: var(--radius-md);
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-}
-
-.roleSegment {
-  position: relative;
-  z-index: 1;
-  padding: 2px 4px;
-  background: none;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.5rem;
-  font-weight: 700;
-  font-family: var(--font-body);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: color 0.18s ease;
-  white-space: nowrap;
-}
-
-.roleSegment:hover:not(:disabled) { color: var(--text-secondary); }
-.roleSegmentActive { color: var(--text-primary); }
-.roleSegment:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
-
-
-@media (prefers-reduced-motion: reduce) {
-  .rolePill { transition: none; }
-}
-
-/* "Projected" under the bulk arm — a compact version of the lineup card's status pill */
-.projectedTag {
+/* "Opener" under the record — same look as the schedule's "Projected lineup" tag */
+.openerTag {
   align-self: flex-start;
-  margin-top: 3px;
-  white-space: nowrap;
-  padding: 2px 6px;
+  margin-top: 5px;
+  padding: 5px 8px;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--border-active);
-  color: var(--text-secondary);
-  font-size: 0.5rem;
-  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.55rem;
+  font-weight: 600;
   font-family: var(--font-body);
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  line-height: 1.2;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-
-.pitcherSideRight .projectedTag { align-self: flex-end; }
+.pitcherSideRight .openerTag { align-self: flex-end; }
