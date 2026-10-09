@@ -224,24 +224,24 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-self: center;
-  width: min(100%, 168px);
-  margin: 10px auto 0;
-  padding: 3px;
+  width: min(100%, 112px);
+  margin: 8px auto -6px;   /* pulls the pitcher row up: little height added */
+  padding: 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
 }
 
 .roleTrackSingle {
   grid-template-columns: 1fr;
-  width: min(100%, 84px);
+  width: min(100%, 56px);
 }
 
 .rolePill {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc(50% - 3px);
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--border-active);
   border-radius: var(--radius-md);
@@ -252,11 +252,11 @@
 .roleSegment {
   position: relative;
   z-index: 1;
-  padding: 5px 4px;
+  padding: 2px 4px;
   background: none;
   border: none;
   border-radius: var(--radius-md);
-  font-size: 0.6rem;
+  font-size: 0.5rem;
   font-weight: 700;
   font-family: var(--font-body);
   letter-spacing: 0.05em;
