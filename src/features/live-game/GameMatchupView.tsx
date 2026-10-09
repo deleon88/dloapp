@@ -51,6 +51,8 @@ interface Props {
   bullpenLoading?: boolean
   awayLast5?: GameResult[]
   homeLast5?: GameResult[]
+  awayOpener?: boolean
+  homeOpener?: boolean
 }
 
 export default function GameMatchupView({
@@ -66,6 +68,8 @@ export default function GameMatchupView({
   bullpenLoading,
   awayLast5,
   homeLast5,
+  awayOpener,
+  homeOpener,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>('comparison')
   const t = useT()
@@ -180,6 +184,8 @@ export default function GameMatchupView({
         homeBarColor={hcBar}
         awayPitcherName={teams.away.probablePitcher?.fullName}
         homePitcherName={teams.home.probablePitcher?.fullName}
+        awayOpener={awayOpener}
+        homeOpener={homeOpener}
         mode={mode}
       />
 

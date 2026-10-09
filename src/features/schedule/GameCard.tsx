@@ -21,6 +21,8 @@ interface Props {
   homePitchHand?: string;
   awayLineupStatus?: LineupStatus;
   homeLineupStatus?: LineupStatus;
+  awayOpener?: boolean;       // probable starter is an opener: starters bar blended with the bullpen
+  homeOpener?: boolean;
   animDelay?: number;
 }
 
@@ -36,6 +38,8 @@ export default function GameCard({
   homePitchHand,
   awayLineupStatus,
   homeLineupStatus,
+  awayOpener,
+  homeOpener,
   animDelay = 0,
 }: Props) {
   const { teams, gamePk, gameDate, venue } = game;
@@ -75,6 +79,7 @@ export default function GameCard({
           pitchHand={awayPitchHand}
           color={ac}
           lineupStatus={awayLineupStatus}
+          opener={awayOpener}
         />
         <TeamSide
           teamId={teams.home.team.id}
@@ -86,6 +91,7 @@ export default function GameCard({
           pitchHand={homePitchHand}
           color={hc}
           lineupStatus={homeLineupStatus}
+          opener={homeOpener}
         />
       </div>
 
@@ -114,6 +120,7 @@ function TeamSide({
   pitchHand,
   color,
   lineupStatus,
+  opener,
 }: {
   teamId: number;
   city: string;
@@ -124,7 +131,9 @@ function TeamSide({
   pitchHand?: string;
   color: string;
   lineupStatus?: LineupStatus;
+  opener?: boolean;
 }) {
+  const t = useT();
   return (
     <div className={styles.teamSide}>
       <div
@@ -149,6 +158,7 @@ function TeamSide({
           <div className={styles.pitcher}>{fmtName(pitcher)}</div>
           <div className={styles.pitcherHand}>
             {pitchHand ? `${pitchHand}HP` : "TBD"}
+            {opener && <span className={styles.openerTag} title={t("openerBlend")}>{t("opener")}</span>}
           </div>
         </>
       )}

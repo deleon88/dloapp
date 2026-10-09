@@ -221,3 +221,21 @@
   .pitcherRecord { font-size: 0.58rem; }
   .pitcherMeta { font-size: 0.54rem; }
 }
+
+/* Opener: tag next to the hand, and a note under the record */
+.openerTag {
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.openerNote {
+  margin-top: 2px;
+  font-size: 0.6rem;
+  color: #fbbf24;
+  opacity: 0.85;
+}

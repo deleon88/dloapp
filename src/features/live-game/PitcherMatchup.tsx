@@ -18,13 +18,16 @@ interface Props {
   homeBarColor?: string
   awayPitcherName?: string
   homePitcherName?: string
+  /** Probable starter is an opener (an inning or two, then the bullpen). */
+  awayOpener?: boolean
+  homeOpener?: boolean
   mode: ViewMode
 }
 
 const HEADSHOT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
   const ac = awayBarColor ?? awayColor
@@ -52,6 +55,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
             <div className={styles.pitcherMeta}>
               {awayPitcher?.primaryNumber && <span>#{awayPitcher.primaryNumber}</span>}
               {awayPitcher?.pitchHand && <span>· {awayPitcher.pitchHand}</span>}
+              {awayOpener && <span className={styles.openerTag}>{t('opener')}</span>}
             </div>
             <div className={styles.pitcherName}>{awayPitcher?.fullName ?? awayPitcherName ?? 'TBD'}</div>
             {as && (
@@ -59,6 +63,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
                 {as.wins}-{as.losses} · {as.inningsPitched} IP · {as.qualityStarts} QS
               </div>
             )}
+            {awayOpener && <div className={styles.openerNote}>{t('openerNote')}</div>}
           </div>
         </div>
 
@@ -68,6 +73,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
         <div className={`${styles.pitcherSide} ${styles.pitcherSideRight}`}>
           <div className={styles.pitcherInfo} style={{ textAlign: 'right' }}>
             <div className={styles.pitcherMeta} style={{ justifyContent: 'flex-end' }}>
+              {homeOpener && <span className={styles.openerTag}>{t('opener')}</span>}
               {homePitcher?.pitchHand && <span>{homePitcher.pitchHand} ·</span>}
               {homePitcher?.primaryNumber && <span>#{homePitcher.primaryNumber}</span>}
             </div>
@@ -77,6 +83,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
                 {hs.wins}-{hs.losses} · {hs.inningsPitched} IP · {hs.qualityStarts} QS
               </div>
             )}
+            {homeOpener && <div className={styles.openerNote}>{t('openerNote')}</div>}
           </div>
           {homePitcher && (
             <img

@@ -61,6 +61,10 @@ export const translations = {
     signInPitch: 'Pick winners, climb the rankings and use the stat filters.',
     googleCreatesAccount: 'Your first Google sign-in creates your account.',
     filtersNeedAccount: 'Log in to use the filters',
+    // Openers
+    opener: 'Opener',
+    openerNote: '~1–2 IP, then the bullpen',
+    openerBlend: 'Opener: blended with the team bullpen, which covers most of the starter innings',
     // Votes
     whoWins: 'Who wins this game?',
     yourVote: 'Your pick: {team}',
@@ -246,6 +250,10 @@ export const translations = {
     signInPitch: 'Elige ganadores, sube en el ranking y usa los filtros de estadísticas.',
     googleCreatesAccount: 'Tu primer acceso con Google crea tu cuenta.',
     filtersNeedAccount: 'Inicia sesión para usar los filtros',
+    // Openers
+    opener: 'Opener',
+    openerNote: '~1–2 entradas, luego el bullpen',
+    openerBlend: 'Opener: combinado con el bullpen del equipo, que cubre la mayoría de las entradas del abridor',
     // Votes
     whoWins: '¿Quién gana este juego?',
     yourVote: 'Tu voto: {team}',

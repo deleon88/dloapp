@@ -8,6 +8,7 @@ import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { applyPitcherHand, fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
+import { fetchPitcherRoles, starterValue } from '@/api/pitcherRoles'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { batterSplitFor } from '@/utils/handFilter'
 import { useStatFilters } from '@/utils/useStatFilters'
@@ -69,6 +70,15 @@ export default function SchedulePage() {
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
+
+  // Opener or real starter: an opener's bar is blended with the team bullpen.
+  const rolesQuery = useQuery({
+    queryKey: ['pitcher-roles', ...pitcherIds.slice().sort((a, b) => a - b)],
+    queryFn: () => fetchPitcherRoles(pitcherIds),
+    enabled: pitcherIds.length > 0,
+    staleTime: 3_600_000,
+  })
+  const isOpener = (id?: number) => id != null && rolesQuery.data?.get(id)?.role === 'opener'
 
   const uniqueTeamIds = [...new Set(games.flatMap(g => [g.teams.away.team.id, g.teams.home.team.id]))]
 
@@ -231,8 +241,10 @@ export default function SchedulePage() {
               game={game}
               awayWrc={awayWrc}
               homeWrc={homeWrc}
-              awayFipPlus={awayFipMinus ? fipPlus(awayFipMinus) : undefined}
-              homeFipPlus={homeFipMinus ? fipPlus(homeFipMinus) : undefined}
+              awayFipPlus={starterValue(awayFipMinus ? fipPlus(awayFipMinus) : undefined, isOpener(awayPitcherId), bullpenFipPlus?.get(game.teams.away.team.id))}
+              homeFipPlus={starterValue(homeFipMinus ? fipPlus(homeFipMinus) : undefined, isOpener(homePitcherId), bullpenFipPlus?.get(game.teams.home.team.id))}
+              awayOpener={isOpener(awayPitcherId)}
+              homeOpener={isOpener(homePitcherId)}
               awayBullpenFipPlus={bullpenFipPlus?.get(game.teams.away.team.id)}
               homeBullpenFipPlus={bullpenFipPlus?.get(game.teams.home.team.id)}
               awayPitchHand={awayPitcherId ? pitchHands?.get(awayPitcherId) : undefined}

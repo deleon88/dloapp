@@ -171,3 +171,17 @@
   white-space: nowrap;
   line-height: 1;
 }
+
+/* Opener: tag next to the starter's hand (the starters bar is blended with the bullpen) */
+.openerTag {
+  margin-left: 5px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
