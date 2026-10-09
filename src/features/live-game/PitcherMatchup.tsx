@@ -21,14 +21,19 @@ interface Props {
   /** Probable starter is an opener (an inning or two, then the bullpen): tagged. */
   awayOpener?: boolean
   homeOpener?: boolean
+  /** For the team logos behind each half. */
+  awayTeamId?: number
+  homeTeamId?: number
   mode: ViewMode
 }
 
 // MLB's cutout portrait (transparent background); MLB serves a generic silhouette when there's none.
 const CUTOUT = (id: number) =>
-  `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:silo:current.png/w_240,q_auto:best,f_auto/v1/people/${id}/headshot/silo/current`
+  `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:silo:current.png/w_280,q_auto:best,f_auto/v1/people/${id}/headshot/silo/current`
+// Team's primary logo, the version made for dark backgrounds.
+const TEAM_LOGO = (teamId: number) => `https://www.mlbstatic.com/team-logos/team-primary-on-dark/${teamId}.svg`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayTeamId, homeTeamId, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
   const ac = awayBarColor ?? awayColor
@@ -42,9 +47,11 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
   return (
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
-      {/* Each pitcher's cutout against the team colors, on the outer edge of their
-          half, fading out behind the bars. */}
+      {/* TV-graphic look: a big faded team logo behind each half, and each
+          pitcher's cutout on its outer edge, fading out behind the bars. */}
       <div className={styles.hero} data-card-bg aria-hidden="true">
+        {awayTeamId && <img className={`${styles.heroLogo} ${styles.heroLogoAway}`} src={TEAM_LOGO(awayTeamId)} alt="" />}
+        {homeTeamId && <img className={`${styles.heroLogo} ${styles.heroLogoHome}`} src={TEAM_LOGO(homeTeamId)} alt="" />}
         {away.info && <img key={away.info.id} className={`${styles.heroPhoto} ${styles.heroAway}`} src={CUTOUT(away.info.id)} alt="" />}
         {home.info && <img key={home.info.id} className={`${styles.heroPhoto} ${styles.heroHome}`} src={CUTOUT(home.info.id)} alt="" />}
       </div>
@@ -121,19 +128,24 @@ function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }
   const t = useT()
   const right = side === 'home'
   const s = view.info?.seasonStats
+  // TV style: first name small on top, last name big. "Ranger Suarez" → RANGER / SUAREZ.
+  const [first, ...rest] = view.name.split(' ')
+  const last = rest.join(' ') || first
+  const hand = view.info?.pitchHand
 
-  // The photo is drawn behind (see .hero); this is the text, on the inner side.
+  // The photo and logo are drawn behind (see .hero); this is the text, on the inner side.
   return (
     <div className={`${styles.pitcherSide} ${right ? styles.pitcherSideRight : ''}`}>
       <div className={styles.pitcherInfo}>
-        <div className={styles.pitcherName}>{view.name}</div>
-        {s && (
-          <div className={styles.pitcherRecord}>
-            {s.wins}-{s.losses} · {s.inningsPitched} IP · {s.qualityStarts} QS
+        {rest.length > 0 && <div className={styles.firstName}>{first}</div>}
+        <div className={styles.pitcherName} title={view.name}>{last}</div>
+        {s && <div className={styles.pitcherRecord}>{s.wins}-{s.losses} · {s.inningsPitched} IP</div>}
+        {(hand || view.opener) && (
+          <div className={styles.tagRow}>
+            {hand && <span className={styles.tag}>{hand}HP</span>}
+            {view.opener && <span className={styles.tag} title={t('openerNote')}>{t('opener')}</span>}
           </div>
         )}
-        {/* Same look as the schedule's "Projected lineup" tag */}
-        {view.opener && <span className={styles.openerTag} title={t('openerNote')}>{t('opener')}</span>}
       </div>
     </div>
   )

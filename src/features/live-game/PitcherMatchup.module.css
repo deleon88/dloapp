@@ -76,9 +76,9 @@
 
 /* ── Hero photos ──────────────────────────────────────────────────── */
 .card {
-  --photo-size: 120px;      /* cutout height */
-  --photo-gutter: 84px;     /* room kept clear for it next to the text */
-  --header-min: 84px;
+  --photo-size: 140px;      /* cutout height */
+  --photo-gutter: 96px;     /* room kept clear for it next to the text */
+  --header-min: 104px;
 }
 
 .hero { overflow: hidden; }
@@ -97,8 +97,23 @@
   animation: heroIn 0.35s ease-out both;
 }
 
-.heroAway { left: -18px; }
-.heroHome { right: -18px; }
+.heroAway { left: -26px; }
+.heroHome { right: -26px; }
+
+/* Big faded team logo behind each half (under the photo) */
+.heroLogo {
+  position: absolute;
+  top: -6px;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  opacity: 0.08;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 95%);
+          mask-image: linear-gradient(to bottom, #000 40%, transparent 95%);
+}
+
+.heroLogoAway { left: calc(25% - 75px + 24px); }
+.heroLogoHome { right: calc(25% - 75px + 24px); }
 
 @keyframes heroIn {
   from { opacity: 0; transform: translateY(6px); }
@@ -117,13 +132,26 @@
   min-width: 0;
 }
 
-.pitcherName {
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: var(--text-primary);
+/* First name small over the last name, like a TV graphic */
+.firstName {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
   line-height: 1.2;
-  overflow-wrap: break-word;
-  word-break: break-word;
+}
+
+.pitcherName {
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  line-height: 1.1;
   overflow: hidden;
 }
 
@@ -131,7 +159,7 @@
   font-size: 0.6rem;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  margin-top: 1px;
+  margin-top: 4px;
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
@@ -245,28 +273,38 @@
 }
 
 @media (max-width: 480px) {
-  .card { --photo-size: 108px; --photo-gutter: 74px; --header-min: 76px; }
+  .card { --photo-size: 124px; --photo-gutter: 84px; --header-min: 96px; }
+  .heroLogo { width: 118px; height: 118px; }
+  .heroLogoAway { left: calc(25% - 59px + 20px); }
+  .heroLogoHome { right: calc(25% - 59px + 20px); }
+  .firstName { font-size: 0.52rem; }
   .pitcherSide { padding: 12px 14px 8px var(--photo-gutter); }
   .pitcherSideRight { padding: 12px var(--photo-gutter) 8px 14px; }
-  .pitcherName { font-size: 0.86rem; }
+  .pitcherName { font-size: 0.92rem; }
   .pitcherRecord { font-size: 0.55rem; }
 }
 
-/* "Opener" under the record — same look as the schedule's "Projected lineup" tag */
-.openerTag {
-  align-self: flex-start;
-  margin-top: 5px;
-  padding: 5px 8px;
+/* Hand and (when it applies) "Opener" chips under the record — same look as
+   the schedule's "Projected lineup" tag */
+.tagRow {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.pitcherSideRight .tagRow { justify-content: flex-end; }
+
+.tag {
+  padding: 4px 7px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-active);
+  background: rgba(0, 0, 0, 0.18);
   color: var(--text-primary);
-  font-size: 0.55rem;
-  font-weight: 600;
+  font-size: 0.52rem;
+  font-weight: 700;
   font-family: var(--font-body);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
   line-height: 1;
 }
-
-.pitcherSideRight .openerTag { align-self: flex-end; }
