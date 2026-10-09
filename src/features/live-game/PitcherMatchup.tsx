@@ -56,10 +56,21 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
 
       {/* ── Pitcher headers ────────────────────────────────────────── */}
+      {/* The Opener | Bulk switches get their own row across both halves, so the
+          two pitchers always line up whichever side has one. */}
       <div className={styles.pitcherRow}>
-        <PitcherHeader side="away" view={away} onRole={setAwayRole} onBullpen={() => goToBullpen('away', onModeChange)} />
-        <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
-        <PitcherHeader side="home" view={home} onRole={setHomeRole} onBullpen={() => goToBullpen('home', onModeChange)} />
+        {(away.opener || home.opener) && (
+          <div className={styles.switchRow}>
+            <div>{away.opener && <RoleSwitch view={away} onRole={setAwayRole} onBullpen={() => goToBullpen('away', onModeChange)} />}</div>
+            <div>{home.opener && <RoleSwitch view={home} onRole={setHomeRole} onBullpen={() => goToBullpen('home', onModeChange)} />}</div>
+          </div>
+        )}
+        {/* A projected bulk arm's tag hangs below its record: both halves make room for it. */}
+        <div className={`${styles.sidesRow} ${away.role === 'bulk' || home.role === 'bulk' ? styles.sidesRowTagged : ''}`}>
+          <PitcherHeader side="away" view={away} />
+          <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
+          <PitcherHeader side="home" view={home} />
+        </div>
       </div>
 
       {/* ── Bars ──────────────────────────────────────────────────── */}
@@ -138,9 +149,41 @@ function sideView(probable: PitcherInfo | undefined, fallbackName: string | unde
   }
 }
 
-function PitcherHeader({ side, view, onRole, onBullpen }: {
-  side: 'away' | 'home'; view: SideView; onRole: (r: SideRole) => void; onBullpen: () => void
-}) {
+/**
+ * Opener | Bulk, same segmented style as the lineup card's switch: switches the
+ * arm shown. Without a named bulk arm it's Opener | Bullpen, and "Bullpen"
+ * takes you to that team's bullpen card.
+ */
+function RoleSwitch({ view, onRole, onBullpen }: { view: SideView; onRole: (r: SideRole) => void; onBullpen: () => void }) {
+  const t = useT()
+  if (!view.bulk) {
+    return (
+      <div className={styles.roleTrack} title={t('openerNote')}>
+        <div className={styles.rolePill} />
+        <button type="button" className={`${styles.roleSegment} ${styles.roleSegmentActive}`} aria-current="true">
+          {t('opener')}
+        </button>
+        <button type="button" className={styles.roleSegment} onClick={onBullpen}>
+          {t('bullpen')}
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div className={styles.roleTrack} role="tablist" aria-label={t('openerOrBulk')} title={t('bulkTitle')}>
+      <div className={styles.rolePill} style={{ transform: `translateX(${view.role === 'bulk' ? 100 : 0}%)` }} />
+      {(['opener', 'bulk'] as const).map(r => (
+        <button key={r} type="button" role="tab" aria-selected={view.role === r}
+          className={`${styles.roleSegment} ${view.role === r ? styles.roleSegmentActive : ''}`}
+          onClick={() => onRole(r)}>
+          {r === 'bulk' ? t('bulkTag') : t('opener')}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }) {
   const t = useT()
   const right = side === 'home'
   const { info, bulk } = view
@@ -157,49 +200,22 @@ function PitcherHeader({ side, view, onRole, onBullpen }: {
   )
 
   return (
-    <div className={styles.sideWrap}>
-      {/* Opener | Bulk, same segmented style as the lineup card's switch: switches
-          the arm shown. Without a named bulk arm it's Opener | Bullpen, and
-          "Bullpen" scrolls down to the bullpen card. */}
-      {view.opener && !bulk && (
-        <div className={styles.roleTrack} title={t('openerNote')}>
-          <div className={styles.rolePill} />
-          <button type="button" className={`${styles.roleSegment} ${styles.roleSegmentActive}`} aria-current="true">
-            {t('opener')}
-          </button>
-          <button type="button" className={styles.roleSegment} onClick={onBullpen}>
-            {t('bullpen')}
-          </button>
-        </div>
-      )}
-      {view.opener && bulk && (
-        <div className={styles.roleTrack} role="tablist" aria-label={t('openerOrBulk')} title={t('bulkTitle')}>
-          <div className={styles.rolePill} style={{ transform: `translateX(${view.role === 'bulk' ? 100 : 0}%)` }} />
-          {(['opener', 'bulk'] as const).map(r => (
-            <button key={r} type="button" role="tab" aria-selected={view.role === r}
-              className={`${styles.roleSegment} ${view.role === r ? styles.roleSegmentActive : ''}`}
-              onClick={() => onRole(r)}>
-              {r === 'bulk' ? t('bulkTag') : t('opener')}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className={`${styles.pitcherSide} ${right ? styles.pitcherSideRight : ''}`}>
-        {!right && photo}
-        <div className={styles.pitcherInfo} style={right ? { textAlign: 'right' } : undefined}>
-          <div className={styles.pitcherName}>{view.name}</div>
-          {s && (
-            <div className={styles.pitcherRecord}>
-              {s.wins}-{s.losses} · {s.inningsPitched} IP · {s.qualityStarts} QS
-            </div>
-          )}
-          {/* The bulk arm is our prediction, never MLB's: always marked as projected. */}
-          {view.role === 'bulk' && bulk && (
-            <span className={styles.projectedTag} title={t('bulkTitle')}>{t('projected')}</span>
-          )}
-        </div>
-        {right && photo}
+    <div className={`${styles.pitcherSide} ${right ? styles.pitcherSideRight : ''}`}>
+      {!right && photo}
+      <div className={styles.pitcherInfo} style={right ? { textAlign: 'right' } : undefined}>
+        <div className={styles.pitcherName}>{view.name}</div>
+        {s && (
+          <div className={styles.pitcherRecord}>
+            {s.wins}-{s.losses} · {s.inningsPitched} IP · {s.qualityStarts} QS
+          </div>
+        )}
+        {/* The bulk arm is our prediction, never MLB's: always marked as projected.
+            Overlaid below the record so it doesn't change the row's height. */}
+        {view.role === 'bulk' && bulk && (
+          <span className={styles.projectedTag} title={t('bulkTitle')}>{t('projected')}</span>
+        )}
       </div>
+      {right && photo}
     </div>
   )
 }

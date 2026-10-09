@@ -19,11 +19,23 @@
 
 /* ── Pitcher headers ─────────────────────────────────────────────── */
 .pitcherRow {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Opener | Bulk switches: their own row, one cell per team */
+.switchRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding-top: 8px;
+}
+
+.sidesRow {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid var(--border);
 }
+
+.sidesRowTagged .pitcherSide { padding-bottom: 26px; }
 
 .glossaryBtn {
   position: absolute;
@@ -74,6 +86,7 @@
 }
 
 .pitcherInfo {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -210,22 +223,14 @@
 }
 
 /* ── Opener / bulk ───────────────────────────────────────────────── */
-.sideWrap {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;   /* the side without the switch stays centered */
-  min-width: 0;
-}
-
 /* Opener | Bulk — same look as the lineup card's segmented switch, centered
    in its team's half. */
 .roleTrack {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  align-self: center;
   width: min(100%, 112px);
-  margin: 8px auto -6px;   /* pulls the pitcher row up: little height added */
+  margin: 0 auto -6px;     /* the pitchers sit right under it */
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -275,8 +280,10 @@
 
 /* "Projected" under the bulk arm — a compact version of the lineup card's status pill */
 .projectedTag {
-  align-self: flex-start;
+  position: absolute;
+  top: 100%;
   margin-top: 3px;
+  white-space: nowrap;
   padding: 2px 6px;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.07);
@@ -290,4 +297,4 @@
   line-height: 1.2;
 }
 
-.pitcherSideRight .projectedTag { align-self: flex-end; }
+.pitcherSideRight .projectedTag { right: 0; }
