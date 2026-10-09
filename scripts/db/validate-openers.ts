@@ -17,8 +17,12 @@
 // The label is a proxy (MLB doesn't publish an "opener" flag), so it's
 // reported next to plain outcome metrics (how many flagged starts were short).
 //
-// Uso: npm run db:validate-openers -- [--season 2026] [--rule ruta/a/detect.ts ...]
-//   --rule (repeatable) compares other versions of the rule on the same games.
+// Uso: npm run db:validate-openers -- [--season 2026] [--carry] [--rule ruta/a/detect.ts ...]
+//   --carry team|pitcher|both  starts with the previous season as history: the
+//            team's opener games, the pitcher's appearances, or both. The API
+//            carries the team only (see server/openers/roles.ts):
+//            npm run db:validate-openers -- --season 2026 --carry team
+//   --rule   (repeatable) compares other versions of the rule on the same games.
 import { parseArgs } from 'node:util'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -31,15 +35,18 @@ const { values } = parseArgs({
   options: {
     season: { type: 'string', default: String(new Date().getFullYear()) },
     rule: { type: 'string', multiple: true, default: [] },
+    carry: { type: 'string' },   // team | pitcher | both
   },
 })
 const season = Number(values.season)
+const carryTeam = values.carry === 'team' || values.carry === 'both'
+const carryPitcher = values.carry === 'pitcher' || values.carry === 'both'
 
-const rows = await sql<Array<{ game_pk: number; team_id: number; pitcher_id: number; seq: number; outs: number; pitches: number; game_type: string; month: number; day: number }>>`
+const rows = await sql<Array<{ game_pk: number; team_id: number; pitcher_id: number; seq: number; outs: number; pitches: number; game_type: string; month: number; day: number; season: number }>>`
   SELECT a.game_pk, a.team_id, a.pitcher_id, a.seq, a.outs, a.pitches, g.game_type,
-         extract(month FROM g.game_date)::int AS month, (g.game_date - DATE '2000-01-01')::int AS day
+         extract(month FROM g.game_date)::int AS month, (g.game_date - DATE '2000-01-01')::int AS day, g.season
   FROM pitcher_appearances a JOIN games g USING (game_pk)
-  WHERE g.season = ${season} AND g.game_type <> 'S'
+  WHERE g.season BETWEEN ${values.carry ? season - 1 : season} AND ${season} AND g.game_type <> 'S'
   ORDER BY g.game_date, g.game_time NULLS LAST, a.game_pk, a.seq
 `
 await sql.end()
@@ -82,7 +89,7 @@ function backtest(classify: Classify) {
   for (const r of rows) {
     const past = history.get(r.pitcher_id) ?? []
     const tg = teamGames.get(r.team_id) ?? []
-    if (r.seq === 0 && r.game_type === 'R') {
+    if (r.seq === 0 && r.game_type === 'R' && r.season === season) {
       const flagged = classify(past, { openerGames: tg.slice(0, 30).filter(Boolean).length }).role === 'opener'
       const truth = isTrueOpener(r)
       const month = r.month <= 4 ? 'Mar-Abr' : ['', '', '', '', '', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'][r.month]
@@ -101,9 +108,12 @@ function backtest(classify: Classify) {
       }
     }
     // Only now does this game become history for the next ones (no leakage).
-    if (r.seq === 0) { tg.unshift(openerGame(r)); teamGames.set(r.team_id, tg) }
-    past.unshift({ isStart: r.seq === 0, outs: r.outs, pitches: r.pitches })
-    history.set(r.pitcher_id, past)
+    const prev = r.season !== season
+    if (r.seq === 0 && (!prev || carryTeam)) { tg.unshift(openerGame(r)); teamGames.set(r.team_id, tg) }
+    if (!prev || carryPitcher) {
+      past.unshift({ isStart: r.seq === 0, outs: r.outs, pitches: r.pitches })
+      history.set(r.pitcher_id, past)
+    }
   }
   return { all, byMonth, byHistory, fpExamples }
 }
@@ -121,9 +131,9 @@ for (const p of values.rule ?? []) {
   rules.push([p.split(/[\\/]/).pop()!, mod.classifyPitcher])
 }
 
-const starts = rows.filter(r => r.seq === 0 && r.game_type === 'R')
+const starts = rows.filter(r => r.seq === 0 && r.game_type === 'R' && r.season === season)
 const positives = starts.filter(r => isTrueOpener(r)).length
-console.log(`Temporada regular ${season}: ${starts.length} aperturas · ${positives} openers reales (etiqueta) · ` +
+console.log(`Temporada regular ${season}${values.carry ? ` (con historia de ${season - 1})` : ''}: ${starts.length} aperturas · ${positives} openers reales (etiqueta) · ` +
   `${starts.filter(openerGame).length} salidas ≤2 IP seguidas de 3+ IP`)
 
 for (const [name, classify] of rules) {

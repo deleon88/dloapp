@@ -10,13 +10,22 @@ export interface Probable {
 
 /**
  * Each pitcher's role from their appearances before `beforeDate` (YYYY-MM-DD,
- * exclusive; default: all stored). Regular season and postseason count alike.
+ * exclusive; default: everything stored). Regular season and postseason count
+ * alike.
+ *   - Pitcher history: current season only. A pitcher's role changes over the
+ *     winter (relievers moved into the rotation), and carrying last season's
+ *     appearances cost precision in April (backtest: 96% -> 82%).
+ *   - Team context: its last TEAM_GAMES games even across seasons — how much a
+ *     team uses openers carries over, and it helps early (April recall 79% -> 85%).
  */
 export async function getPitcherRoles(probables: Probable[], beforeDate?: string): Promise<Map<number, RoleInfo>> {
   if (!probables.length) return new Map()
   const ids = [...new Set(probables.map(p => p.id))]
   const teamIds = [...new Set(probables.map(p => p.teamId).filter((t): t is number => t != null))]
   const before = beforeDate ? sql`AND g.game_date < ${beforeDate}` : sql``
+  // The season in course at that date (in the off-season, the one that just ended).
+  const currentSeason = sql`(SELECT max(season) FROM games WHERE game_type = 'R'
+    AND game_date <= ${beforeDate ? sql`${beforeDate}::date` : sql`current_date`})`
 
   const [rows, teams] = await Promise.all([
     sql<Array<{ pitcher_id: number; seq: number; outs: number; pitches: number }>>`
@@ -24,7 +33,7 @@ export async function getPitcherRoles(probables: Probable[], beforeDate?: string
         SELECT a.pitcher_id, a.seq, a.outs, a.pitches,
                row_number() OVER (PARTITION BY a.pitcher_id ORDER BY g.game_date DESC, g.game_time DESC NULLS LAST) AS rn
         FROM pitcher_appearances a JOIN games g USING (game_pk)
-        WHERE a.pitcher_id = ANY(${ids}) AND g.game_type <> 'S' ${before}
+        WHERE a.pitcher_id = ANY(${ids}) AND g.game_type <> 'S' AND g.season = ${currentSeason} ${before}
       ) x
       WHERE rn <= 40
       ORDER BY pitcher_id, rn

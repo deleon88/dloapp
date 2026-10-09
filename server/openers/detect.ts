@@ -14,11 +14,15 @@
 // Never if their latest start already went past 3 innings or 55+ pitches: they're
 // being stretched out (moving into the rotation, back from the IL).
 // A pitcher without history (debut, call-up) counts as a starter.
-// Backtest on 2026 (scripts/db/validate-openers.ts; each start classified only
-// with earlier games, against a label from the pitcher's role within ±30 days):
-// precision 95%, recall 78%, false-positive rate 0.24% of traditional starts;
-// 83% of flagged starters went 2 IP or less, 95% 3 IP or less. Weakest spots:
-// pitchers with 0-2 appearances (1 of 11 caught) and Aug-Sep (~72% recall).
+// Backtest (scripts/db/validate-openers.ts; each start classified only with
+// earlier games, against a label from the pitcher's role within ±30 days):
+//   2026 (rules tuned on it), team context carried from 2025: precision 95%,
+//     recall 79%, 0.24% of traditional starts flagged; April 97% / 85%.
+//   2025 (out of sample): precision 86%, recall 74%, 0.36% flagged.
+// 95% of flagged starters went 3 IP or less. Known misses: relievers whose
+// first start is a real opener on a team that rarely opens, pitchers with
+// 0-2 appearances; known false positives: a reliever's first start that turns
+// out to be a move into the rotation, a starter ramping up from an injury.
 
 export interface Appearance {
   isStart: boolean
