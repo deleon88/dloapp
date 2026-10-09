@@ -142,6 +142,9 @@ interface Props {
   onModeChange: (m: ViewMode) => void
 }
 
+/** Anchor for links to this card (the "Bullpen ↓" chip next to an opener). */
+export const BULLPEN_CARD_ID = 'bullpen-card'
+
 export default function BullpenCard({
   away, home,
   awayColor, homeColor,
@@ -162,7 +165,7 @@ export default function BullpenCard({
   const homeUsage = home?.usage
 
   return (
-    <div className={styles.card}>
+    <div id={BULLPEN_CARD_ID} className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
 
       <div className={styles.segmentTrack}>

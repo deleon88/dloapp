@@ -234,8 +234,41 @@
 .roleTrackSingle {
   grid-template-columns: 1fr;
   width: auto;
+  margin: 0;
   padding: 2px 6px;
 }
+
+/* No projected bulk: "Opener" + a chip down to the bullpen card, centered as a pair */
+.roleRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 8px auto -6px;
+}
+
+.bullpenLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.5rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.bullpenLink:hover { background: rgba(255, 255, 255, 0.09); color: var(--text-primary); }
+.bullpenLink:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
 
 .rolePill {
   position: absolute;
@@ -270,9 +303,8 @@
 
 .roleSegment:hover:not(:disabled) { color: var(--text-secondary); }
 .roleSegmentActive { color: var(--text-primary); }
-.roleSegment:disabled { cursor: default; }
 .roleSegment:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
-.roleTrackSingle .roleSegment { color: var(--text-secondary); }
+.roleTrackSingle .roleSegment { display: block; color: var(--text-secondary); cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
   .rolePill { transition: none; }

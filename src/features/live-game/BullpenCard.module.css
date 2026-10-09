@@ -3,6 +3,20 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  /* Linked from the opener's "Bullpen ↓" chip: land below the nav bar and filters. */
+  scroll-margin-top: calc(var(--nav-height) + 64px);
+}
+
+/* Brief highlight when you land here from that chip */
+.card[data-flash] { animation: landFlash 1.2s ease-out; }
+
+@keyframes landFlash {
+  0%   { box-shadow: 0 0 0 2px var(--border-active), 0 0 24px rgba(255, 255, 255, 0.12); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-flash] { animation: none; }
 }
 
 .card > [data-card-bg] {

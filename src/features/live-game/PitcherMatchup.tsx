@@ -9,6 +9,7 @@ import CardModal from './CardModal'
 import MatchupBar from '@/components/MatchupBar/MatchupBar'
 import styles from './PitcherMatchup.module.css'
 import type { BulkArm } from '@/api/pitcherRoles'
+import { BULLPEN_CARD_ID } from './BullpenCard'
 
 interface Props {
   awayPitcher?: PitcherInfo
@@ -154,23 +155,25 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
   return (
     <div className={styles.sideWrap}>
       {/* Opener | Bulk, same segmented style as the lineup card's switch. Without a
-          named bulk arm it's a single (static) segment: "Opener · Bullpen". */}
-      {view.opener && (
-        <div
-          className={`${styles.roleTrack} ${bulk ? '' : styles.roleTrackSingle}`}
-          role={bulk ? 'tablist' : undefined}
-          aria-label={t('openerOrBulk')}
-          title={bulk ? t('bulkTitle') : t('openerNote')}
-        >
-          {bulk && (
-            <div className={styles.rolePill} style={{ transform: `translateX(${view.role === 'bulk' ? 100 : 0}%)` }} />
-          )}
-          {(bulk ? (['opener', 'bulk'] as const) : (['opener'] as const)).map(r => (
-            <button key={r} type="button" role={bulk ? 'tab' : undefined} aria-selected={bulk ? view.role === r : undefined}
-              disabled={!bulk}
+          named bulk arm: a static "Opener" pill and a chip down to the bullpen card. */}
+      {view.opener && !bulk && (
+        <div className={styles.roleRow}>
+          <span className={`${styles.roleTrack} ${styles.roleTrackSingle}`}>
+            <span className={`${styles.roleSegment} ${styles.roleSegmentActive}`}>{t('opener')}</span>
+          </span>
+          <button type="button" className={styles.bullpenLink} onClick={goToBullpen} title={t('openerNote')}>
+            {t('bullpen')} <span aria-hidden="true">↓</span>
+          </button>
+        </div>
+      )}
+      {view.opener && bulk && (
+        <div className={styles.roleTrack} role="tablist" aria-label={t('openerOrBulk')} title={t('bulkTitle')}>
+          <div className={styles.rolePill} style={{ transform: `translateX(${view.role === 'bulk' ? 100 : 0}%)` }} />
+          {(['opener', 'bulk'] as const).map(r => (
+            <button key={r} type="button" role="tab" aria-selected={view.role === r}
               className={`${styles.roleSegment} ${view.role === r ? styles.roleSegmentActive : ''}`}
               onClick={() => onRole(r)}>
-              {r === 'bulk' ? t('bulkTag') : bulk ? t('opener') : t('openerBullpen')}
+              {r === 'bulk' ? t('bulkTag') : t('opener')}
             </button>
           ))}
         </div>
@@ -193,6 +196,18 @@ function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: Si
       </div>
     </div>
   )
+}
+
+/** Scrolls to the bullpen card and highlights it for a moment. */
+function goToBullpen() {
+  const card = document.getElementById(BULLPEN_CARD_ID)
+  if (!card) return
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  card.removeAttribute('data-flash')
+  void card.offsetWidth   // restart the animation if tapped twice
+  card.setAttribute('data-flash', '')
+  window.setTimeout(() => card.removeAttribute('data-flash'), 1300)
 }
 
 /* ── Chip view ───────────────────────────────────────────────────── */
