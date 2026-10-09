@@ -25,22 +25,28 @@ interface Props {
   /** Probable bulk arm behind each opener, when the prediction is confident. */
   awayBulk?: BulkArm
   homeBulk?: BulkArm
+  /** The bulk arms' numbers (same period / hand filters as the starters). */
+  awayBulkInfo?: PitcherInfo
+  homeBulkInfo?: PitcherInfo
   mode: ViewMode
 }
 
 const HEADSHOT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, awayBulkInfo, homeBulkInfo, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
+  // Behind an opener, the card can show either arm; the bulk by default (most of the innings).
+  const [awayRole, setAwayRole] = useState<SideRole>('bulk')
+  const [homeRole, setHomeRole] = useState<SideRole>('bulk')
   const t = useT()
-  const openerNote = (bulk?: BulkArm) => bulk
-    ? `${t('bulkProbable')}: ${shortName(bulk.fullName)}${bulk.pitchHand ? ` (${bulk.pitchHand})` : ''}`
-    : t('openerNote')
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
-  const as = awayPitcher?.seasonStats
-  const hs = homePitcher?.seasonStats
+
+  const away = sideView(awayPitcher, awayPitcherName, awayOpener, awayBulk, awayBulkInfo, awayRole)
+  const home = sideView(homePitcher, homePitcherName, homeOpener, homeBulk, homeBulkInfo, homeRole)
+  const as = away.info?.seasonStats
+  const hs = home.info?.seasonStats
 
   return (
     <div className={styles.card}>
@@ -48,59 +54,9 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
 
       {/* ── Pitcher headers ────────────────────────────────────────── */}
       <div className={styles.pitcherRow}>
-        {/* Away */}
-        <div className={styles.pitcherSide}>
-          {awayPitcher && (
-            <img
-              src={HEADSHOT(awayPitcher.id)}
-              alt={awayPitcher.fullName}
-              className={styles.headshot}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-          )}
-          <div className={styles.pitcherInfo}>
-            <div className={styles.pitcherMeta}>
-              {awayPitcher?.primaryNumber && <span>#{awayPitcher.primaryNumber}</span>}
-              {awayPitcher?.pitchHand && <span>· {awayPitcher.pitchHand}</span>}
-              {awayOpener && <span className={styles.openerTag}>{t('opener')}</span>}
-            </div>
-            <div className={styles.pitcherName}>{awayPitcher?.fullName ?? awayPitcherName ?? 'TBD'}</div>
-            {as && (
-              <div className={styles.pitcherRecord}>
-                {as.wins}-{as.losses} · {as.inningsPitched} IP · {as.qualityStarts} QS
-              </div>
-            )}
-            {awayOpener && <div className={styles.openerNote} title={awayBulk ? t('bulkTitle') : undefined}>{openerNote(awayBulk)}</div>}
-          </div>
-        </div>
-
+        <PitcherHeader side="away" view={away} onRole={setAwayRole} />
         <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
-
-        {/* Home */}
-        <div className={`${styles.pitcherSide} ${styles.pitcherSideRight}`}>
-          <div className={styles.pitcherInfo} style={{ textAlign: 'right' }}>
-            <div className={styles.pitcherMeta} style={{ justifyContent: 'flex-end' }}>
-              {homeOpener && <span className={styles.openerTag}>{t('opener')}</span>}
-              {homePitcher?.pitchHand && <span>{homePitcher.pitchHand} ·</span>}
-              {homePitcher?.primaryNumber && <span>#{homePitcher.primaryNumber}</span>}
-            </div>
-            <div className={styles.pitcherName}>{homePitcher?.fullName ?? homePitcherName ?? 'TBD'}</div>
-            {hs && (
-              <div className={styles.pitcherRecord}>
-                {hs.wins}-{hs.losses} · {hs.inningsPitched} IP · {hs.qualityStarts} QS
-              </div>
-            )}
-            {homeOpener && <div className={styles.openerNote} title={homeBulk ? t('bulkTitle') : undefined}>{openerNote(homeBulk)}</div>}
-          </div>
-          {homePitcher && (
-            <img
-              src={HEADSHOT(homePitcher.id)}
-              alt={homePitcher.fullName}
-              className={styles.headshot}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-            />
-          )}
-        </div>
+        <PitcherHeader side="home" view={home} onRole={setHomeRole} />
       </div>
 
       {/* ── Bars ──────────────────────────────────────────────────── */}
@@ -150,6 +106,95 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
           wobaChip(hs),
         ]}
       />
+    </div>
+  )
+}
+
+/* ── Opener / bulk ───────────────────────────────────────────────── */
+
+type SideRole = 'opener' | 'bulk'
+
+interface SideView {
+  info?: PitcherInfo      // the arm shown (its numbers drive the bars and chips)
+  name: string
+  opener: boolean         // the probable starter is an opener
+  bulk?: BulkArm          // probable bulk arm, when named
+  role: SideRole          // which one is shown (only matters with a bulk)
+  openerName: string
+}
+
+function sideView(probable: PitcherInfo | undefined, fallbackName: string | undefined, opener: boolean | undefined,
+  bulk: BulkArm | undefined, bulkInfo: PitcherInfo | undefined, role: SideRole): SideView {
+  const openerName = probable?.fullName ?? fallbackName ?? 'TBD'
+  const showBulk = !!opener && !!bulk && role === 'bulk'
+  return {
+    info: showBulk ? bulkInfo : probable,
+    name: showBulk ? bulk!.fullName : openerName,
+    opener: !!opener,
+    bulk: opener ? bulk : undefined,
+    role: showBulk ? 'bulk' : 'opener',
+    openerName,
+  }
+}
+
+function PitcherHeader({ side, view, onRole }: { side: 'away' | 'home'; view: SideView; onRole: (r: SideRole) => void }) {
+  const t = useT()
+  const right = side === 'home'
+  const { info, bulk } = view
+  const s = info?.seasonStats
+  // Under the name: who else pitches (the opener when the bulk is shown, and vice versa).
+  const note = !view.opener ? null
+    : !bulk ? t('openerNote')
+    : view.role === 'bulk' ? `${t('startsLabel')}: ${shortName(view.openerName)}`
+    : `${t('bulkProbable')}: ${shortName(bulk.fullName)}`
+
+  const photo = info && (
+    <img
+      key={info.id}
+      src={HEADSHOT(info.id)}
+      alt={info.fullName}
+      className={styles.headshot}
+      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+    />
+  )
+  const meta = [info?.primaryNumber && `#${info.primaryNumber}`, info?.pitchHand].filter(Boolean)
+  const tag = view.opener && (
+    <span className={styles.roleTag} title={view.role === 'bulk' ? t('bulkTitle') : undefined}>
+      {view.role === 'bulk' ? t('bulkTag') : t('opener')}
+    </span>
+  )
+
+  return (
+    <div className={`${styles.sideWrap} ${right ? styles.sideWrapRight : ''}`}>
+      {bulk && (
+        <div className={styles.roleSwitch} role="tablist" aria-label={t('openerOrBulk')}>
+          {(['opener', 'bulk'] as const).map(r => (
+            <button key={r} type="button" role="tab" aria-selected={view.role === r}
+              className={`${styles.roleOption} ${view.role === r ? styles.roleOptionActive : ''}`}
+              onClick={() => onRole(r)}>
+              {r === 'bulk' ? t('bulkTag') : t('opener')}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className={`${styles.pitcherSide} ${right ? styles.pitcherSideRight : ''}`}>
+        {!right && photo}
+        <div className={styles.pitcherInfo} style={right ? { textAlign: 'right' } : undefined}>
+          <div className={styles.pitcherMeta} style={right ? { justifyContent: 'flex-end' } : undefined}>
+            {right && tag}
+            <span>{meta.join(' · ')}</span>
+            {!right && tag}
+          </div>
+          <div className={styles.pitcherName}>{view.name}</div>
+          {s && (
+            <div className={styles.pitcherRecord}>
+              {s.wins}-{s.losses} · {s.inningsPitched} IP · {s.qualityStarts} QS
+            </div>
+          )}
+          {note && <div className={styles.roleNote}>{note}</div>}
+        </div>
+        {right && photo}
+      </div>
     </div>
   )
 }

@@ -68,6 +68,9 @@ export const translations = {
     bulkProbable: 'Probable bulk',
     bulkShort: 'Bulk:',
     bulkTitle: 'Expected to pitch most of the game behind the opener (named only when the pattern is clear)',
+    bulkTag: 'Bulk',
+    startsLabel: 'Starts',
+    openerOrBulk: 'Opener or bulk',
     // Votes
     whoWins: 'Who wins this game?',
     yourVote: 'Your pick: {team}',
@@ -260,6 +263,9 @@ export const translations = {
     bulkProbable: 'Bulk probable',
     bulkShort: 'Bulk:',
     bulkTitle: 'Se espera que lance la mayor parte del juego detrás del opener (solo se muestra cuando el patrón es claro)',
+    bulkTag: 'Bulk',
+    startsLabel: 'Inicia',
+    openerOrBulk: 'Opener o bulk',
     // Votes
     whoWins: '¿Quién gana este juego?',
     yourVote: 'Tu voto: {team}',

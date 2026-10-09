@@ -222,20 +222,60 @@
   .pitcherMeta { font-size: 0.54rem; }
 }
 
-/* Opener: tag next to the hand, and a note under the record */
-.openerTag {
-  padding: 1px 5px;
-  border-radius: var(--radius-full);
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
-  font-size: 0.52rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+/* ── Opener / bulk ───────────────────────────────────────────────── */
+.sideWrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* the side without the switch stays centered */
+  min-width: 0;
 }
 
-.openerNote {
+/* Segmented "Opener | Bulk" switch, above the opener's side */
+.roleSwitch {
+  display: flex;
+  align-self: flex-start;
+  margin: 10px 14px 0;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+}
+
+.sideWrapRight .roleSwitch { align-self: flex-end; }
+
+.roleOption {
+  padding: 3px 10px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.roleOption:hover { color: var(--text-secondary); }
+.roleOptionActive { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); }
+.roleOption:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+
+/* Neutral role tag next to the number and hand */
+.roleTag {
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-active);
+  color: var(--text-secondary);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+/* Who else pitches: "Starts: …" / "Probable bulk: …" / "~1–2 IP, then the bullpen" */
+.roleNote {
   margin-top: 2px;
   font-size: 0.6rem;
-  color: #fbbf24;
-  opacity: 0.85;
+  color: var(--text-muted);
 }

@@ -66,6 +66,19 @@ export default function LiveGamePage() {
     staleTime: 3_600_000,
   })
   const isOpener = (id?: number) => id != null && rolesQuery.data?.get(id)?.role === 'opener'
+  // Probable bulk arms behind openers: their numbers, to switch the card to them.
+  const bulkIds = [...(rolesQuery.data?.values() ?? [])].flatMap(r => (r.bulk ? [r.bulk.id] : []))
+  const bulkStatsQuery = useQuery({
+    queryKey: ['pitcher-stats', period, ...bulkIds],
+    queryFn: () => fetchPitcherStats(bulkIds, period),
+    enabled: bulkIds.length > 0,
+    staleTime: 3_600_000,
+    placeholderData: prev => prev,
+  })
+  const bulkStats = useMemo(() => {
+    const stats = bulkStatsQuery.data
+    return stats && handFilters.pitcher !== 'all' ? applyPitcherHand(stats, handFilters.pitcher) : stats
+  }, [bulkStatsQuery.data, handFilters.pitcher])
 
   // 3. Batting orders from boxscore (Live / Final games)
   const isPreview = game?.status.abstractGameState === 'Preview'
@@ -204,6 +217,7 @@ export default function LiveGamePage() {
           homeOpener={isOpener(homePitcherId)}
           awayBulk={awayPitcherId ? rolesQuery.data?.get(awayPitcherId)?.bulk ?? undefined : undefined}
           homeBulk={homePitcherId ? rolesQuery.data?.get(homePitcherId)?.bulk ?? undefined : undefined}
+          bulkStats={bulkStats}
         />
       )}
     </div>

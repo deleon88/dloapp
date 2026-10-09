@@ -56,6 +56,7 @@ interface Props {
   homeOpener?: boolean
   awayBulk?: BulkArm
   homeBulk?: BulkArm
+  bulkStats?: Map<number, PitcherInfo>
 }
 
 export default function GameMatchupView({
@@ -75,6 +76,7 @@ export default function GameMatchupView({
   homeOpener,
   awayBulk,
   homeBulk,
+  bulkStats,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>('comparison')
   const t = useT()
@@ -193,6 +195,8 @@ export default function GameMatchupView({
         homeOpener={homeOpener}
         awayBulk={awayBulk}
         homeBulk={homeBulk}
+        awayBulkInfo={awayBulk ? bulkStats?.get(awayBulk.id) : undefined}
+        homeBulkInfo={homeBulk ? bulkStats?.get(homeBulk.id) : undefined}
         mode={mode}
       />
 
