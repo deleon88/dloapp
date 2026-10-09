@@ -57,11 +57,11 @@ export default function LiveGamePage() {
 
   // Opener or real starter (server, from how each one has been used).
   const rolesQuery = useQuery({
-    queryKey: ['pitcher-roles', awayPitcherId, game?.teams.away.team.id, homePitcherId, game?.teams.home.team.id],
+    queryKey: ['pitcher-roles', game?.officialDate, awayPitcherId, game?.teams.away.team.id, homePitcherId, game?.teams.home.team.id],
     queryFn: () => fetchPitcherRoles([
       ...(awayPitcherId ? [{ id: awayPitcherId, teamId: game!.teams.away.team.id }] : []),
       ...(homePitcherId ? [{ id: homePitcherId, teamId: game!.teams.home.team.id }] : []),
-    ]),
+    ], game!.officialDate ?? undefined),
     enabled: pitcherIds.length > 0 && !!game,
     staleTime: 3_600_000,
   })
@@ -202,6 +202,8 @@ export default function LiveGamePage() {
           homeLast5={homeTeamId ? recentResultsQuery.data?.get(homeTeamId) : undefined}
           awayOpener={isOpener(awayPitcherId)}
           homeOpener={isOpener(homePitcherId)}
+          awayBulk={awayPitcherId ? rolesQuery.data?.get(awayPitcherId)?.bulk ?? undefined : undefined}
+          homeBulk={homePitcherId ? rolesQuery.data?.get(homePitcherId)?.bulk ?? undefined : undefined}
         />
       )}
     </div>

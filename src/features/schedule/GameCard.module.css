@@ -185,3 +185,16 @@
   text-transform: uppercase;
   vertical-align: 1px;
 }
+
+/* Probable bulk arm behind an opener */
+.bulkLine {
+  margin-top: 2px;
+  font-size: 0.58rem;
+  color: #fbbf24;
+  opacity: 0.85;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}

@@ -8,6 +8,7 @@ import CardBgLayers from './CardBgLayers'
 import CardModal from './CardModal'
 import MatchupBar from '@/components/MatchupBar/MatchupBar'
 import styles from './PitcherMatchup.module.css'
+import { shortName, type BulkArm } from '@/api/pitcherRoles'
 
 interface Props {
   awayPitcher?: PitcherInfo
@@ -21,15 +22,21 @@ interface Props {
   /** Probable starter is an opener (an inning or two, then the bullpen). */
   awayOpener?: boolean
   homeOpener?: boolean
+  /** Probable bulk arm behind each opener, when the prediction is confident. */
+  awayBulk?: BulkArm
+  homeBulk?: BulkArm
   mode: ViewMode
 }
 
 const HEADSHOT = (id: number) =>
   `https://img.mlbstatic.com/mlb-photos/image/upload/w_256,q_auto:best/v1/people/${id}/headshot/67/current`
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayBulk, homeBulk, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
+  const openerNote = (bulk?: BulkArm) => bulk
+    ? `${t('bulkProbable')}: ${shortName(bulk.fullName)}${bulk.pitchHand ? ` (${bulk.pitchHand})` : ''}`
+    : t('openerNote')
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
   const as = awayPitcher?.seasonStats
@@ -63,7 +70,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
                 {as.wins}-{as.losses} · {as.inningsPitched} IP · {as.qualityStarts} QS
               </div>
             )}
-            {awayOpener && <div className={styles.openerNote}>{t('openerNote')}</div>}
+            {awayOpener && <div className={styles.openerNote} title={awayBulk ? t('bulkTitle') : undefined}>{openerNote(awayBulk)}</div>}
           </div>
         </div>
 
@@ -83,7 +90,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
                 {hs.wins}-{hs.losses} · {hs.inningsPitched} IP · {hs.qualityStarts} QS
               </div>
             )}
-            {homeOpener && <div className={styles.openerNote}>{t('openerNote')}</div>}
+            {homeOpener && <div className={styles.openerNote} title={homeBulk ? t('bulkTitle') : undefined}>{openerNote(homeBulk)}</div>}
           </div>
           {homePitcher && (
             <img

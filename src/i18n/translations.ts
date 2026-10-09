@@ -65,6 +65,9 @@ export const translations = {
     opener: 'Opener',
     openerNote: '~1–2 IP, then the bullpen',
     openerBlend: 'Opener: blended with the team bullpen, which covers most of the starter innings',
+    bulkProbable: 'Probable bulk',
+    bulkShort: 'Bulk:',
+    bulkTitle: 'Expected to pitch most of the game behind the opener (named only when the pattern is clear)',
     // Votes
     whoWins: 'Who wins this game?',
     yourVote: 'Your pick: {team}',
@@ -254,6 +257,9 @@ export const translations = {
     opener: 'Opener',
     openerNote: '~1–2 entradas, luego el bullpen',
     openerBlend: 'Opener: combinado con el bullpen del equipo, que cubre la mayoría de las entradas del abridor',
+    bulkProbable: 'Bulk probable',
+    bulkShort: 'Bulk:',
+    bulkTitle: 'Se espera que lance la mayor parte del juego detrás del opener (solo se muestra cuando el patrón es claro)',
     // Votes
     whoWins: '¿Quién gana este juego?',
     yourVote: 'Tu voto: {team}',

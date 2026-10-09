@@ -5,6 +5,7 @@ import type { ScheduledGame } from "@/api/mlb/types";
 import { getTeamMeta, getBarColor, capLogoUrl, teamBg } from "@/data/teams";
 import MatchupBar from "@/components/MatchupBar/MatchupBar";
 import { useT } from "@/i18n/useT";
+import { shortName, type BulkArm } from "@/api/pitcherRoles";
 import styles from "./GameCard.module.css";
 
 export type LineupStatus = 'confirmed' | 'projected'
@@ -23,6 +24,8 @@ interface Props {
   homeLineupStatus?: LineupStatus;
   awayOpener?: boolean;       // probable starter is an opener: starters bar blended with the bullpen
   homeOpener?: boolean;
+  awayBulk?: BulkArm;         // probable bulk arm behind the opener, when confident
+  homeBulk?: BulkArm;
   animDelay?: number;
 }
 
@@ -40,6 +43,8 @@ export default function GameCard({
   homeLineupStatus,
   awayOpener,
   homeOpener,
+  awayBulk,
+  homeBulk,
   animDelay = 0,
 }: Props) {
   const { teams, gamePk, gameDate, venue } = game;
@@ -80,6 +85,7 @@ export default function GameCard({
           color={ac}
           lineupStatus={awayLineupStatus}
           opener={awayOpener}
+          bulk={awayBulk}
         />
         <TeamSide
           teamId={teams.home.team.id}
@@ -92,6 +98,7 @@ export default function GameCard({
           color={hc}
           lineupStatus={homeLineupStatus}
           opener={homeOpener}
+          bulk={homeBulk}
         />
       </div>
 
@@ -121,6 +128,7 @@ function TeamSide({
   color,
   lineupStatus,
   opener,
+  bulk,
 }: {
   teamId: number;
   city: string;
@@ -132,6 +140,7 @@ function TeamSide({
   color: string;
   lineupStatus?: LineupStatus;
   opener?: boolean;
+  bulk?: BulkArm;
 }) {
   const t = useT();
   return (
@@ -160,6 +169,11 @@ function TeamSide({
             {pitchHand ? `${pitchHand}HP` : "TBD"}
             {opener && <span className={styles.openerTag} title={t("openerBlend")}>{t("opener")}</span>}
           </div>
+          {bulk && (
+            <div className={styles.bulkLine} title={t("bulkTitle")}>
+              {t("bulkShort")} {shortName(bulk.fullName)}{bulk.pitchHand ? ` · ${bulk.pitchHand}` : ""}
+            </div>
+          )}
         </>
       )}
       {lineupStatus && <LineupStatusBadge status={lineupStatus} />}

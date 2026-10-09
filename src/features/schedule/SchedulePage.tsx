@@ -80,12 +80,21 @@ export default function SchedulePage() {
     })
   })
   const rolesQuery = useQuery({
-    queryKey: ['pitcher-roles', ...probables.map(p => `${p.id}-${p.teamId}`).sort()],
-    queryFn: () => fetchPitcherRoles(probables),
+    queryKey: ['pitcher-roles', date, ...probables.map(p => `${p.id}-${p.teamId}`).sort()],
+    queryFn: () => fetchPitcherRoles(probables, date),
     enabled: probables.length > 0,
     staleTime: 3_600_000,
   })
   const isOpener = (id?: number) => id != null && rolesQuery.data?.get(id)?.role === 'opener'
+  const bulkOf = (id?: number) => (id != null ? rolesQuery.data?.get(id)?.bulk ?? undefined : undefined)
+  // Probable bulk arms behind openers: their FIP+ replaces the bullpen's in the blend.
+  const bulkIds = [...(rolesQuery.data?.values() ?? [])].flatMap(r => (r.bulk ? [r.bulk.id] : []))
+  const bulkStatsQuery = useQuery({
+    queryKey: ['pitcher-stats', period, ...bulkIds],
+    queryFn: () => fetchPitcherStats(bulkIds, period),
+    enabled: bulkIds.length > 0,
+    staleTime: 3_600_000,
+  })
 
   const uniqueTeamIds = [...new Set(games.flatMap(g => [g.teams.away.team.id, g.teams.home.team.id]))]
 
@@ -171,6 +180,15 @@ export default function SchedulePage() {
     return stats && handFilters.pitcher !== 'all' ? applyPitcherHand(stats, handFilters.pitcher) : stats
   }, [pitcherStatsQuery.data, handFilters.pitcher])
   const projectedWrcMap = projectedWrcQuery.data
+  const bulkStatsMap = useMemo(() => {
+    const stats = bulkStatsQuery.data
+    return stats && handFilters.pitcher !== 'all' ? applyPitcherHand(stats, handFilters.pitcher) : stats
+  }, [bulkStatsQuery.data, handFilters.pitcher])
+  const bulkFipPlus = (openerId?: number) => {
+    const b = bulkOf(openerId)
+    const fm = b ? bulkStatsMap?.get(b.id)?.seasonStats?.fipMinus : undefined
+    return fm ? fipPlus(fm) : undefined
+  }
 
 
   const t = useT()
@@ -248,10 +266,12 @@ export default function SchedulePage() {
               game={game}
               awayWrc={awayWrc}
               homeWrc={homeWrc}
-              awayFipPlus={starterValue(awayFipMinus ? fipPlus(awayFipMinus) : undefined, isOpener(awayPitcherId), bullpenFipPlus?.get(game.teams.away.team.id))}
-              homeFipPlus={starterValue(homeFipMinus ? fipPlus(homeFipMinus) : undefined, isOpener(homePitcherId), bullpenFipPlus?.get(game.teams.home.team.id))}
+              awayFipPlus={starterValue(awayFipMinus ? fipPlus(awayFipMinus) : undefined, isOpener(awayPitcherId), bullpenFipPlus?.get(game.teams.away.team.id), bulkFipPlus(awayPitcherId))}
+              homeFipPlus={starterValue(homeFipMinus ? fipPlus(homeFipMinus) : undefined, isOpener(homePitcherId), bullpenFipPlus?.get(game.teams.home.team.id), bulkFipPlus(homePitcherId))}
               awayOpener={isOpener(awayPitcherId)}
               homeOpener={isOpener(homePitcherId)}
+              awayBulk={bulkOf(awayPitcherId)}
+              homeBulk={bulkOf(homePitcherId)}
               awayBullpenFipPlus={bullpenFipPlus?.get(game.teams.away.team.id)}
               homeBullpenFipPlus={bullpenFipPlus?.get(game.teams.home.team.id)}
               awayPitchHand={awayPitcherId ? pitchHands?.get(awayPitcherId) : undefined}

@@ -11,6 +11,14 @@ export interface RoleInfo {
   shortStarts: number
   avgOuts: number | null
   teamOpeners: number
+  /** Openers only: the arm expected to pitch most of the game behind them; null if unclear. */
+  bulk?: BulkArm | null
+}
+
+export interface BulkArm {
+  id: number
+  fullName: string
+  pitchHand: string | null
 }
 
 export interface Probable {
@@ -18,11 +26,14 @@ export interface Probable {
   teamId: number
 }
 
-/** Roles of the probable starters; each one's team tells how often it uses openers. */
-export async function fetchPitcherRoles(probables: Probable[]): Promise<Map<number, RoleInfo>> {
+/**
+ * Roles of the probable starters; each one's team tells how often it uses
+ * openers. With the games' date, openers also come with their probable bulk arm.
+ */
+export async function fetchPitcherRoles(probables: Probable[], date?: string): Promise<Map<number, RoleInfo>> {
   const unique = [...new Map(probables.map(p => [p.id, p])).values()].sort((a, b) => a.id - b.id)
   if (!unique.length) return new Map()
-  const res = await fetch(`/api/pitcher-roles?ids=${unique.map(p => p.id).join(',')}&teams=${unique.map(p => p.teamId).join(',')}`)
+  const res = await fetch(`/api/pitcher-roles?ids=${unique.map(p => p.id).join(',')}&teams=${unique.map(p => p.teamId).join(',')}${date ? `&date=${date}` : ''}`)
   if (!res.ok) throw new Error(`pitcher-roles ${res.status}`)
   const body = await res.json() as { roles: Record<string, RoleInfo> }
   return new Map(Object.entries(body.roles).map(([id, r]) => [Number(id), r]))
@@ -33,11 +44,19 @@ export const OPENER_SHARE = 0.3
 
 /**
  * Value for the "starters" bar: the pitcher's own, or for an opener a blend
- * with the team's bullpen (who will cover most of the starter's innings).
+ * with whoever covers most of the starter's innings: the probable bulk arm
+ * when known, else the team's bullpen.
  */
-export function starterValue(own: number | undefined, isOpener: boolean, bullpen: number | undefined): number | undefined {
+export function starterValue(own: number | undefined, isOpener: boolean, bullpen: number | undefined, bulk?: number): number | undefined {
   if (!isOpener) return own
-  if (own == null) return bullpen
-  if (bullpen == null) return own
-  return Math.round(OPENER_SHARE * own + (1 - OPENER_SHARE) * bullpen)
+  const behind = bulk ?? bullpen
+  if (own == null) return behind
+  if (behind == null) return own
+  return Math.round(OPENER_SHARE * own + (1 - OPENER_SHARE) * behind)
+}
+
+/** "Blake Snell" → "B. Snell" */
+export const shortName = (n: string) => {
+  const p = n.split(' ')
+  return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : n
 }

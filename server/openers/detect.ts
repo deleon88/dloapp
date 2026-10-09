@@ -40,6 +40,8 @@ export interface RoleInfo {
   shortStarts: number   // of those, 6 outs or fewer
   avgOuts: number | null
   teamOpeners: number   // opener games by the pitcher's team in its last TEAM_GAMES games
+  /** Openers only, when asked with a date: expected bulk arm, null if unclear. */
+  bulk?: { id: number; fullName: string; pitchHand: string | null } | null
 }
 
 export interface TeamContext {

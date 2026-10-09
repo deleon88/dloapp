@@ -16,6 +16,7 @@ import LineupComparison from './LineupComparison'
 import BullpenCard from './BullpenCard'
 import GameVote from './GameVote'
 import { votingEnabled } from '@/lib/features'
+import type { BulkArm } from '@/api/pitcherRoles'
 import styles from './GameMatchupView.module.css'
 
 interface HydratedGame extends ScheduledGame {
@@ -53,6 +54,8 @@ interface Props {
   homeLast5?: GameResult[]
   awayOpener?: boolean
   homeOpener?: boolean
+  awayBulk?: BulkArm
+  homeBulk?: BulkArm
 }
 
 export default function GameMatchupView({
@@ -70,6 +73,8 @@ export default function GameMatchupView({
   homeLast5,
   awayOpener,
   homeOpener,
+  awayBulk,
+  homeBulk,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>('comparison')
   const t = useT()
@@ -186,6 +191,8 @@ export default function GameMatchupView({
         homePitcherName={teams.home.probablePitcher?.fullName}
         awayOpener={awayOpener}
         homeOpener={homeOpener}
+        awayBulk={awayBulk}
+        homeBulk={homeBulk}
         mode={mode}
       />
 
