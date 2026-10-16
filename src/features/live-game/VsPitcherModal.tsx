@@ -2,21 +2,15 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import { getVsPlayerStats } from '@/api/mlb/endpoints/vsPlayer'
+import { useT } from '@/i18n/useT'
 import CardModal from './CardModal'
+import { cutoutUrl } from './mlbImages'
 import styles from './VsPitcherModal.module.css'
 
-function playerPhoto(id: number) {
-  return `https://img.mlbstatic.com/mlb-photos/image/upload/w_64,q_auto:best/v1/people/${id}/headshot/67/current`
-}
-
-function fmtName(full: string): string {
-  const parts = full.trim().split(' ')
-  return parts.length < 2 ? full : `${parts[0][0]}. ${parts.slice(1).join(' ')}`
-}
-
-function lastName(full: string): string {
-  const parts = full.trim().split(' ')
-  return parts.length < 2 ? full : parts.slice(1).join(' ')
+/** "Trevor Williams" → ["Trevor", "Williams"] (last name keeps every word after the first). */
+function splitName(full: string): [string, string] {
+  const [first, ...rest] = full.trim().split(' ')
+  return rest.length ? [first, rest.join(' ')] : ['', first]
 }
 
 function fmtRate(num: number, den: number): string | null {
@@ -36,12 +30,16 @@ interface Props {
   teamLabel: string
 }
 
+/**
+ * The lineup's career numbers against the opposing starter, TV style: the
+ * pitcher's cutout up top with the lineup's combined line, then each batter.
+ */
 export default function VsPitcherModal({
   isOpen, onClose,
   lineup, pitcherId, pitcherName,
   bgColor, side, teamLabel,
 }: Props) {
-
+  const t = useT()
   const playerIds = lineup.map(p => p.id)
 
   const { data: statsMap, isLoading } = useQuery({
@@ -70,76 +68,88 @@ export default function VsPitcherModal({
     return { ab, hr, rbi, bb, k, avg, slg, obp, ops }
   }, [statsMap])
 
+  const [pFirst, pLast] = splitName(pitcherName)
+
   return (
     <CardModal
       isOpen={isOpen} onClose={onClose}
-      title={teamLabel} subtitle={`vs ${lastName(pitcherName)}`}
+      title={teamLabel} subtitle={t('vsStarterHistory')}
       awayColor={bgColor} homeColor={bgColor} mode={side}
     >
-      {/* ── Column headers ── */}
-      <div className={styles.colHeader}>
+      {/* ── The opposing starter, TV style, with the lineup's combined line ── */}
+      <div className={styles.hero}>
+        <div className={styles.heroText}>
+          <span className={styles.heroKicker}>VS</span>
+          {pFirst && <span className={styles.heroFirst}>{pFirst}</span>}
+          <span className={styles.heroLast}>{pLast}</span>
+          <span className={styles.heroLine}>
+            {totals
+              ? <>{totals.ab} AB · {totals.avg ?? '—'} / {totals.obp ?? '—'} / {totals.slg ?? '—'} · <b>{totals.ops ?? '—'} OPS</b> · {totals.k} K · {totals.bb} BB</>
+              : isLoading ? t('loading') : t('noVsHistory')}
+          </span>
+        </div>
+        <img className={styles.heroPhoto} src={cutoutUrl(pitcherId)} alt="" />
+      </div>
+
+      {/* ── Column headers (OBP and SLG hide on phones) ── */}
+      <div className={`${styles.row} ${styles.colHeader}`}>
         <span /><span />
         <span>AB</span>
         <span>HR</span>
         <span>RBI</span>
         <span>K/BB</span>
         <span>AVG</span>
-        <span>OBP</span>
-        <span>SLG</span>
+        <span className={styles.wide}>OBP</span>
+        <span className={styles.wide}>SLG</span>
         <span>OPS</span>
       </div>
 
       {/* ── Batter rows ── */}
       <div className={styles.list}>
         {isLoading ? (
-          <p className={styles.loading}>Loading…</p>
+          <p className={styles.loading}>{t('loading')}</p>
         ) : lineup.map((p) => {
           const s = statsMap?.get(p.id)
           const has = s?.hasHistory ?? false
           const c = has ? styles.stat : `${styles.stat} ${styles.noHistory}`
           const d = (v: string | number | null | undefined) => has ? (v ?? '—') : '—'
+          const [first, last] = splitName(p.fullName)
           return (
             <div key={p.id} className={styles.row}>
-              <div className={styles.photoWrap}>
-                <img
-                  className={styles.photo}
-                  src={playerPhoto(p.id)}
-                  alt={p.fullName}
-                  loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }}
-                />
-              </div>
-              <div className={styles.playerInfo}>
-                <span className={styles.name}>{fmtName(p.fullName)}</span>
-                <span className={styles.pos}>{p.pos}</span>
+              <span className={styles.photoBox}>
+                <img className={styles.photo} src={cutoutUrl(p.id, 96)} alt="" loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+              </span>
+              <div className={styles.who} title={p.fullName}>
+                <span className={styles.first}>{first}{first && ' · '}<span className={styles.pos}>{p.pos}</span></span>
+                <span className={styles.last}>{last}</span>
               </div>
               <span className={c}>{d(s?.ab)}</span>
               <span className={c}>{d(s?.hr)}</span>
               <span className={c}>{d(s?.rbi)}</span>
               <span className={c}>{has ? `${s!.k}/${s!.bb}` : '—'}</span>
               <span className={c}>{d(s?.avg)}</span>
-              <span className={c}>{d(s?.obp)}</span>
-              <span className={c}>{d(s?.slg)}</span>
+              <span className={`${c} ${styles.wide}`}>{d(s?.obp)}</span>
+              <span className={`${c} ${styles.wide}`}>{d(s?.slg)}</span>
               <span className={has ? `${styles.stat} ${styles.ops}` : `${styles.stat} ${styles.noHistory}`}>{d(s?.ops)}</span>
             </div>
           )
         })}
 
-        {/* Career totals row */}
+        {/* Career totals of the lineup */}
         {totals && (() => {
-          const t = totals
           const d = (v: string | number | null | undefined) => v ?? '—'
           return (
             <div className={`${styles.row} ${styles.summaryRow}`}>
-              <span className={styles.summaryLabel}>CAREER</span>
-              <span className={styles.stat}>{d(t.ab)}</span>
-              <span className={styles.stat}>{d(t.hr)}</span>
-              <span className={styles.stat}>{d(t.rbi)}</span>
-              <span className={styles.stat}>{t.k}/{t.bb}</span>
-              <span className={styles.stat}>{d(t.avg)}</span>
-              <span className={styles.stat}>{d(t.obp)}</span>
-              <span className={styles.stat}>{d(t.slg)}</span>
-              <span className={`${styles.stat} ${styles.ops}`}>{d(t.ops)}</span>
+              <span className={styles.summaryLabel}>{t('careerLabel')}</span>
+              <span className={styles.stat}>{d(totals.ab)}</span>
+              <span className={styles.stat}>{d(totals.hr)}</span>
+              <span className={styles.stat}>{d(totals.rbi)}</span>
+              <span className={styles.stat}>{totals.k}/{totals.bb}</span>
+              <span className={styles.stat}>{d(totals.avg)}</span>
+              <span className={`${styles.stat} ${styles.wide}`}>{d(totals.obp)}</span>
+              <span className={`${styles.stat} ${styles.wide}`}>{d(totals.slg)}</span>
+              <span className={`${styles.stat} ${styles.ops}`}>{d(totals.ops)}</span>
             </div>
           )
         })()}
