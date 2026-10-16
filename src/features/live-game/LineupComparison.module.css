@@ -119,37 +119,6 @@
   text-align: center;
 }
 
-/* ── Photo ───────────────────────────────────────────────────── */
-.photoWrap {
-  width: 28px;
-  height: 28px;
-  border-radius: .5rem;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-  align-self: center;
-  justify-self: center;
-}
-
-.photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  display: block;
-  scale: 1;
-}
-
-.name {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
 .meta {
   font-size: 0.55rem;
   color: var(--text-muted);
@@ -386,7 +355,6 @@
 .singleHeader > :nth-child(8),
 .singleRow > :nth-child(7),
 .singleRow > :nth-child(8) { display: none; }
-  .singleRow .photoWrap { width: 24px; height: 24px; }
 
   /* Totals row: full-width bar, hide placeholder cells */
   .singleTotalsRow {
@@ -400,32 +368,6 @@
     grid-column: unset;
     width: 100%;
   }
-}
-
-/* Photo with the batting side (L / R / S) as a corner badge — same as BullpenCard */
-.photoBox {
-  position: relative;
-  align-self: center;
-  justify-self: center;
-}
-
-.handBadge {
-  position: absolute;
-  right: -4px;
-  bottom: -4px;
-  min-width: 13px;
-  height: 13px;
-  padding: 0 2px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-full);
-  background: var(--bg-card);
-  border: 1px solid var(--border-active);
-  color: var(--text-secondary);
-  font-size: 0.45rem;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  line-height: 1;
 }
 
 /* ── Comparison, TV style ───────────────────────────────────────── */
@@ -646,11 +588,63 @@
 
 @media (max-width: 360px) {
   .tvStatus .statusConfirmed,
-  .tvStatus .statusProjected { padding: 3px 4px; font-size: 0.44rem; letter-spacing: 0.02em; }
+.tvStatus .statusProjected { padding: 3px 4px; font-size: 0.44rem; letter-spacing: 0.02em; }
   .tvRow { padding: 5px 8px; gap: 4px; }
   .tvBatter { grid-template-columns: 26px minmax(0, 1fr); gap: 4px; }
   .tvBatterHome { grid-template-columns: minmax(0, 1fr) 26px; }
-  .tvPhotoBox, .tvPhoto { width: 26px; height: 26px; }
+  .tvPhotoBox,
+.tvPhoto { width: 26px; height: 26px; }
   .tvLast { font-size: 0.68rem; }
   .tvChipView { gap: 6px; padding: 8px 8px 10px; }
+}
+
+/* ── Selector: team cap logos instead of names ─────────────────── */
+.segmentLogo {
+  display: block;
+  height: 18px;
+  width: auto;
+  margin: -2px auto;
+  opacity: 0.55;
+  transition: opacity 0.18s ease;
+}
+
+.segment:hover .segmentLogo { opacity: 0.8; }
+.segmentActive .segmentLogo { opacity: 1; }
+
+/* ── Single-team view, TV style ────────────────────────────────── */
+/* Status row chips: same as the pitcher card's chips */
+.statusRow .statusConfirmed,
+.statusRow .statusProjected,
+.fieldingChip,
+.rivalChip {
+  padding: 4px 7px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-active);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+  font-size: 0.52rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.fieldingChip:hover,
+.rivalChip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+}
+
+.singleRow .tvPhotoBox { align-self: center; justify-self: center; }
+.singleInfo .tvNameLine { margin-bottom: 2px; }
+
+.singleTotalsRow .tvTotalVal { min-width: 26px; }
+
+@media (max-width: 480px) {
+  .singleRow .tvPhotoBox,
+.singleRow .tvPhoto { width: 26px; height: 26px; }
+  .singleInfo .tvLast { font-size: 0.7rem; }
 }

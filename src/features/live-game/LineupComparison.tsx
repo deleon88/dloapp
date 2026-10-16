@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getBatSides } from '@/api/mlb/endpoints/people'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import type { PlayerStats } from '@/api/mlb/endpoints/lineupStats'
-import { getTeamMeta, getBarColor } from '@/data/teams'
+import { getTeamMeta, getBarColor, capLogoUrl } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { BarFill, CountUp } from '@/components/AnimatedBar/AnimatedBar'
 import CardBgLayers from './CardBgLayers'
@@ -79,20 +79,10 @@ function lineupChipStats(lineup: LineupSlot[], wrcMap: Map<number, PlayerStats>)
   }
 }
 
-function fmtName(full: string): string {
-  const parts = full.trim().split(' ')
-  return parts.length < 2 ? full : `${parts[0][0]}. ${parts.slice(1).join(' ')}`
-}
-
 function lastName(full: string): string {
   const parts = full.trim().split(' ')
   return parts.length < 2 ? full : parts.slice(1).join(' ')
 }
-
-function photo(id: number) {
-  return `https://img.mlbstatic.com/mlb-photos/image/upload/w_64,q_auto:best/v1/people/${id}/headshot/67/current`
-}
-
 
 export default function LineupComparison({
   awayTeamId, homeTeamId,
@@ -154,7 +144,9 @@ export default function LineupComparison({
         <button
           className={`${styles.segment} ${mode === 'away' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('away')}
-        >{awayLabel}</button>
+          aria-label={awayMeta?.brief ?? awayLabel}
+          title={awayMeta?.brief ?? awayLabel}
+        ><img className={styles.segmentLogo} src={capLogoUrl(awayTeamId)} alt="" /></button>
         <button
           className={`${styles.segment} ${mode === 'comparison' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('comparison')}
@@ -162,7 +154,9 @@ export default function LineupComparison({
         <button
           className={`${styles.segment} ${mode === 'home' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('home')}
-        >{homeLabel}</button>
+          aria-label={homeMeta?.brief ?? homeLabel}
+          title={homeMeta?.brief ?? homeLabel}
+        ><img className={styles.segmentLogo} src={capLogoUrl(homeTeamId)} alt="" /></button>
       </div>
 
       {/* ── Status / action row ── */}
@@ -319,6 +313,17 @@ function TvTotal({ side, value, color, delay, label }: {
   )
 }
 
+/** LAST NAME in caps with the batting-side chip (L / R / S). */
+function TvName({ player }: { player: LineupSlot }) {
+  const bats = useContext(BatSides)?.get(player.id)
+  return (
+    <div className={styles.tvNameLine}>
+      <span className={styles.tvLast} title={player.fullName}>{lastName(player.fullName)}</span>
+      {bats && <span className={styles.tvBat} aria-label={BAT_LABEL[bats] ?? bats}>{bats}</span>}
+    </div>
+  )
+}
+
 /**
  * One batter, TV style: cutout on the outer edge, LAST NAME in caps with the
  * batting side, then position and the wRC+ bar growing toward the middle.
@@ -326,7 +331,6 @@ function TvTotal({ side, value, color, delay, label }: {
 function TvBatter({ side, player, wrcMap, color, delay }: {
   side: 'away' | 'home'; player?: LineupSlot; wrcMap: Map<number, PlayerStats>; color: string; delay: number
 }) {
-  const bats = useContext(BatSides)?.get(player?.id ?? -1)
   const home = side === 'home'
   const wrc = player ? (wrcMap.get(player.id)?.wRcPlus ?? null) : null
   const photo = (
@@ -342,10 +346,7 @@ function TvBatter({ side, player, wrcMap, color, delay }: {
       {!home && photo}
       <div className={styles.tvWho}>
         {player ? <>
-          <div className={styles.tvNameLine}>
-            <span className={styles.tvLast} title={player.fullName}>{lastName(player.fullName)}</span>
-            {bats && <span className={styles.tvBat} aria-label={BAT_LABEL[bats] ?? bats}>{bats}</span>}
-          </div>
+          <TvName player={player} />
           <div className={styles.tvLine}>
             <span className={styles.tvPos}>{player.pos}</span>
             <div className={styles.barTrack}>
@@ -395,10 +396,13 @@ function SingleView({ lineup, color, wrcMap }: {
         return (
           <div key={i} className={styles.singleRow}>
             <span className={styles.slotNum}>{i + 1}</span>
-            <PlayerPhoto id={p?.id} name={p?.fullName} />
+            <span className={styles.tvPhotoBox}>
+              {p && <img className={styles.tvPhoto} src={cutoutUrl(p.id, 96)} alt="" loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
+            </span>
             <div className={styles.singleInfo}>
               {p
-                ? <><span className={styles.name}>{fmtName(p.fullName)}</span><span className={styles.meta}>{p.pos}{pa != null ? ` · ${pa} PA` : ''}</span></>
+                ? <><TvName player={p} /><span className={styles.meta}>{p.pos}{pa != null ? ` · ${pa} PA` : ''}</span></>
                 : <span className={styles.empty}>—</span>}
             </div>
             <span className={styles.statVal}>{ps?.hr  ?? '—'}</span>
@@ -421,13 +425,13 @@ function SingleView({ lineup, color, wrcMap }: {
       <div className={styles.singleTotalsRow}>
         <span />
         <span />
-        <span className={styles.singleTotalsLabel}>Wtd. wRC+ Avg</span>
+        <span className={`${styles.singleTotalsLabel} ${styles.tvTotalLabel}`} title={t('wrcWeighted')}>{t('lineupWord')}</span>
         <div className={`${styles.singleBarWrap} ${styles.singleTotalsBarWrap}`}>
-          <div className={styles.barTrack}>
+          <div className={`${styles.barTrack} ${styles.tvTotalTrack}`}>
             <BarFill className={styles.barFillLeft} width={avgPct} color={color} delay={slots.length * ROW_STAGGER_MS} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
-          <span className={styles.wrc}><CountUp value={avg} delay={slots.length * ROW_STAGGER_MS} /></span>
+          <span className={styles.tvTotalVal}><CountUp value={avg} delay={slots.length * ROW_STAGGER_MS} /></span>
         </div>
       </div>
     </div>
@@ -450,28 +454,3 @@ function StatusBadge({ status, align = 'center' }: { status?: LineupStatus; alig
 
 const BAT_LABEL: Record<string, string> = { L: 'Bats left', R: 'Bats right', S: 'Switch hitter' }
 
-function PlayerPhoto({ id, name }: { id?: number; name?: string }) {
-  const batSides = useContext(BatSides)
-  const bats = id ? batSides?.get(id) : undefined
-  const img = (
-    <div className={styles.photoWrap}>
-      {id && (
-        <img
-          className={styles.photo}
-          src={photo(id)}
-          alt={name ?? ''}
-          loading="lazy"
-          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }}
-        />
-      )}
-    </div>
-  )
-  if (!bats) return img
-  // Batting side as a corner badge, same as the bullpen's throwing hand.
-  return (
-    <div className={styles.photoBox}>
-      {img}
-      <span className={styles.handBadge} aria-label={BAT_LABEL[bats] ?? bats}>{bats}</span>
-    </div>
-  )
-}
