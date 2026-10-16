@@ -30,10 +30,7 @@ interface Props {
   teamLabel: string
 }
 
-/**
- * The lineup's career numbers against the opposing starter, TV style: the
- * pitcher's cutout up top with the lineup's combined line, then each batter.
- */
+/** The lineup's career numbers against the opposing starter, TV style. */
 export default function VsPitcherModal({
   isOpen, onClose,
   lineup, pitcherId, pitcherName,
@@ -68,29 +65,14 @@ export default function VsPitcherModal({
     return { ab, hr, rbi, bb, k, avg, slg, obp, ops }
   }, [statsMap])
 
-  const [pFirst, pLast] = splitName(pitcherName)
+  const [, pLast] = splitName(pitcherName)
 
   return (
     <CardModal
       isOpen={isOpen} onClose={onClose}
-      title={teamLabel} subtitle={t('vsStarterHistory')}
+      title={teamLabel} subtitle={`vs ${pLast}`}
       awayColor={bgColor} homeColor={bgColor} mode={side}
     >
-      {/* ── The opposing starter, TV style, with the lineup's combined line ── */}
-      <div className={styles.hero}>
-        <div className={styles.heroText}>
-          <span className={styles.heroKicker}>VS</span>
-          {pFirst && <span className={styles.heroFirst}>{pFirst}</span>}
-          <span className={styles.heroLast}>{pLast}</span>
-          <span className={styles.heroLine}>
-            {totals
-              ? <>{totals.ab} AB · {totals.avg ?? '—'} / {totals.obp ?? '—'} / {totals.slg ?? '—'} · <b>{totals.ops ?? '—'} OPS</b> · {totals.k} K · {totals.bb} BB</>
-              : isLoading ? t('loading') : t('noVsHistory')}
-          </span>
-        </div>
-        <img className={styles.heroPhoto} src={cutoutUrl(pitcherId)} alt="" />
-      </div>
-
       {/* ── Column headers (OBP and SLG hide on phones) ── */}
       <div className={`${styles.row} ${styles.colHeader}`}>
         <span /><span />
@@ -121,7 +103,7 @@ export default function VsPitcherModal({
                   onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
               </span>
               <div className={styles.who} title={p.fullName}>
-                <span className={styles.first}>{first}{first && ' · '}<span className={styles.pos}>{p.pos}</span></span>
+                {first && <span className={styles.first}>{first}</span>}
                 <span className={styles.last}>{last}</span>
               </div>
               <span className={c}>{d(s?.ab)}</span>
