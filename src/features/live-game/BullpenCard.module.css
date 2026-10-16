@@ -5,7 +5,6 @@
   overflow: hidden;
 }
 
-
 .card > [data-card-bg] {
   position: absolute;
   inset: 0;
@@ -19,7 +18,6 @@
   z-index: 1;
 }
 
-/* ── Segmented toggle ────────────────────────────────────────── */
 .segmentTrack {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -63,249 +61,12 @@
 }
 
 .segment:hover { color: var(--text-secondary); }
+
 .segmentActive  { color: var(--text-primary); }
-
-/* ── Comparison header ───────────────────────────────────────── */
-/* photo | player-away | bar-away | bar-home | player-home | photo */
-.compHeader {
-  display: grid;
-  grid-template-columns: 28px 1fr 96px 96px 1fr 28px;
-  align-items: center;
-  padding: 5px 10px 2px;
-  gap: 6px;
-  min-height: 26px;
-}
-
-.compBarLabel {
-  font-size: 0.54rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text-secondary);
-  min-width: 26px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-/* Single centered FIP+ header spanning both bar columns */
-.fipHeader {
-  grid-column: 3 / 5;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fip100Away,
-.fip100Home {
-  position: absolute;
-  top: 50%;
-  font-size: 0.52rem;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.28);
-  transform: translate(-50%, -50%);
-}
-
-/* barTrack = 96px - 26px(fipVal) - 5px(gap) = 65px; center = 32.5px from col edge */
-.fip100Away { left: calc((96px - 26px - 5px) / 2); }
-.fip100Home { left: calc(96px + 6px + 26px + 5px + (96px - 26px - 5px) / 2); }
-
-/* ── Comparison rows ─────────────────────────────────────────── */
-.compRow {
-  display: grid;
-  grid-template-columns: 28px 1fr 96px 96px 1fr 28px;
-  align-items: center;
-  padding: 4px 10px;
-  gap: 6px;
-  border-top: 1px solid var(--border);
-}
-
-.compGroup:hover .compRow,
-.compGroup:hover .compUsageRow { background: rgba(255, 255, 255, 0.03); }
-
-/* ── Single view ─────────────────────────────────────────────── */
-.singleHeader {
-  display: grid;
-  grid-template-columns: 28px 1fr 36px 36px 110px;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px 3px;
-  min-height: 26px;
-  font-size: 0.52rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.singleHeader > *:not(:first-child):not(:nth-child(2)) {
-  text-align: center;
-}
-
-.singleRow {
-  display: grid;
-  grid-template-columns: 28px 1fr 36px 36px 110px;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-top: 1px solid var(--border);
-}
-
-.singleRow:hover { background: rgba(255, 255, 255, 0.03); }
-
-.singleInfo {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  min-width: 0;
-}
-
-.singleBarWrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.statVal {
-  font-size: 0.62rem;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-/* ── Photo ───────────────────────────────────────────────────── */
-.photoWrap {
-  width: 28px;
-  height: 28px;
-  border-radius: .5rem;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-  align-self: center;
-  justify-self: center;
-}
-
-.photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  scale: 1;
-  display: block;
-}
-
-/* ── Player info ─────────────────────────────────────────────── */
-.playerAway {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-  min-width: 0;
-}
-
-.playerHome {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  min-width: 0;
-}
-
-.name {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.meta {
-  font-size: 0.55rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  white-space: nowrap;
-  /* Never run under the photo: cut with an ellipsis if a line is too long. */
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Photo with the throwing hand as a corner badge */
-.photoBox {
-  position: relative;
-  align-self: center;
-  justify-self: center;
-}
-
-.handBadge {
-  position: absolute;
-  right: -4px;
-  bottom: -4px;
-  min-width: 13px;
-  height: 13px;
-  padding: 0 2px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-full);
-  background: var(--bg-card);
-  border: 1px solid var(--border-active);
-  color: var(--text-secondary);
-  font-size: 0.45rem;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  line-height: 1;
-}
-
-/* Row stats: each value over its small label (ERA, or wOBA + BF with a hand filter) */
-.rowStats {
-  display: flex;
-  gap: 8px;
-  margin-top: 1px;
-}
-
-.rowStat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.1;
-}
-
-.rowStatValue {
-  font-size: 0.6rem;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.rowStatLabel {
-  font-size: 0.45rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
 
 .empty {
   font-size: 0.7rem;
   color: var(--text-muted);
-}
-
-.nameMobile { display: none; }
-
-/* ── Bar blocks ──────────────────────────────────────────────── */
-.barBlockAway {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.barBlockHome {
-  display: flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .barTrack {
@@ -333,7 +94,6 @@
   opacity: 0.85;
 }
 
-
 .avgMark {
   position: absolute;
   top: 0; bottom: 0;
@@ -344,47 +104,6 @@
   transform: translateX(-50%);
 }
 
-.fipVal {
-  font-size: 0.63rem;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  min-width: 26px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-/* ── Team aggregate totals ───────────────────────────────────── */
-.totalsRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 5px 10px 7px;
-  border-top: 1px solid var(--border-active);
-  align-items: center;
-}
-
-.totalsAway {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.totalsHome {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.totalsVal {
-  font-size: 0.7rem;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  min-width: 26px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-/* ── View height stability ───────────────────────────────────── */
 .viewStack {
   display: grid;
 }
@@ -400,7 +119,6 @@
   grid-area: 1/1;
 }
 
-/* ── State messages ──────────────────────────────────────────── */
 .stateMsg {
   padding: 16px 14px;
   font-size: 0.72rem;
@@ -408,38 +126,6 @@
   text-align: center;
 }
 
-/* ── Recent usage rows ───────────────────────────────────────── */
-
-/* Comparison: mirrors the compRow grid */
-.compUsageRow {
-  display: grid;
-  grid-template-columns: 28px 1fr 96px 96px 1fr 28px;
-  gap: 6px;
-  padding: 2px 10px 8px;
-}
-
-.compUsageAway {
-  grid-column: 1 / 4;
-  display: flex;
-  gap: 4px;
-  justify-content: flex-end;
-}
-
-.compUsageHome {
-  grid-column: 4 / 7;
-  display: flex;
-  gap: 4px;
-  justify-content: flex-start;
-}
-
-/* Single: spans full row width */
-.singleUsageRow {
-  display: flex;
-  gap: 4px;
-  padding: 2px 12px 8px;
-}
-
-/* Individual day column (dot + date label) */
 .usageDay {
   display: flex;
   flex-direction: column;
@@ -488,66 +174,260 @@
   white-space: nowrap;
 }
 
-/* ── Narrow screens ──────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .compHeader {
-    grid-template-columns: 24px 1fr 76px 76px 1fr 24px;
-    padding: 5px 8px 2px;
-    gap: 4px;
-  }
-
-  .compRow {
-    grid-template-columns: 24px 1fr 76px 76px 1fr 24px;
-    padding: 4px 8px;
-    gap: 4px;
-  }
-
-  .compRow .photoWrap { width: 24px; height: 24px; }
-
-  .nameDesktop { display: none; }
-  .nameMobile  { display: block; }
-
-  .singleHeader,
-  .singleRow {
-    grid-template-columns: 24px 1fr 32px 32px 90px;
-    padding-inline: 8px;
-    gap: 4px;
-  }
-
-  .singleRow .photoWrap { width: 24px; height: 24px; }
-
-  /* barTrack = 76px - 26px - 5px = 45px; center = 22.5px */
-  .fip100Away { left: calc((76px - 26px - 5px) / 2); }
-  .fip100Home { left: calc(76px + 4px + 26px + 5px + (76px - 26px - 5px) / 2); }
-
-  .compUsageRow {
-    grid-template-columns: 24px 1fr 76px 76px 1fr 24px;
-    gap: 4px;
-    padding: 2px 8px 6px;
-  }
-
-  .singleUsageRow {
-    padding: 2px 8px 6px;
-    gap: 3px;
-  }
-
-  .usageDot { width: 18px; height: 18px; }
+/* ── Selector: cap logo only on the selected team ─────────────────── */
+.segmentLogo {
+  display: block;
+  height: 24px;
+  width: auto;
+  margin: -6px auto;
 }
 
-/* ── Very narrow phones (320–359px): shorter bars so the name / stat column fits ── */
-@media (max-width: 359px) {
-  .compHeader,
-  .compRow,
-  .compUsageRow {
-    grid-template-columns: 22px 1fr 62px 62px 1fr 22px;
-    gap: 3px;
-  }
+/* ── TV-style pieces shared by both views ─────────────────────────── */
+.photoBox { width: 32px; height: 32px; }
 
-  .compRow .photoWrap { width: 22px; height: 22px; }
+.photo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  object-position: bottom;
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
+          mask-image: linear-gradient(to bottom, #000 72%, transparent);
+}
 
-  /* barTrack = 62px - 26px - 5px = 31px; center = 15.5px */
-  .fip100Away { left: calc((62px - 26px - 5px) / 2); }
-  .fip100Home { left: calc(62px + 3px + 26px + 5px + (62px - 26px - 5px) / 2); }
+.who { min-width: 0; }
 
-  .rowStats { gap: 5px; }
+.nameLine {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* First name small on top, LAST NAME below (as on the pitcher card) */
+.fullName {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.first {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.46rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  line-height: 1.15;
+}
+
+.last {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  line-height: 1.3;   /* room for capital accents */
+}
+
+/* Throwing hand: the pitcher card's chip, scaled to the row */
+.hand {
+  flex-shrink: 0;
+  margin-bottom: 3px;
+  padding: 2px 5px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-active);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+  font-size: 0.46rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.rowStat {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.rowStat small {
+  font-size: 0.44rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.group { border-top: 1px solid rgba(255, 255, 255, 0.03); }
+
+/* ── Comparison ───────────────────────────────────────────────────── */
+.colLabel {
+  padding: 8px 0 2px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* away reliever · away FIP+ · gap · home FIP+ · home reliever */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px 12px 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 3px;
+  padding: 6px 10px 2px;
+}
+
+.side {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sideHome { grid-template-columns: minmax(0, 1fr) 32px; }
+.sideHome .who { text-align: right; }
+.sideHome .nameLine { flex-direction: row-reverse; }
+.sideHome .fullName { align-items: flex-end; }
+
+/* stat · bar (grows toward the middle) */
+.line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  padding-right: 2px;
+}
+
+.sideHome .line { flex-direction: row-reverse; padding-right: 0; padding-left: 2px; }
+
+.val {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.valAway { text-align: right; }
+.valHome { text-align: left; }
+
+/* Pitch counts by day under each reliever */
+.usageRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 2px 10px 8px;
+}
+
+.usageAway, .usageHome { display: flex; gap: 4px; }
+
+/* Totals: bullpen FIP+ on the same columns, thicker bars */
+.totals {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.totalLabel {
+  font-size: 0.46rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.sideHome .totalLabel { text-align: right; }
+.totals .line { margin-top: 0; }
+.totalTrack { height: 9px; border-radius: 5px; }
+
+.totalVal {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* ── Single team ──────────────────────────────────────────────────── */
+/* photo · pitcher · ERA · IP · FIP+ */
+.sRow {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 40px 40px 110px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 2px;
+}
+
+.sHead {
+  padding-top: 8px;
+  padding-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.sNum {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.sHead .sNum { color: var(--text-muted); font-size: 0.5rem; }
+.sFipHead { text-align: right; }
+
+.sFip { display: flex; align-items: center; gap: 5px; }
+
+.sFipVal {
+  min-width: 26px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sUsageRow { display: flex; gap: 4px; padding: 2px 12px 8px; }
+
+/* ── Phones ───────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .row { grid-template-columns: minmax(0, 1fr) 28px 10px 28px minmax(0, 1fr); padding: 6px 8px 2px; }
+  .side { grid-template-columns: 28px minmax(0, 1fr); gap: 4px; }
+  .last { font-size: 0.7rem; }
+  .sideHome { grid-template-columns: minmax(0, 1fr) 28px; }
+  .photoBox, .photo { width: 28px; height: 28px; }
+  .usageRow { gap: 12px; padding: 2px 8px 6px; }
+  .usageDot { width: 18px; height: 18px; }
+  .sRow { grid-template-columns: 28px minmax(0, 1fr) 34px 34px 90px; gap: 5px; padding-inline: 10px; }
+  .sUsageRow { padding: 2px 10px 6px; gap: 3px; }
+}
+
+@media (max-width: 360px) {
+  .row { grid-template-columns: minmax(0, 1fr) 24px 8px 24px minmax(0, 1fr); padding: 6px 6px 2px; gap: 2px; }
+  .side { grid-template-columns: 22px minmax(0, 1fr); gap: 3px; }
+  .sideHome { grid-template-columns: minmax(0, 1fr) 22px; }
+  .photoBox, .photo { width: 22px; height: 22px; }
+  .last { font-size: 0.64rem; }
+  .hand { padding: 1px 3px; font-size: 0.4rem; }
+  .rowStat { font-size: 0.5rem; }
+  .val { font-size: 0.62rem; }
+  .totalVal { font-size: 0.8rem; }
+  .usageRow { gap: 8px; padding: 2px 6px 6px; }
+  .usageAway, .usageHome { gap: 2px; }
+  .usageDot { width: 16px; height: 16px; }
+  .sRow { grid-template-columns: 24px minmax(0, 1fr) 30px 30px 72px; gap: 4px; padding-inline: 8px; }
 }

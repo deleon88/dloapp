@@ -1,7 +1,10 @@
 import type { BullpenStats, BullpenPitcher, BullpenUsage } from '@/api/mlb/endpoints/bullpenStats'
 import type { ViewMode } from './LineupComparison'
 import { BarFill, CountUp } from '@/components/AnimatedBar/AnimatedBar'
+import { capLogoUrl } from '@/data/teams'
+import { useT } from '@/i18n/useT'
 import CardBgLayers from './CardBgLayers'
+import { cutoutUrl } from './mlbImages'
 import styles from './BullpenCard.module.css'
 
 const FIP_MIN = 70
@@ -20,76 +23,50 @@ function fipBarPct(fipMinus: number | null): number {
   return Math.max(0, Math.min(100, ((Math.max(FIP_MIN, Math.min(FIP_MAX, fp)) - FIP_MIN) / (FIP_MAX - FIP_MIN)) * 100))
 }
 
-function fmtName(n: string) {
-  const p = n.split(' ')
-  return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : n
+/** "Bryan Baker" → ["Bryan", "Baker"] (last name keeps every word after the first). */
+function splitName(full: string): [string, string] {
+  const [first, ...rest] = full.trim().split(' ')
+  return rest.length ? [first, rest.join(' ')] : ['', first]
 }
 
-function lastName(n: string) {
-  const p = n.trim().split(' ')
-  return p.length < 2 ? n : p.slice(1).join(' ')
-}
-
-const PHOTO = (id: number) =>
-  `https://img.mlbstatic.com/mlb-photos/image/upload/w_64,q_auto:best/v1/people/${id}/headshot/67/current`
-
-function PlayerPhoto({ id, hand }: { id: number; hand?: string }) {
-  const photo = (
-    <div className={styles.photoWrap}>
-      <img
-        className={styles.photo}
-        src={PHOTO(id)}
-        alt=""
-        loading="lazy"
-        onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }}
-      />
-    </div>
-  )
-  if (!hand) return photo
-  // Throwing hand as a corner badge: takes no width from the name / stat column.
+/** MLB cutout of the pitcher, faded at the bottom (TV style). */
+function Cutout({ id }: { id?: number }) {
   return (
-    <div className={styles.photoBox}>
-      {photo}
-      <span className={styles.handBadge} aria-label={hand === 'L' ? 'LHP' : 'RHP'}>{hand}</span>
-    </div>
+    <span className={styles.photoBox}>
+      {id != null && (
+        <img className={styles.photo} src={cutoutUrl(id, 96)} alt="" loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+      )}
+    </span>
   )
 }
 
-/* ── Row stat ────────────────────────────────────────────────── */
+/** First name (small) + LAST NAME in caps, with the throwing-hand chip. */
+function TvName({ p }: { p: BullpenPitcher }) {
+  const [first, last] = splitName(p.name)
+  return (
+    <div className={styles.nameLine}>
+      <span className={styles.fullName} title={p.name}>
+        {first && <span className={styles.first}>{first}</span>}
+        <span className={styles.last}>{last}</span>
+      </span>
+      {p.hand && <span className={styles.hand} aria-label={p.hand === 'L' ? 'LHP' : 'RHP'}>{p.hand}</span>}
+    </div>
+  )
+}
 
 const fmtWoba = (w: number | null | undefined) => (w != null ? w.toFixed(3).replace(/^0/, '') : '—')
 
 const byHand = (hand: BullpenStats['hand']) => hand != null && hand !== 'all'
 
-/** Full name on desktop, last name on phones (the hand is a badge on the photo). */
-function NameLine({ p }: { p: BullpenPitcher }) {
-  return (
-    <>
-      <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(p.name)}</span>
-      <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(p.name)}</span>
-    </>
-  )
-}
-
 /**
  * ERA, or — with a batter-hand filter, where ERA doesn't exist — wOBA allowed
  * vs that hand plus the sample (batters faced), so small splits read as such.
- * Each value sits over its label, which keeps the block narrow next to the photo.
  */
 function RowStat({ p, hand }: { p: BullpenPitcher; hand: BullpenStats['hand'] }) {
-  const stats = byHand(hand)
-    ? [{ value: fmtWoba(p.wobaAgainst), label: 'wOBA' }, { value: String(p.bf ?? 0), label: 'BF' }]
-    : [{ value: p.era ?? '—', label: 'ERA' }]
-  return (
-    <span className={styles.rowStats}>
-      {stats.map(s => (
-        <span key={s.label} className={styles.rowStat}>
-          <span className={styles.rowStatValue}>{s.value}</span>
-          <span className={styles.rowStatLabel}>{s.label}</span>
-        </span>
-      ))}
-    </span>
-  )
+  return byHand(hand)
+    ? <span className={styles.rowStat}>{fmtWoba(p.wobaAgainst)} <small>wOBA</small> · {p.bf ?? 0} <small>BF</small></span>
+    : <span className={styles.rowStat}>{p.era ?? '—'} <small>ERA</small></span>
 }
 
 /* ── Usage strip ─────────────────────────────────────────────── */
@@ -137,6 +114,9 @@ interface Props {
   homeBarColor?: string
   awayLabel: string
   homeLabel: string
+  /** For the cap logo on the selected team in the selector. */
+  awayTeamId?: number
+  homeTeamId?: number
   isLoading?: boolean
   mode: ViewMode
   onModeChange: (m: ViewMode) => void
@@ -147,6 +127,7 @@ export default function BullpenCard({
   awayColor, homeColor,
   awayBarColor, homeBarColor,
   awayLabel, homeLabel,
+  awayTeamId, homeTeamId,
   isLoading,
   mode,
   onModeChange,
@@ -161,6 +142,15 @@ export default function BullpenCard({
   const awayUsage = away?.usage
   const homeUsage = home?.usage
 
+  // Selector: the cap logo only on the selected team, its name otherwise.
+  const teamSegment = (side: 'away' | 'home', label: string, teamId?: number) => (
+    <button
+      className={`${styles.segment} ${mode === side ? styles.segmentActive : ''}`}
+      onClick={() => onModeChange(side)}
+      aria-label={label}
+    >{mode === side && teamId ? <img className={styles.segmentLogo} src={capLogoUrl(teamId)} alt="" /> : label}</button>
+  )
+
   return (
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
@@ -173,18 +163,12 @@ export default function BullpenCard({
             ...(pillColor ? { boxShadow: `0 0 0 1px ${pillColor}40` } : {}),
           }}
         />
-        <button
-          className={`${styles.segment} ${mode === 'away' ? styles.segmentActive : ''}`}
-          onClick={() => onModeChange('away')}
-        >{awayLabel}</button>
+        {teamSegment('away', awayLabel, awayTeamId)}
         <button
           className={`${styles.segment} ${mode === 'comparison' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('comparison')}
         >Bullpen</button>
-        <button
-          className={`${styles.segment} ${mode === 'home' ? styles.segmentActive : ''}`}
-          onClick={() => onModeChange('home')}
-        >{homeLabel}</button>
+        {teamSegment('home', homeLabel, homeTeamId)}
       </div>
 
       {isLoading && <p className={styles.stateMsg}>…</p>}
@@ -226,6 +210,31 @@ export default function BullpenCard({
 
 /* ── Comparison view ─────────────────────────────────────────── */
 
+/** One reliever, TV style: cutout on the outer edge, name, stat and the bar growing toward the middle. */
+function Reliever({ side, p, hand, pct, color, delay }: {
+  side: 'away' | 'home'; p?: BullpenPitcher; hand: BullpenStats['hand']; pct: number; color: string; delay: number
+}) {
+  const home = side === 'home'
+  return (
+    <div className={`${styles.side} ${home ? styles.sideHome : ''}`}>
+      {!home && <Cutout id={p?.id} />}
+      <div className={styles.who}>
+        {p ? <>
+          <TvName p={p} />
+          <div className={styles.line}>
+            <RowStat p={p} hand={hand} />
+            <div className={styles.barTrack}>
+              <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={pct} color={color} delay={delay} />
+              <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
+            </div>
+          </div>
+        </> : <span className={styles.empty}>—</span>}
+      </div>
+      {home && <Cutout id={p?.id} />}
+    </div>
+  )
+}
+
 function ComparisonView({
   away, home, awayColor, homeColor, awayUsage, homeUsage,
 }: {
@@ -235,84 +244,39 @@ function ComparisonView({
   const rows     = Math.max(away.pitchers.length, home.pitchers.length)
   const aFipPlus = away.teamFipMinus != null ? toFipPlus(away.teamFipMinus) : null
   const hFipPlus = home.teamFipMinus != null ? toFipPlus(home.teamFipMinus) : null
-  const aAggPct  = fipBarPct(away.teamFipMinus)
-  const hAggPct  = fipBarPct(home.teamFipMinus)
   const showUsage = (awayUsage?.days.length ?? 0) > 0 || (homeUsage?.days.length ?? 0) > 0
+  const totalsDelay = rows * ROW_STAGGER_MS
 
   return (
     <div>
-      {/* Column header */}
-      <div className={styles.compHeader}>
-        <span />
-        <span />
-        <div className={styles.fipHeader}>
-          <span className={styles.fip100Away}>100</span>
-          <span className={styles.compBarLabel}>FIP+</span>
-          <span className={styles.fip100Home}>100</span>
-        </div>
-        <span />
-        <span />
-      </div>
+      {/* "FIP+" in the middle, like the lineup's "wRC+" */}
+      <div className={styles.colLabel}>FIP+</div>
 
-      {/* Pitcher rows */}
+      {/* away reliever · away FIP+ · · home FIP+ · home reliever — the compared numbers sit together */}
       {Array.from({ length: rows }).map((_, i) => {
-        const a    = away.pitchers[i] as BullpenPitcher | undefined
-        const h    = home.pitchers[i] as BullpenPitcher | undefined
-        const aPct = fipBarPct(a?.fipMinus ?? null)
-        const hPct = fipBarPct(h?.fipMinus ?? null)
+        const a = away.pitchers[i] as BullpenPitcher | undefined
+        const h = home.pitchers[i] as BullpenPitcher | undefined
         const aFip = a?.fipMinus != null ? toFipPlus(a.fipMinus) : null
         const hFip = h?.fipMinus != null ? toFipPlus(h.fipMinus) : null
-
+        const delay = i * ROW_STAGGER_MS
         return (
-          <div key={i} className={styles.compGroup}>
-            <div className={styles.compRow}>
-              {a ? <PlayerPhoto id={a.id} hand={a.hand} /> : <div className={styles.photoWrap} />}
-
-              <div className={styles.playerAway}>
-                {a ? (
-                  <>
-                    <NameLine p={a} />
-                    <RowStat p={a} hand={away.hand} />
-                  </>
-                ) : <span className={styles.empty}>—</span>}
-              </div>
-
-              <div className={styles.barBlockAway}>
-                <div className={styles.barTrack}>
-                  <BarFill className={styles.barFillRight} width={aPct} color={awayColor} delay={i * ROW_STAGGER_MS} />
-                  <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
-                </div>
-                <span className={styles.fipVal}><CountUp value={aFip} delay={i * ROW_STAGGER_MS} /></span>
-              </div>
-
-              <div className={styles.barBlockHome}>
-                <span className={styles.fipVal}><CountUp value={hFip} delay={i * ROW_STAGGER_MS} /></span>
-                <div className={styles.barTrack}>
-                  <BarFill className={styles.barFillLeft} width={hPct} color={homeColor} delay={i * ROW_STAGGER_MS} />
-                  <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
-                </div>
-              </div>
-
-              <div className={styles.playerHome}>
-                {h ? (
-                  <>
-                    <NameLine p={h} />
-                    <RowStat p={h} hand={home.hand} />
-                  </>
-                ) : <span className={styles.empty}>—</span>}
-              </div>
-
-              {h ? <PlayerPhoto id={h.id} hand={h.hand} /> : <div className={styles.photoWrap} />}
+          <div key={i} className={styles.group}>
+            <div className={styles.row}>
+              <Reliever side="away" p={a} hand={away.hand} pct={fipBarPct(a?.fipMinus ?? null)} color={awayColor} delay={delay} />
+              <span className={`${styles.val} ${styles.valAway}`}>{a && <CountUp value={aFip} delay={delay} />}</span>
+              <span />
+              <span className={`${styles.val} ${styles.valHome}`}>{h && <CountUp value={hFip} delay={delay} />}</span>
+              <Reliever side="home" p={h} hand={home.hand} pct={fipBarPct(h?.fipMinus ?? null)} color={homeColor} delay={delay} />
             </div>
 
             {showUsage && (
-              <div className={styles.compUsageRow}>
-                <div className={styles.compUsageAway}>
+              <div className={styles.usageRow}>
+                <div className={styles.usageAway}>
                   {a && awayUsage && awayUsage.days.length > 0 && (
                     <UsageDays pitcherId={a.id} usage={awayUsage} color={awayColor} />
                   )}
                 </div>
-                <div className={styles.compUsageHome}>
+                <div className={styles.usageHome}>
                   {h && homeUsage && homeUsage.days.length > 0 && (
                     <UsageDays pitcherId={h.id} usage={homeUsage} color={homeColor} />
                   )}
@@ -323,23 +287,32 @@ function ComparisonView({
         )
       })}
 
-      {/* Team aggregate totals */}
-      <div className={styles.totalsRow}>
-        <div className={styles.totalsAway}>
-          <span className={styles.totalsVal}><CountUp value={aFipPlus} delay={rows * ROW_STAGGER_MS} /></span>
-          <div className={styles.barTrack}>
-            <BarFill className={styles.barFillRight} width={aAggPct} color={awayColor} delay={rows * ROW_STAGGER_MS} />
-            <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
-          </div>
-        </div>
-        <div className={styles.totalsHome}>
-          <div className={styles.barTrack}>
-            <BarFill className={styles.barFillLeft} width={hAggPct} color={homeColor} delay={rows * ROW_STAGGER_MS} />
-            <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
-          </div>
-          <span className={styles.totalsVal}><CountUp value={hFipPlus} delay={rows * ROW_STAGGER_MS} /></span>
+      {/* Team totals: bullpen FIP+ on the same columns, thicker bars */}
+      <div className={`${styles.row} ${styles.totals}`}>
+        <TotalSide side="away" value={aFipPlus} pct={fipBarPct(away.teamFipMinus)} color={awayColor} delay={totalsDelay} />
+        <span className={`${styles.totalVal} ${styles.valAway}`}><CountUp value={aFipPlus} delay={totalsDelay} /></span>
+        <span />
+        <span className={`${styles.totalVal} ${styles.valHome}`}><CountUp value={hFipPlus} delay={totalsDelay} /></span>
+        <TotalSide side="home" value={hFipPlus} pct={fipBarPct(home.teamFipMinus)} color={homeColor} delay={totalsDelay} />
+      </div>
+    </div>
+  )
+}
+
+function TotalSide({ side, pct, color, delay }: {
+  side: 'away' | 'home'; value: number | null; pct: number; color: string; delay: number
+}) {
+  const home = side === 'home'
+  return (
+    <div className={`${styles.side} ${home ? styles.sideHome : ''}`}>
+      {!home && <span className={styles.totalLabel}>Bullpen</span>}
+      <div className={styles.line}>
+        <div className={`${styles.barTrack} ${styles.totalTrack}`}>
+          <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={pct} color={color} delay={delay} />
+          <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
         </div>
       </div>
+      {home && <span className={styles.totalLabel}>Bullpen</span>}
     </div>
   )
 }
@@ -349,48 +322,44 @@ function ComparisonView({
 function SingleView({ stats, color, usage }: {
   stats?: BullpenStats; color: string; usage?: BullpenUsage
 }) {
+  const t = useT()
   if (!stats) return <p className={styles.stateMsg}>—</p>
   const showUsage = (usage?.days.length ?? 0) > 0
   // With a batter-hand filter there's no ERA: wOBA allowed and batters faced instead.
-  const byHand = stats.hand != null && stats.hand !== 'all'
+  const hand = byHand(stats.hand)
 
   return (
     <div>
-      <div className={styles.singleHeader}>
+      {/* photo · pitcher · ERA IP (wOBA BF) · FIP+ */}
+      <div className={`${styles.sRow} ${styles.sHead}`}>
         <span />
-        <span>Pitcher</span>
-        <span>{byHand ? 'wOBA' : 'ERA'}</span>
-        <span>{byHand ? 'BF' : 'IP'}</span>
-        <div className={styles.singleBarWrap}>
-          <div style={{ flex: 1 }} />
-          <span style={{ minWidth: '26px', textAlign: 'center' }}>FIP+</span>
-        </div>
+        <span>{t('pitcherWord')}</span>
+        <span className={styles.sNum}>{hand ? 'wOBA' : 'ERA'}</span>
+        <span className={styles.sNum}>{hand ? 'BF' : 'IP'}</span>
+        <span className={styles.sFipHead}>FIP+</span>
       </div>
 
       {stats.pitchers.map((p, i) => {
         const fp  = p.fipMinus != null ? toFipPlus(p.fipMinus) : null
-        const pct = fipBarPct(p.fipMinus)
+        const delay = i * ROW_STAGGER_MS
         return (
-          <div key={p.id}>
-            <div className={styles.singleRow}>
-              <PlayerPhoto id={p.id} />
-              <div className={styles.singleInfo}>
-                <span className={styles.name}>{fmtName(p.name)}</span>
-                <span className={styles.meta}>{p.hand}</span>
-              </div>
-              <span className={styles.statVal}>{byHand ? fmtWoba(p.wobaAgainst) : p.era ?? '—'}</span>
-              <span className={styles.statVal}>{byHand ? p.bf ?? 0 : p.ip ?? '—'}</span>
-              <div className={styles.singleBarWrap}>
+          <div key={p.id} className={styles.group}>
+            <div className={styles.sRow}>
+              <Cutout id={p.id} />
+              <div className={styles.who}><TvName p={p} /></div>
+              <span className={styles.sNum}>{hand ? fmtWoba(p.wobaAgainst) : p.era ?? '—'}</span>
+              <span className={styles.sNum}>{hand ? p.bf ?? 0 : p.ip ?? '—'}</span>
+              <div className={styles.sFip}>
                 <div className={styles.barTrack}>
-                  <BarFill className={styles.barFillLeft} width={pct} color={color} delay={i * ROW_STAGGER_MS} />
+                  <BarFill className={styles.barFillLeft} width={fipBarPct(p.fipMinus)} color={color} delay={delay} />
                   <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
                 </div>
-                <span className={styles.fipVal}><CountUp value={fp} delay={i * ROW_STAGGER_MS} /></span>
+                <span className={styles.sFipVal}><CountUp value={fp} delay={delay} /></span>
               </div>
             </div>
 
             {showUsage && usage && (
-              <div className={styles.singleUsageRow}>
+              <div className={styles.sUsageRow}>
                 <UsageDays pitcherId={p.id} usage={usage} color={color} />
               </div>
             )}

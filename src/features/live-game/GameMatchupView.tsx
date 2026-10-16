@@ -217,6 +217,8 @@ export default function GameMatchupView({
         homeBarColor={hcBar}
         awayLabel={away?.brief.toUpperCase() ?? 'AWAY'}
         homeLabel={home?.brief.toUpperCase() ?? 'HOME'}
+        awayTeamId={teams.away.team.id}
+        homeTeamId={teams.home.team.id}
         isLoading={bullpenLoading}
         mode={mode}
         onModeChange={setMode}
