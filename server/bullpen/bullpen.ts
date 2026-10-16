@@ -16,7 +16,7 @@ import { selectBullpen, type Appearance } from './select.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 const AVAILABILITY_GAMES = 7   // games looked at for rest / frequency
-const STRIP_GAMES = 5          // games shown in the usage strip
+const STRIP_DAYS = 5           // calendar days shown in the usage strip (off days included)
 
 export type BullpenHand = 'all' | 'L' | 'R'
 
@@ -45,8 +45,9 @@ export interface BullpenPitcher {
 }
 
 export interface BullpenUsage {
-  days: Array<{ gamePk: number; date: string; label: string }>
-  /** Pitches per game for each listed pitcher, same order as `days`. */
+  /** Last calendar days, oldest first; `games` is 0 on an off day (2 on a doubleheader). */
+  days: Array<{ date: string; label: string; games: number }>
+  /** Pitches per day for each listed pitcher (doubleheaders summed), same order as `days`. */
   pitches: Record<string, number[]>
 }
 
@@ -135,7 +136,9 @@ export async function getBullpen(teamId: number, opts: { season: number; period:
   // ── Recent usage (database first) ──
   const windowStart = daysAgo(8)
   const beforeToday = games.filter(g => g.date >= windowStart && g.date < today).slice(-AVAILABILITY_GAMES)
-  const strip = games.slice(-STRIP_GAMES)
+  // Strip: the calendar days before today (the same dates for both teams).
+  const stripDates = Array.from({ length: STRIP_DAYS }, (_, i) => daysAgo(STRIP_DAYS - i))
+  const strip = games.filter(g => stripDates.includes(g.date))
   const apps = await appearancesFor(teamId, [...new Set([...beforeToday, ...strip].map(g => g.gamePk))])
 
   const usage = new Map<number, Appearance[]>()
@@ -153,9 +156,9 @@ export async function getBullpen(teamId: number, opts: { season: number; period:
   }).map(x => x.id)
 
   const usageOut: BullpenUsage = {
-    days: strip.map(g => ({ gamePk: g.gamePk, date: g.date, label: dateLabel(g.date) })),
-    pitches: Object.fromEntries(top.map(id => [id, strip.map(g =>
-      apps.get(g.gamePk)?.find(a => a.pitcher_id === id)?.pitches ?? 0)])),
+    days: stripDates.map(d => ({ date: d, label: dateLabel(d), games: strip.filter(g => g.date === d).length })),
+    pitches: Object.fromEntries(top.map(id => [id, stripDates.map(d => strip.filter(g => g.date === d)
+      .reduce((n, g) => n + (apps.get(g.gamePk)?.find(a => a.pitcher_id === id)?.pitches ?? 0), 0))])),
   }
   if (!top.length) return { pitchers: [], teamFipMinus: null, teamEra: null, teamWhip: null, usage: usageOut, hand }
 

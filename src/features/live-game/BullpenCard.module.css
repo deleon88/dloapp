@@ -126,53 +126,10 @@
   text-align: center;
 }
 
-.usageDay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-  cursor: default;
-}
 
-.usageDot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
-  flex-shrink: 0;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
 
-.usageDotBg {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-}
 
-.usageDotNum {
-  position: relative;
-  z-index: 1;
-  font-size: 0.5rem;
-  font-family: var(--font-mono);
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1;
-}
 
-.usageDate {
-  font-size: 0.42rem;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  line-height: 1;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
 
 /* ── Selector: cap logo only on the selected team ─────────────────── */
 .segmentLogo {
@@ -271,7 +228,6 @@
 
 /* ── Comparison ───────────────────────────────────────────────────── */
 .colLabel {
-  padding: 8px 0 2px;
   text-align: center;
   font-family: var(--font-mono);
   font-size: 0.55rem;
@@ -302,16 +258,28 @@
 .sideHome .nameLine { flex-direction: row-reverse; }
 .sideHome .fullName { align-items: flex-end; }
 
-/* stat · bar (grows toward the middle) */
+/* first name · stat (toward the middle) */
+.topLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.topLine .first { flex: 1; min-width: 0; }
+.sideHome .topLine { flex-direction: row-reverse; }
+
+/* FIP+ bar right under the name, flush against the FIP+ value */
+.fipBar { display: block; margin-top: 3px; }
+
+/* totals: label · bar */
 .line {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-top: 2px;
-  padding-right: 2px;
 }
 
-.sideHome .line { flex-direction: row-reverse; padding-right: 0; padding-left: 2px; }
 
 .val {
   font-family: var(--font-mono);
@@ -326,12 +294,56 @@
 /* Pitch counts by day under each reliever */
 .usageRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  padding: 2px 10px 8px;
+  grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 8px;
 }
 
-.usageAway, .usageHome { display: flex; gap: 4px; }
+/* Header: strip dates (and FIP+ in the middle) */
+.uHead { padding-top: 8px; padding-bottom: 0; }
+
+/* ── Usage strip: one box per calendar day ───────────────────────── */
+.uStrip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+
+.uBox {
+  display: grid;
+  place-items: center;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.uRest { font-weight: 600; color: var(--text-muted); }
+
+.uOff {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  font-family: var(--font-body);
+  font-size: 0.42rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.uDate {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 
 /* Totals: bullpen FIP+ on the same columns, thicker bars */
 .totals {
@@ -349,6 +361,9 @@
 }
 
 .sideHome .totalLabel { text-align: right; }
+/* the label sets its own width (wider than the photo column on phones) */
+.totals .side { grid-template-columns: auto minmax(0, 1fr); }
+.totals .sideHome { grid-template-columns: minmax(0, 1fr) auto; }
 .totals .line { margin-top: 0; }
 .totalTrack { height: 9px; border-radius: 5px; }
 
@@ -401,7 +416,7 @@
   color: var(--text-primary);
 }
 
-.sUsageRow { display: flex; gap: 4px; padding: 2px 12px 8px; }
+.sUsageRow { padding: 3px 12px 8px; }
 
 /* ── Phones ───────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
@@ -410,10 +425,9 @@
   .last { font-size: 0.7rem; }
   .sideHome { grid-template-columns: minmax(0, 1fr) 28px; }
   .photoBox, .photo { width: 28px; height: 28px; }
-  .usageRow { gap: 12px; padding: 2px 8px 6px; }
-  .usageDot { width: 18px; height: 18px; }
+  .usageRow { gap: 5px; padding: 3px 8px 7px; }
   .sRow { grid-template-columns: 28px minmax(0, 1fr) 34px 34px 90px; gap: 5px; padding-inline: 10px; }
-  .sUsageRow { padding: 2px 10px 6px; gap: 3px; }
+  .sUsageRow { padding: 3px 10px 7px; }
 }
 
 @media (max-width: 360px) {
@@ -426,8 +440,10 @@
   .rowStat { font-size: 0.5rem; }
   .val { font-size: 0.62rem; }
   .totalVal { font-size: 0.8rem; }
-  .usageRow { gap: 8px; padding: 2px 6px 6px; }
-  .usageAway, .usageHome { gap: 2px; }
-  .usageDot { width: 16px; height: 16px; }
+  .usageRow { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); gap: 4px; padding: 3px 6px 7px; }
+  .uStrip { gap: 2px; }
+  .uBox { font-size: 0.54rem; }
+  .uDate { font-size: 0.4rem; letter-spacing: -0.03em; }
+  .colLabel { font-size: 0.46rem; letter-spacing: 0.02em; }
   .sRow { grid-template-columns: 24px minmax(0, 1fr) 30px 30px 72px; gap: 4px; padding-inline: 8px; }
 }

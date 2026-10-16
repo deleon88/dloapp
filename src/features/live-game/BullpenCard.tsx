@@ -73,35 +73,33 @@ function RowStat({ p, hand }: { p: BullpenPitcher; hand: BullpenStats['hand'] })
 
 type UsageDay = BullpenUsage['days'][number]
 
-function UsageDayBox({ day, pitches, color }: { day: UsageDay; pitches: number; color: string }) {
-  const opacity = pitches <= 14 ? 0.35 : pitches <= 24 ? 0.65 : 0.92
+/** Pitches thrown that day: team-color box (brighter = more pitches), "—" if he rested, OFF if the team didn't play. */
+function UsageBox({ day, pitches, color }: { day: UsageDay; pitches: number; color: string }) {
+  if (day.games === 0) return <span className={`${styles.uBox} ${styles.uOff}`}>OFF</span>
+  if (!pitches) return <span className={`${styles.uBox} ${styles.uRest}`}>—</span>
+  const strength = pitches <= 14 ? 40 : pitches <= 24 ? 65 : 92
   return (
-    <div className={styles.usageDay}>
-      <div className={styles.usageDot}>
-        {pitches > 0 && (
-          <div className={styles.usageDotBg} style={{ background: color, opacity }} />
-        )}
-        {pitches > 0 && (
-          <span className={styles.usageDotNum}>{pitches}</span>
-        )}
-      </div>
-      <span className={styles.usageDate}>{day.label}</span>
+    <span className={styles.uBox} style={{ background: `color-mix(in srgb, ${color} ${strength}%, transparent)` }}>
+      {pitches}
+    </span>
+  )
+}
+
+function UsageStrip({ pitcherId, usage, color }: { pitcherId: number; usage: BullpenUsage; color: string }) {
+  const counts = usage.pitches[String(pitcherId)] ?? []
+  return (
+    <div className={styles.uStrip}>
+      {usage.days.map((day, i) => <UsageBox key={day.date} day={day} pitches={counts[i] ?? 0} color={color} />)}
     </div>
   )
 }
 
-function UsageDays({ pitcherId, usage, color }: {
-  pitcherId: number
-  usage: BullpenUsage
-  color: string
-}) {
-  const counts = usage.pitches[String(pitcherId)] ?? Array(usage.days.length).fill(0)
+/** The strip's dates, shown once above the rows. */
+function UsageDates({ usage }: { usage?: BullpenUsage }) {
   return (
-    <>
-      {usage.days.map((day, i) => (
-        <UsageDayBox key={day.gamePk} day={day} pitches={counts[i]} color={color} />
-      ))}
-    </>
+    <div className={styles.uStrip}>
+      {usage?.days.map(day => <span key={day.date} className={styles.uDate}>{day.label}</span>)}
+    </div>
   )
 }
 
@@ -215,18 +213,24 @@ function Reliever({ side, p, hand, pct, color, delay }: {
   side: 'away' | 'home'; p?: BullpenPitcher; hand: BullpenStats['hand']; pct: number; color: string; delay: number
 }) {
   const home = side === 'home'
+  const [first, last] = p ? splitName(p.name) : ['', '']
   return (
     <div className={`${styles.side} ${home ? styles.sideHome : ''}`}>
       {!home && <Cutout id={p?.id} />}
       <div className={styles.who}>
         {p ? <>
-          <TvName p={p} />
-          <div className={styles.line}>
+          <div className={styles.topLine}>
+            <span className={styles.first}>{first}</span>
             <RowStat p={p} hand={hand} />
-            <div className={styles.barTrack}>
-              <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={pct} color={color} delay={delay} />
-              <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
-            </div>
+          </div>
+          <div className={styles.nameLine} title={p.name}>
+            <span className={styles.last}>{last}</span>
+            {p.hand && <span className={styles.hand} aria-label={p.hand === 'L' ? 'LHP' : 'RHP'}>{p.hand}</span>}
+          </div>
+          {/* FIP+ bar: grows toward the FIP+ value in the middle */}
+          <div className={`${styles.barTrack} ${styles.fipBar}`}>
+            <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={pct} color={color} delay={delay} />
+            <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
           </div>
         </> : <span className={styles.empty}>—</span>}
       </div>
@@ -249,8 +253,12 @@ function ComparisonView({
 
   return (
     <div>
-      {/* "FIP+" in the middle, like the lineup's "wRC+" */}
-      <div className={styles.colLabel}>FIP+</div>
+      {/* Strip dates on each half, "FIP+" in the middle like the lineup's "wRC+" */}
+      <div className={`${styles.usageRow} ${styles.uHead}`}>
+        {showUsage ? <UsageDates usage={awayUsage ?? homeUsage} /> : <span />}
+        <span className={styles.colLabel}>FIP+</span>
+        {showUsage ? <UsageDates usage={homeUsage ?? awayUsage} /> : <span />}
+      </div>
 
       {/* away reliever · away FIP+ · · home FIP+ · home reliever — the compared numbers sit together */}
       {Array.from({ length: rows }).map((_, i) => {
@@ -271,16 +279,9 @@ function ComparisonView({
 
             {showUsage && (
               <div className={styles.usageRow}>
-                <div className={styles.usageAway}>
-                  {a && awayUsage && awayUsage.days.length > 0 && (
-                    <UsageDays pitcherId={a.id} usage={awayUsage} color={awayColor} />
-                  )}
-                </div>
-                <div className={styles.usageHome}>
-                  {h && homeUsage && homeUsage.days.length > 0 && (
-                    <UsageDays pitcherId={h.id} usage={homeUsage} color={homeColor} />
-                  )}
-                </div>
+                {a && awayUsage?.days.length ? <UsageStrip pitcherId={a.id} usage={awayUsage} color={awayColor} /> : <span />}
+                <span />
+                {h && homeUsage?.days.length ? <UsageStrip pitcherId={h.id} usage={homeUsage} color={homeColor} /> : <span />}
               </div>
             )}
           </div>
@@ -338,6 +339,7 @@ function SingleView({ stats, color, usage }: {
         <span className={styles.sNum}>{hand ? 'BF' : 'IP'}</span>
         <span className={styles.sFipHead}>FIP+</span>
       </div>
+      {showUsage && <div className={`${styles.sUsageRow} ${styles.uHead}`}><UsageDates usage={usage} /></div>}
 
       {stats.pitchers.map((p, i) => {
         const fp  = p.fipMinus != null ? toFipPlus(p.fipMinus) : null
@@ -360,7 +362,7 @@ function SingleView({ stats, color, usage }: {
 
             {showUsage && usage && (
               <div className={styles.sUsageRow}>
-                <UsageDays pitcherId={p.id} usage={usage} color={color} />
+                <UsageStrip pitcherId={p.id} usage={usage} color={color} />
               </div>
             )}
           </div>

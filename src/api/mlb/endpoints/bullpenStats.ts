@@ -27,8 +27,9 @@ export interface BullpenPitcher {
 }
 
 export interface BullpenUsage {
-  days: Array<{ gamePk: number; date: string; label: string }>
-  /** Pitches per game for each listed pitcher (by id), same order as days. */
+  /** Last calendar days, oldest first; `games` is 0 on an off day. */
+  days: Array<{ date: string; label: string; games?: number }>
+  /** Pitches per day for each listed pitcher (by id), same order as days. */
   pitches: Record<string, number[]>
 }
 
