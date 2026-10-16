@@ -145,8 +145,7 @@ export default function LineupComparison({
           className={`${styles.segment} ${mode === 'away' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('away')}
           aria-label={awayMeta?.brief ?? awayLabel}
-          title={awayMeta?.brief ?? awayLabel}
-        ><img className={styles.segmentLogo} src={capLogoUrl(awayTeamId)} alt="" /></button>
+        >{mode === 'away' ? <img className={styles.segmentLogo} src={capLogoUrl(awayTeamId)} alt="" /> : awayLabel}</button>
         <button
           className={`${styles.segment} ${mode === 'comparison' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('comparison')}
@@ -155,8 +154,7 @@ export default function LineupComparison({
           className={`${styles.segment} ${mode === 'home' ? styles.segmentActive : ''}`}
           onClick={() => onModeChange('home')}
           aria-label={homeMeta?.brief ?? homeLabel}
-          title={homeMeta?.brief ?? homeLabel}
-        ><img className={styles.segmentLogo} src={capLogoUrl(homeTeamId)} alt="" /></button>
+        >{mode === 'home' ? <img className={styles.segmentLogo} src={capLogoUrl(homeTeamId)} alt="" /> : homeLabel}</button>
       </div>
 
       {/* ── Status / action row ── */}
@@ -313,12 +311,19 @@ function TvTotal({ side, value, color, delay, label }: {
   )
 }
 
-/** LAST NAME in caps with the batting-side chip (L / R / S). */
+/**
+ * First name (small) + LAST NAME in caps, with the batting-side chip (L / R / S).
+ * When space runs out the first name gives way first.
+ */
 function TvName({ player }: { player: LineupSlot }) {
   const bats = useContext(BatSides)?.get(player.id)
+  const [first, ...rest] = player.fullName.trim().split(' ')
   return (
     <div className={styles.tvNameLine}>
-      <span className={styles.tvLast} title={player.fullName}>{lastName(player.fullName)}</span>
+      <span className={styles.tvFullName} title={player.fullName}>
+        {rest.length > 0 && <span className={styles.tvFirst}>{first}</span>}
+        <span className={styles.tvLast}>{rest.length ? rest.join(' ') : first}</span>
+      </span>
       {bats && <span className={styles.tvBat} aria-label={BAT_LABEL[bats] ?? bats}>{bats}</span>}
     </div>
   )

@@ -460,7 +460,30 @@
 
 .tvBatterHome .tvNameLine { flex-direction: row-reverse; }
 
+/* First name + last name on one baseline; the first name shrinks first */
+.tvFullName {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+}
+
+.tvFirst {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* line-height leaves room for capital accents (RAMÍREZ) — overflow would clip them */
 .tvLast {
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -469,7 +492,7 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: -0.01em;
-  line-height: 1.1;
+  line-height: 1.35;
   color: var(--text-primary);
 }
 
@@ -599,17 +622,13 @@
 }
 
 /* ── Selector: team cap logos instead of names ─────────────────── */
+/* Only on the selected team (the others show their name) */
 .segmentLogo {
   display: block;
-  height: 18px;
+  height: 24px;
   width: auto;
-  margin: -2px auto;
-  opacity: 0.55;
-  transition: opacity 0.18s ease;
+  margin: -6px auto;
 }
-
-.segment:hover .segmentLogo { opacity: 0.8; }
-.segmentActive .segmentLogo { opacity: 1; }
 
 /* ── Single-team view, TV style ────────────────────────────────── */
 /* Status row chips: same as the pitcher card's chips */
@@ -647,4 +666,14 @@
   .singleRow .tvPhotoBox,
 .singleRow .tvPhoto { width: 26px; height: 26px; }
   .singleInfo .tvLast { font-size: 0.7rem; }
+}
+
+/* Phones: comparison halves are too narrow for "First LAST" on one line, so the
+   first name goes on top (as on the pitcher card) and both stay whole. */
+@media (max-width: 480px) {
+  .tvRow .tvNameLine { align-items: flex-end; }
+  .tvRow .tvFullName { flex-direction: column; align-items: flex-start; gap: 0; }
+  .tvRow .tvBatterHome .tvFullName { align-items: flex-end; }
+  .tvRow .tvFirst { flex: none; max-width: 100%; font-size: 0.46rem; line-height: 1.15; }
+  .tvRow .tvLast { max-width: 100%; }
 }
