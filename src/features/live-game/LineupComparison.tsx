@@ -10,6 +10,7 @@ import CardBgLayers from './CardBgLayers'
 import FieldingAlignmentModal from './FieldingAlignmentModal'
 import VsPitcherModal from './VsPitcherModal'
 import styles from './LineupComparison.module.css'
+import { cutoutUrl, teamLogoUrl } from './mlbImages'
 
 export type ViewMode = 'away' | 'comparison' | 'home'
 
@@ -140,6 +141,13 @@ export default function LineupComparison({
     <BatSides.Provider value={batSidesQuery.data}>
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
+      {/* TV look (comparison): a big faded team logo behind each half, clipped to it */}
+      {mode === 'comparison' && (
+        <div className={styles.tvLogos} data-card-bg aria-hidden="true">
+          <div className={styles.tvLogoHalf}><img src={teamLogoUrl(awayTeamId)} alt="" /></div>
+          <div className={`${styles.tvLogoHalf} ${styles.tvLogoHalfHome}`}><img src={teamLogoUrl(homeTeamId)} alt="" /></div>
+        </div>
+      )}
 
       {/* ── Segmented toggle ── */}
       <div className={styles.segmentTrack}>
@@ -247,6 +255,7 @@ function ComparisonView({
   awayLineupStatus?: LineupStatus
   homeLineupStatus?: LineupStatus
 }) {
+  const t = useT()
   const slots = Math.max(awayLineup.length, homeLineup.length, 9)
   const totalsDelay = slots * ROW_STAGGER_MS   // totals fill after the last row
   const aAvg = lineupAvgWrc(awayLineup, wrcMap)
@@ -255,137 +264,87 @@ function ComparisonView({
   const hChips = lineupChipStats(homeLineup, wrcMap)
 
   return (
-    <div>
-      {/* Combined status + column header row */}
-      <div className={styles.compHeader}>
-        <span /><span />
-        <div className={styles.playerAway}>
-          <StatusBadge status={awayLineupStatus} align="right" />
-        </div>
-        <div className={styles.compBarHeader}>
-          <span className={styles.comp100Away}>100</span>
-          <span className={styles.compBarLabel}>wRC+</span>
-          <span className={styles.comp100Home}>100</span>
-        </div>
-        <div className={styles.playerHome}>
-          <StatusBadge status={homeLineupStatus} align="left" />
-        </div>
-        <span /><span />
+    <div className={styles.tv}>
+      {/* Lineup status of each side, and what the bars mean */}
+      <div className={styles.tvStatus}>
+        <StatusBadge status={awayLineupStatus} align="left" />
+        <span className={styles.tvLegend}>{t('wrcLegend')}</span>
+        <StatusBadge status={homeLineupStatus} align="right" />
       </div>
 
-      {/* Player rows */}
-      {Array.from({ length: slots }).map((_, i) => {
-        const a = awayLineup[i]
-        const h = homeLineup[i]
-        const aWrc = a ? (wrcMap.get(a.id)?.wRcPlus ?? null) : null
-        const hWrc = h ? (wrcMap.get(h.id)?.wRcPlus ?? null) : null
-        // PA del periodo elegido (de wrcMap); si no hay, los del lineup.
-        const aPa = a ? (wrcMap.get(a.id)?.pa ?? a.pa) : null
-        const hPa = h ? (wrcMap.get(h.id)?.pa ?? h.pa) : null
-        const aPct = aWrc != null ? barPct(aWrc) : 0
-        const hPct = hWrc != null ? barPct(hWrc) : 0
-
-        return (
-          <div key={i} className={styles.compRow}>
-            <div className={styles.slotNum}>{i + 1}</div>
-            <PlayerPhoto id={a?.id} name={a?.fullName} />
-
-            <div className={styles.playerAway}>
-              {a ? <>
-                <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(a.fullName)}</span>
-                <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(a.fullName)}</span>
-                <span className={styles.meta}><span className={styles.posText}>{a.pos} · </span>{aPa != null ? `${aPa} PA` : a.avg}</span>
-              </> : <span className={styles.empty}>—</span>}
-            </div>
-
-            {/* Away bar (right-anchored) + wRC+ value */}
-            <div className={styles.barBlockAway}>
-              <div className={styles.barTrack}>
-                <BarFill className={styles.barFillRight} width={aPct} color={awayColor} delay={i * ROW_STAGGER_MS} />
-                <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
-              </div>
-              <span className={styles.wrc}><CountUp value={aWrc} delay={i * ROW_STAGGER_MS} /></span>
-            </div>
-
-            {/* Home bar (left-anchored) + wRC+ value */}
-            <div className={styles.barBlockHome}>
-              <span className={styles.wrc}><CountUp value={hWrc} delay={i * ROW_STAGGER_MS} /></span>
-              <div className={styles.barTrack}>
-                <BarFill className={styles.barFillLeft} width={hPct} color={homeColor} delay={i * ROW_STAGGER_MS} />
-                <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
-              </div>
-            </div>
-
-            <div className={styles.playerHome}>
-              {h ? <>
-                <span className={`${styles.name} ${styles.nameDesktop}`}>{fmtName(h.fullName)}</span>
-                <span className={`${styles.name} ${styles.nameMobile}`}>{lastName(h.fullName)}</span>
-                <span className={styles.meta}><span className={styles.posText}>{h.pos} · </span>{hPa != null ? `${hPa} PA` : h.avg}</span>
-              </> : <span className={styles.empty}>—</span>}
-            </div>
-
-            <PlayerPhoto id={h?.id} name={h?.fullName} />
-            <div className={styles.slotNum}>{i + 1}</div>
-          </div>
-        )
-      })}
-
-      {/* ── Totals row ── */}
-      <div className={styles.totalsRow}>
-        {/* ── Row 1: wRC+ values + bars aligned ── */}
-        <div className={`${styles.totalsWrcOuter} ${styles.totalsWrcAway}`}>
-          <CountUp value={aAvg} delay={totalsDelay} />
+      {Array.from({ length: slots }).map((_, i) => (
+        <div key={i} className={styles.tvRow}>
+          <TvBatter side="away" player={awayLineup[i]} wrcMap={wrcMap} color={awayColor} delay={i * ROW_STAGGER_MS} />
+          <span className={styles.tvSlot}>{i + 1}</span>
+          <TvBatter side="home" player={homeLineup[i]} wrcMap={wrcMap} color={homeColor} delay={i * ROW_STAGGER_MS} />
         </div>
+      ))}
 
-        <div className={styles.totalsBarAway}>
-          <div className={styles.barTrack} style={{ width: '100%', flex: 'none' }}>
-            <BarFill className={styles.barFillRight} width={aAvg != null ? barPct(aAvg) : 0} color={awayColor} delay={totalsDelay} />
-            <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
-          </div>
+      {/* Team totals: PA-weighted wRC+ of each lineup, as thicker bars */}
+      <div className={styles.tvTotals}>
+        <span className={styles.tvTotalVal}><CountUp value={aAvg} delay={totalsDelay} /></span>
+        <div className={`${styles.barTrack} ${styles.tvTotalTrack}`}>
+          <BarFill className={styles.barFillRight} width={aAvg != null ? barPct(aAvg) : 0} color={awayColor} delay={totalsDelay} />
+          <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
         </div>
-
-        <div className={styles.totalsBarHome}>
-          <div className={styles.barTrack} style={{ width: '100%', flex: 'none' }}>
-            <BarFill className={styles.barFillLeft} width={hAvg != null ? barPct(hAvg) : 0} color={homeColor} delay={totalsDelay} />
-            <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
-          </div>
+        <span className={styles.tvTotalLabel}>wRC+<br />{t('lineupWord')}</span>
+        <div className={`${styles.barTrack} ${styles.tvTotalTrack}`}>
+          <BarFill className={styles.barFillLeft} width={hAvg != null ? barPct(hAvg) : 0} color={homeColor} delay={totalsDelay} />
+          <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
         </div>
-
-        <div className={`${styles.totalsWrcOuter} ${styles.totalsWrcHome}`}>
-          <CountUp value={hAvg} delay={totalsDelay} />
-        </div>
-
-        {/* ── Row 2: chips spanning full half ── */}
-        <div className={`${styles.totalsChipGrid} ${styles.totalsChipAway}`}>
-          <div className={styles.totalsChip}>
-            <span className={styles.totalsChipLabel}>OPS</span>
-            <span className={styles.totalsChipVal}>{aChips?.ops ?? '—'}</span>
-          </div>
-          <div className={styles.totalsChip}>
-            <span className={styles.totalsChipLabel}>wOBA</span>
-            <span className={styles.totalsChipVal}>{aChips?.woba ?? '—'}</span>
-          </div>
-          <div className={styles.totalsChip}>
-            <span className={styles.totalsChipLabel}>xwOBA</span>
-            <span className={styles.totalsChipVal}>{aChips?.xwoba ?? '—'}</span>
-          </div>
-        </div>
-
-        <div className={`${styles.totalsChipGrid} ${styles.totalsChipHome}`}>
-          <div className={styles.totalsChip}>
-            <span className={styles.totalsChipLabel}>OPS</span>
-            <span className={styles.totalsChipVal}>{hChips?.ops ?? '—'}</span>
-          </div>
-          <div className={styles.totalsChip}>
-            <span className={styles.totalsChipLabel}>wOBA</span>
-            <span className={styles.totalsChipVal}>{hChips?.woba ?? '—'}</span>
-          </div>
-          <div className={styles.totalsChip}>
-            <span className={styles.totalsChipLabel}>xwOBA</span>
-            <span className={styles.totalsChipVal}>{hChips?.xwoba ?? '—'}</span>
-          </div>
-        </div>
+        <span className={`${styles.tvTotalVal} ${styles.tvTotalValHome}`}><CountUp value={hAvg} delay={totalsDelay} /></span>
       </div>
+
+      <div className={styles.tvChips}>
+        {[aChips, hChips].map((c, k) => (['ops', 'woba', 'xwoba'] as const).map(key => (
+          <div key={`${k}-${key}`} className={styles.tvChip}>
+            <span className={styles.tvChipLabel}>{key === 'ops' ? 'OPS' : key === 'woba' ? 'wOBA' : 'xwOBA'}</span>
+            <span className={styles.tvChipVal}>{c?.[key] ?? '—'}</span>
+          </div>
+        )))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * One batter, TV style: cutout on the outer edge, LAST NAME in caps with the
+ * batting side, then position and the wRC+ bar growing toward the middle.
+ */
+function TvBatter({ side, player, wrcMap, color, delay }: {
+  side: 'away' | 'home'; player?: LineupSlot; wrcMap: Map<number, PlayerStats>; color: string; delay: number
+}) {
+  const bats = useContext(BatSides)?.get(player?.id ?? -1)
+  const home = side === 'home'
+  const wrc = player ? (wrcMap.get(player.id)?.wRcPlus ?? null) : null
+  const photo = (
+    <span className={styles.tvPhotoBox}>
+      {player && (
+        <img className={styles.tvPhoto} src={cutoutUrl(player.id, 96)} alt="" loading="lazy"
+          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+      )}
+    </span>
+  )
+  return (
+    <div className={`${styles.tvBatter} ${home ? styles.tvBatterHome : ''}`}>
+      {!home && photo}
+      <div className={styles.tvWho}>
+        {player ? <>
+          <div className={styles.tvNameLine}>
+            <span className={styles.tvLast} title={player.fullName}>{lastName(player.fullName)}</span>
+            {bats && <span className={styles.tvBat} aria-label={BAT_LABEL[bats] ?? bats}>{bats}</span>}
+          </div>
+          <div className={styles.tvLine}>
+            <span className={styles.tvPos}>{player.pos}</span>
+            <div className={styles.barTrack}>
+              <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={wrc != null ? barPct(wrc) : 0} color={color} delay={delay} />
+              <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
+            </div>
+            <span className={styles.tvVal}><CountUp value={wrc} delay={delay} /></span>
+          </div>
+        </> : <span className={styles.empty}>—</span>}
+      </div>
+      {home && photo}
     </div>
   )
 }

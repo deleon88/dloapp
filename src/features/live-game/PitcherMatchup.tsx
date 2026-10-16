@@ -8,6 +8,7 @@ import CardBgLayers from './CardBgLayers'
 import CardModal from './CardModal'
 import MatchupBar from '@/components/MatchupBar/MatchupBar'
 import styles from './PitcherMatchup.module.css'
+import { cutoutUrl, teamLogoUrl } from './mlbImages'
 
 interface Props {
   awayPitcher?: PitcherInfo
@@ -27,11 +28,8 @@ interface Props {
   mode: ViewMode
 }
 
-// MLB's cutout portrait (transparent background); MLB serves a generic silhouette when there's none.
-const CUTOUT = (id: number) =>
-  `https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:silo:current.png/w_280,q_auto:best,f_auto/v1/people/${id}/headshot/silo/current`
-// Team's primary logo, the version made for dark backgrounds.
-const TEAM_LOGO = (teamId: number) => `https://www.mlbstatic.com/team-logos/team-primary-on-dark/${teamId}.svg`
+const CUTOUT = (id: number) => cutoutUrl(id)
+const TEAM_LOGO = teamLogoUrl
 
 export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayTeamId, homeTeamId, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)

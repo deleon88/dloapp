@@ -64,6 +64,8 @@ export const translations = {
     // Openers
     opener: 'Opener',
     openerNote: '~1–2 IP, then the bullpen',
+    wrcLegend: 'wRC+ · 100 = average',
+    lineupWord: 'Lineup',
     openerBlend: 'Opener: blended with the team bullpen, which covers most of the starter innings',
     bulkShort: 'Bulk:',
     bulkTitle: 'Expected to pitch most of the game behind the opener (named only when the pattern is clear)',
@@ -255,6 +257,8 @@ export const translations = {
     // Openers
     opener: 'Opener',
     openerNote: '~1–2 entradas, luego el bullpen',
+    wrcLegend: 'wRC+ · 100 = promedio',
+    lineupWord: 'Lineup',
     openerBlend: 'Opener: combinado con el bullpen del equipo, que cubre la mayoría de las entradas del abridor',
     bulkShort: 'Bulk:',
     bulkTitle: 'Se espera que lance la mayor parte del juego detrás del opener (solo se muestra cuando el patrón es claro)',
