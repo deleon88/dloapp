@@ -257,19 +257,30 @@ function ComparisonView({
         <StatusBadge status={homeLineupStatus} align="right" />
       </div>
 
-      {Array.from({ length: slots }).map((_, i) => (
-        <div key={i} className={styles.tvRow}>
-          <TvBatter side="away" player={awayLineup[i]} wrcMap={wrcMap} color={awayColor} delay={i * ROW_STAGGER_MS} />
-          <span className={styles.tvSlot}>{i + 1}</span>
-          <TvBatter side="home" player={homeLineup[i]} wrcMap={wrcMap} color={homeColor} delay={i * ROW_STAGGER_MS} />
-        </div>
-      ))}
+      {/* away batter · away wRC+ · slot · home wRC+ · home batter — the two
+          numbers being compared sit side by side in the middle */}
+      {Array.from({ length: slots }).map((_, i) => {
+        const a = awayLineup[i], h = homeLineup[i]
+        const aWrc = a ? (wrcMap.get(a.id)?.wRcPlus ?? null) : null
+        const hWrc = h ? (wrcMap.get(h.id)?.wRcPlus ?? null) : null
+        const delay = i * ROW_STAGGER_MS
+        return (
+          <div key={i} className={styles.tvRow}>
+            <TvBatter side="away" player={a} wrc={aWrc} color={awayColor} delay={delay} />
+            <span className={`${styles.tvVal} ${styles.tvValAway}`}>{a && <CountUp value={aWrc} delay={delay} />}</span>
+            <span className={styles.tvSlot}>{i + 1}</span>
+            <span className={`${styles.tvVal} ${styles.tvValHome}`}>{h && <CountUp value={hWrc} delay={delay} />}</span>
+            <TvBatter side="home" player={h} wrc={hWrc} color={homeColor} delay={delay} />
+          </div>
+        )
+      })}
 
-      {/* Team totals (PA-weighted wRC+ of each lineup), laid out like the batter
-          rows: thick bar growing toward the middle, value next to it. */}
+      {/* Team totals (PA-weighted wRC+ of each lineup), on the same columns */}
       <div className={`${styles.tvRow} ${styles.tvTotals}`}>
         <TvTotal side="away" value={aAvg} color={awayColor} delay={totalsDelay} label={t('lineupWord')} />
+        <span className={`${styles.tvTotalVal} ${styles.tvValAway}`}><CountUp value={aAvg} delay={totalsDelay} /></span>
         <span />
+        <span className={`${styles.tvTotalVal} ${styles.tvValHome}`}><CountUp value={hAvg} delay={totalsDelay} /></span>
         <TvTotal side="home" value={hAvg} color={homeColor} delay={totalsDelay} label={t('lineupWord')} />
       </div>
 
@@ -290,7 +301,7 @@ function ComparisonView({
   )
 }
 
-/** A team's lineup wRC+ on the batter-row grid: label where the photo goes. */
+/** A team's lineup bar on the batter-row grid: label where the photo goes. */
 function TvTotal({ side, value, color, delay, label }: {
   side: 'away' | 'home'; value: number | null; color: string; delay: number; label: string
 }) {
@@ -304,7 +315,6 @@ function TvTotal({ side, value, color, delay, label }: {
           <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={value != null ? barPct(value) : 0} color={color} delay={delay} />
           <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
         </div>
-        <span className={styles.tvTotalVal}><CountUp value={value} delay={delay} /></span>
       </div>
       {home && tag}
     </div>
@@ -331,13 +341,13 @@ function TvName({ player }: { player: LineupSlot }) {
 
 /**
  * One batter, TV style: cutout on the outer edge, LAST NAME in caps with the
- * batting side, then position and the wRC+ bar growing toward the middle.
+ * batting side, then position and the wRC+ bar growing toward the middle (the
+ * number itself sits in the row's middle columns).
  */
-function TvBatter({ side, player, wrcMap, color, delay }: {
-  side: 'away' | 'home'; player?: LineupSlot; wrcMap: Map<number, PlayerStats>; color: string; delay: number
+function TvBatter({ side, player, wrc, color, delay }: {
+  side: 'away' | 'home'; player?: LineupSlot; wrc: number | null; color: string; delay: number
 }) {
   const home = side === 'home'
-  const wrc = player ? (wrcMap.get(player.id)?.wRcPlus ?? null) : null
   const photo = (
     <span className={styles.tvPhotoBox}>
       {player && (
@@ -358,7 +368,6 @@ function TvBatter({ side, player, wrcMap, color, delay }: {
               <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={wrc != null ? barPct(wrc) : 0} color={color} delay={delay} />
               <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
             </div>
-            <span className={styles.tvVal}><CountUp value={wrc} delay={delay} /></span>
           </div>
         </> : <span className={styles.empty}>—</span>}
       </div>
@@ -374,69 +383,68 @@ function SingleView({ lineup, color, wrcMap }: {
 }) {
   const slots = lineup.length > 0 ? lineup : Array(9).fill(null)
   const t = useT()
-
-  const avg    = lineupAvgWrc(lineup, wrcMap)
-  const avgPct = avg != null ? barPct(avg) : 0
+  const avg = lineupAvgWrc(lineup, wrcMap)
+  const totalsDelay = slots.length * ROW_STAGGER_MS
 
   return (
-    <div>
-      <div className={styles.singleHeader}>
+    <div className={styles.sv}>
+      {/* # · photo · batter · HR RBI SB OPS wOBA · wRC+ (OPS and wOBA hide on phones) */}
+      <div className={`${styles.svRow} ${styles.svHead}`}>
         <span>#</span>
         <span />
         <span>{t('batter')}</span>
-        <span style={{ textAlign: 'center' }}>HR</span>
-        <span style={{ textAlign: 'center' }}>RBI</span>
-        <span style={{ textAlign: 'center' }}>SB</span>
-        <span style={{ textAlign: 'center' }}>OPS</span>
-        <span style={{ textAlign: 'center' }}>wOBA</span>
-        <div className={styles.singleBarWrap}><div style={{ flex: 1 }} /><span style={{ minWidth: '22px', textAlign: 'center' }}>wRC+</span></div>
+        <span className={styles.svNum}>HR</span>
+        <span className={styles.svNum}>RBI</span>
+        <span className={styles.svNum}>SB</span>
+        <span className={`${styles.svNum} ${styles.svWide}`}>OPS</span>
+        <span className={`${styles.svNum} ${styles.svWide}`}>wOBA</span>
+        <span className={styles.svWrcHead}>wRC+</span>
       </div>
 
       {slots.map((p: LineupSlot | null, i) => {
         const ps  = p ? (wrcMap.get(p.id) ?? null) : null
         const wrc = ps?.wRcPlus ?? null
         const pa  = ps?.pa ?? p?.pa ?? null
-        const pct = wrc != null ? barPct(wrc) : 0
-
+        const delay = i * ROW_STAGGER_MS
         return (
-          <div key={i} className={styles.singleRow}>
-            <span className={styles.slotNum}>{i + 1}</span>
+          <div key={i} className={styles.svRow}>
+            <span className={styles.svSlot}>{i + 1}</span>
             <span className={styles.tvPhotoBox}>
               {p && <img className={styles.tvPhoto} src={cutoutUrl(p.id, 96)} alt="" loading="lazy"
                 onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
             </span>
-            <div className={styles.singleInfo}>
+            <div className={styles.svWho}>
               {p
-                ? <><TvName player={p} /><span className={styles.meta}>{p.pos}{pa != null ? ` · ${pa} PA` : ''}</span></>
+                ? <><TvName player={p} /><span className={styles.svMeta}>{p.pos}{pa != null ? ` · ${pa} PA` : ''}</span></>
                 : <span className={styles.empty}>—</span>}
             </div>
-            <span className={styles.statVal}>{ps?.hr  ?? '—'}</span>
-            <span className={styles.statVal}>{ps?.rbi ?? '—'}</span>
-            <span className={styles.statVal}>{ps?.sb  ?? '—'}</span>
-            <span className={styles.statVal}>{ps?.ops ?? '—'}</span>
-            <span className={styles.statVal}>{ps?.woba ?? '—'}</span>
-            <div className={styles.singleBarWrap}>
+            <span className={styles.svNum}>{ps?.hr ?? '—'}</span>
+            <span className={styles.svNum}>{ps?.rbi ?? '—'}</span>
+            <span className={styles.svNum}>{ps?.sb ?? '—'}</span>
+            <span className={`${styles.svNum} ${styles.svWide}`}>{ps?.ops ?? '—'}</span>
+            <span className={`${styles.svNum} ${styles.svWide}`}>{ps?.woba ?? '—'}</span>
+            <div className={styles.svWrc}>
               <div className={styles.barTrack}>
-                <BarFill className={styles.barFillLeft} width={pct} color={color} delay={i * ROW_STAGGER_MS} />
+                <BarFill className={styles.barFillLeft} width={wrc != null ? barPct(wrc) : 0} color={color} delay={delay} />
                 <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
               </div>
-              <span className={styles.wrc}><CountUp value={wrc} delay={i * ROW_STAGGER_MS} /></span>
+              <span className={styles.svWrcVal}><CountUp value={wrc} delay={delay} /></span>
             </div>
           </div>
         )
       })}
 
-      {/* Totals row — bar spans from HR col to end (desktop) / full width (mobile) */}
-      <div className={styles.singleTotalsRow}>
+      {/* Lineup wRC+ (PA-weighted): label under the names, thick bar to the end */}
+      <div className={`${styles.svRow} ${styles.svTotals}`}>
         <span />
         <span />
-        <span className={`${styles.singleTotalsLabel} ${styles.tvTotalLabel}`} title={t('wrcWeighted')}>{t('lineupWord')}</span>
-        <div className={`${styles.singleBarWrap} ${styles.singleTotalsBarWrap}`}>
+        <span className={styles.tvTotalLabel} title={t('wrcWeighted')}>{t('lineupWord')}</span>
+        <div className={styles.svTotalBar}>
           <div className={`${styles.barTrack} ${styles.tvTotalTrack}`}>
-            <BarFill className={styles.barFillLeft} width={avgPct} color={color} delay={slots.length * ROW_STAGGER_MS} />
+            <BarFill className={styles.barFillLeft} width={avg != null ? barPct(avg) : 0} color={color} delay={totalsDelay} />
             <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
           </div>
-          <span className={styles.tvTotalVal}><CountUp value={avg} delay={slots.length * ROW_STAGGER_MS} /></span>
+          <span className={styles.tvTotalVal}><CountUp value={avg} delay={totalsDelay} /></span>
         </div>
       </div>
     </div>

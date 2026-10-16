@@ -70,73 +70,9 @@
   color: var(--text-primary);
 }
 
-/* ── Single view ─────────────────────────────────────────────── */
-.singleHeader {
-  display: grid;
-  grid-template-columns: 12px 28px 1fr 28px 28px 28px 34px 34px 110px;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px 2px;
-  min-height: 28px;
-  font-size: 0.52rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.singleRow {
-  display: grid;
-  grid-template-columns: 12px 28px 1fr 28px 28px 28px 34px 34px 110px;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-top: 1px solid var(--border);
-}
-
-.singleRow:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.singleInfo {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  min-width: 0;
-}
-
-.singleBarWrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.statVal {
-  font-size: 0.62rem;
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.meta {
-  font-size: 0.55rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  white-space: nowrap;
-}
-
 .empty {
   font-size: 0.7rem;
   color: var(--text-muted);
-}
-
-/* ── Slot # ──────────────────────────────────────────────────── */
-.slotNum {
-  font-size: 0.56rem;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  text-align: center;
 }
 
 .barTrack {
@@ -180,46 +116,6 @@
   transform: translateX(-50%);
 }
 
-.wrc {
-  font-size: 0.63rem;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  min-width: 22px;
-  text-align: center;
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-/* single-view totals row: same grid as singleRow so bars align */
-.singleTotalsRow {
-  display: grid;
-  grid-template-columns: 12px 28px 1fr 28px 28px 28px 34px 34px 110px;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px 7px;
-  border-top: 1px solid var(--border-active);
-}
-
-.singleTotalsBarWrap {
-  grid-column: 4 / -1;
-}
-
-.singleTotalsLabel {
-  font-size: 0.46rem;
-  font-weight: 700;
-  font-family: var(--font-body);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  text-align: right;
-  white-space: nowrap;
-  align-self: center;
-}
-
-.singleTotalsVal {
-  font-weight: 700;
-  color: var(--text-primary);
-}
 
 /* ── Legend ──────────────────────────────────────────────────── */
 .legend {
@@ -328,48 +224,6 @@
   text-align: center;
 }
 
-@media (max-width: 480px) {
-  
-
-  
-  
-
-  
-
-  
-
-  
-  
-
-  /* Single-view rows: hide slot#, hide OPS+wOBA cols */
-  .singleRow .slotNum { display: none; }
-  .singleHeader > span:first-child { display: none; }
-  .singleHeader,
-.singleRow {
-    grid-template-columns: 24px 1fr 26px 26px 26px 90px;
-    padding: 4px 8px;
-    gap: 4px;
-  }
-  /* hide OPS and wOBA on mobile (cols 7 & 8) */
-  .singleHeader > :nth-child(7),
-.singleHeader > :nth-child(8),
-.singleRow > :nth-child(7),
-.singleRow > :nth-child(8) { display: none; }
-
-  /* Totals row: full-width bar, hide placeholder cells */
-  .singleTotalsRow {
-    display: block;
-    padding: 5px 8px 7px;
-  }
-  .singleTotalsRow > :nth-child(1),
-.singleTotalsRow > :nth-child(2),
-.singleTotalsRow > :nth-child(3) { display: none; }
-  .singleTotalsBarWrap {
-    grid-column: unset;
-    width: 100%;
-  }
-}
-
 /* ── Comparison, TV style ───────────────────────────────────────── */
 .tv { position: relative; }
 
@@ -410,19 +264,20 @@
   color: var(--text-muted);
 }
 
-/* away batter · slot · home batter */
+/* away batter · away wRC+ · slot · home wRC+ · home batter: the two numbers
+   being compared sit together in the middle */
 .tvRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 30px 12px 30px minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   padding: 5px 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .tvSlot {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.5rem;
   color: var(--text-muted);
   text-align: center;
 }
@@ -520,6 +375,8 @@
 }
 
 .tvBatterHome .tvLine { flex-direction: row-reverse; }
+.tvBatter:not(.tvBatterHome) .tvLine { padding-right: 2px; }
+.tvBatterHome .tvLine { padding-left: 2px; }
 .tvLine .barTrack { flex: 1; }
 
 .tvPos {
@@ -531,14 +388,14 @@
 }
 
 .tvVal {
-  flex-shrink: 0;
-  min-width: 22px;
-  text-align: center;
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 800;
   color: var(--text-primary);
 }
+
+.tvValAway { text-align: right; }
+.tvValHome { text-align: left; }
 
 /* Team totals: on the batter grid, thicker bar, bigger value next to the middle */
 .tvTotals {
@@ -562,11 +419,8 @@
 .tvTotalTrack { height: 9px; border-radius: 5px; }
 
 .tvTotalVal {
-  flex-shrink: 0;
-  min-width: 30px;
-  text-align: center;
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: var(--text-primary);
 }
@@ -611,12 +465,12 @@
 
 @media (max-width: 360px) {
   .tvStatus .statusConfirmed,
-.tvStatus .statusProjected { padding: 3px 4px; font-size: 0.44rem; letter-spacing: 0.02em; }
+  .tvStatus .statusProjected { padding: 3px 4px; font-size: 0.44rem; letter-spacing: 0.02em; }
   .tvRow { padding: 5px 8px; gap: 4px; }
   .tvBatter { grid-template-columns: 26px minmax(0, 1fr); gap: 4px; }
   .tvBatterHome { grid-template-columns: minmax(0, 1fr) 26px; }
   .tvPhotoBox,
-.tvPhoto { width: 26px; height: 26px; }
+  .tvPhoto { width: 26px; height: 26px; }
   .tvLast { font-size: 0.68rem; }
   .tvChipView { gap: 6px; padding: 8px 8px 10px; }
 }
@@ -657,17 +511,6 @@
   color: var(--text-primary);
 }
 
-.singleRow .tvPhotoBox { align-self: center; justify-self: center; }
-.singleInfo .tvNameLine { margin-bottom: 2px; }
-
-.singleTotalsRow .tvTotalVal { min-width: 26px; }
-
-@media (max-width: 480px) {
-  .singleRow .tvPhotoBox,
-.singleRow .tvPhoto { width: 26px; height: 26px; }
-  .singleInfo .tvLast { font-size: 0.7rem; }
-}
-
 /* Phones: comparison halves are too narrow for "First LAST" on one line, so the
    first name goes on top (as on the pitcher card) and both stay whole. */
 @media (max-width: 480px) {
@@ -676,4 +519,109 @@
   .tvRow .tvBatterHome .tvFullName { align-items: flex-end; }
   .tvRow .tvFirst { flex: none; max-width: 100%; font-size: 0.46rem; line-height: 1.15; }
   .tvRow .tvLast { max-width: 100%; }
+}
+
+/* ── Single-team view: its own grid ────────────────────────────── */
+.sv { position: relative; }
+
+/* # · photo · batter · HR RBI SB OPS wOBA · wRC+ */
+.svRow {
+  display: grid;
+  grid-template-columns: 14px 32px minmax(0, 1fr) repeat(5, 30px) 96px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.svHead {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-top: none;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.svWrcHead { text-align: right; }
+
+.svSlot {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.svWho { min-width: 0; }
+
+/* First name on top, LAST NAME below (as on the pitcher card) */
+.svWho .tvNameLine { align-items: flex-end; }
+.svWho .tvFullName { flex-direction: column; align-items: flex-start; gap: 0; }
+.svWho .tvFirst { flex: none; max-width: 100%; font-size: 0.46rem; line-height: 1.15; }
+.svWho .tvLast { max-width: 100%; }
+
+.svMeta {
+  display: block;
+  margin-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.svNum {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.svHead .svNum { color: var(--text-muted); font-size: 0.5rem; }
+
+.svWrc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.svWrc .barTrack { flex: 1; }
+
+.svWrcVal {
+  min-width: 24px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.svTotals {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.svTotalBar {
+  grid-column: 4 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.svTotalBar .barTrack { flex: 1; }
+
+/* Phones: OPS and wOBA out, narrower columns */
+@media (max-width: 480px) {
+  .svRow { grid-template-columns: 12px 28px minmax(0, 1fr) repeat(3, 24px) 86px; gap: 5px; padding: 5px 10px; }
+  .svWide { display: none; }
+  .svRow .tvPhotoBox, .svRow .tvPhoto { width: 28px; height: 28px; }
+}
+
+@media (max-width: 360px) {
+  .svRow { grid-template-columns: 10px 24px minmax(0, 1fr) repeat(3, 20px) 72px; gap: 4px; padding: 5px 8px; }
+  .svRow .tvPhotoBox, .svRow .tvPhoto { width: 24px; height: 24px; }
+  .svNum { font-size: 0.56rem; }
 }
