@@ -577,7 +577,11 @@
 
 .svWho { min-width: 0; }
 
-.svWho .tvLast { font-size: 0.82rem; }
+/* First name on top, LAST NAME below (as on the pitcher card) */
+.svWho .tvNameLine { align-items: flex-end; }
+.svWho .tvFullName { flex-direction: column; align-items: flex-start; gap: 0; }
+.svWho .tvFirst { flex: none; max-width: 100%; font-size: 0.48rem; line-height: 1.15; }
+.svWho .tvLast { max-width: 100%; font-size: 0.84rem; }
 
 .svMeta {
   display: block;
@@ -634,11 +638,7 @@
   .svRow { grid-template-columns: 30px minmax(0, 1fr) repeat(3, 24px) 84px; gap: 5px; padding: 5px 10px; }
   .svWide { display: none; }
   .svPhoto, .svPhoto .tvPhoto { width: 30px; height: 30px; }
-  /* First name on top, LAST NAME below (as on the pitcher card), bigger */
-  .svWho .tvNameLine { align-items: flex-end; }
-  .svWho .tvFullName { flex-direction: column; align-items: flex-start; gap: 0; }
-  .svWho .tvFirst { flex: none; max-width: 100%; font-size: 0.48rem; line-height: 1.15; }
-  .svWho .tvLast { max-width: 100%; font-size: 0.8rem; }
+  .svWho .tvLast { font-size: 0.8rem; }
 }
 
 @media (max-width: 360px) {
