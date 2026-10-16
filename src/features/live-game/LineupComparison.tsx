@@ -388,9 +388,9 @@ function SingleView({ lineup, color, wrcMap }: {
 
   return (
     <div className={styles.sv}>
-      {/* # · photo · batter · HR RBI SB OPS wOBA · wRC+ (OPS and wOBA hide on phones) */}
+      {/* photo (with the batting-order number) · batter · HR RBI SB OPS wOBA · wRC+
+          (OPS and wOBA hide on phones) */}
       <div className={`${styles.svRow} ${styles.svHead}`}>
-        <span>#</span>
         <span />
         <span>{t('batter')}</span>
         <span className={styles.svNum}>HR</span>
@@ -408,10 +408,10 @@ function SingleView({ lineup, color, wrcMap }: {
         const delay = i * ROW_STAGGER_MS
         return (
           <div key={i} className={styles.svRow}>
-            <span className={styles.svSlot}>{i + 1}</span>
-            <span className={styles.tvPhotoBox}>
+            <span className={`${styles.tvPhotoBox} ${styles.svPhoto}`}>
               {p && <img className={styles.tvPhoto} src={cutoutUrl(p.id, 96)} alt="" loading="lazy"
                 onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
+              <span className={styles.svSlot}>{i + 1}</span>
             </span>
             <div className={styles.svWho}>
               {p
@@ -436,7 +436,6 @@ function SingleView({ lineup, color, wrcMap }: {
 
       {/* Lineup wRC+ (PA-weighted): label under the names, thick bar to the end */}
       <div className={`${styles.svRow} ${styles.svTotals}`}>
-        <span />
         <span />
         <span className={styles.tvTotalLabel} title={t('wrcWeighted')}>{t('lineupWord')}</span>
         <div className={styles.svTotalBar}>

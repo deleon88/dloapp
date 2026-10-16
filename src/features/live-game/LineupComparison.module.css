@@ -514,6 +514,10 @@
 /* Phones: comparison halves are too narrow for "First LAST" on one line, so the
    first name goes on top (as on the pitcher card) and both stay whole. */
 @media (max-width: 480px) {
+  .tvRow { grid-template-columns: minmax(0, 1fr) 28px 10px 28px minmax(0, 1fr); padding: 5px 8px; }
+  .tvBatter { grid-template-columns: 28px minmax(0, 1fr); gap: 5px; }
+  .tvBatterHome { grid-template-columns: minmax(0, 1fr) 28px; }
+  .tvPhotoBox, .tvPhoto { width: 28px; height: 28px; }
   .tvRow .tvNameLine { align-items: flex-end; }
   .tvRow .tvFullName { flex-direction: column; align-items: flex-start; gap: 0; }
   .tvRow .tvBatterHome .tvFullName { align-items: flex-end; }
@@ -524,10 +528,10 @@
 /* ── Single-team view: its own grid ────────────────────────────── */
 .sv { position: relative; }
 
-/* # · photo · batter · HR RBI SB OPS wOBA · wRC+ */
+/* photo (+ order number) · batter · HR RBI SB OPS wOBA · wRC+ */
 .svRow {
   display: grid;
-  grid-template-columns: 14px 32px minmax(0, 1fr) repeat(5, 30px) 96px;
+  grid-template-columns: 34px minmax(0, 1fr) repeat(5, 30px) 96px;
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
@@ -548,20 +552,32 @@
 
 .svWrcHead { text-align: right; }
 
+/* Batting-order number: a small badge on the photo's corner */
+.svPhoto { position: relative; width: 34px; height: 34px; }
+.svPhoto .tvPhoto { width: 34px; height: 34px; }
+
 .svSlot {
+  position: absolute;
+  left: -3px;
+  bottom: 0;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-active);
+  background: var(--bg-card);
   font-family: var(--font-mono);
-  font-size: 0.55rem;
-  color: var(--text-muted);
-  text-align: center;
+  font-size: 0.45rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: 1;
 }
 
 .svWho { min-width: 0; }
 
-/* First name on top, LAST NAME below (as on the pitcher card) */
-.svWho .tvNameLine { align-items: flex-end; }
-.svWho .tvFullName { flex-direction: column; align-items: flex-start; gap: 0; }
-.svWho .tvFirst { flex: none; max-width: 100%; font-size: 0.46rem; line-height: 1.15; }
-.svWho .tvLast { max-width: 100%; }
+.svWho .tvLast { font-size: 0.82rem; }
 
 .svMeta {
   display: block;
@@ -605,7 +621,7 @@
 }
 
 .svTotalBar {
-  grid-column: 4 / -1;
+  grid-column: 3 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -615,13 +631,33 @@
 
 /* Phones: OPS and wOBA out, narrower columns */
 @media (max-width: 480px) {
-  .svRow { grid-template-columns: 12px 28px minmax(0, 1fr) repeat(3, 24px) 86px; gap: 5px; padding: 5px 10px; }
+  .svRow { grid-template-columns: 30px minmax(0, 1fr) repeat(3, 24px) 84px; gap: 5px; padding: 5px 10px; }
   .svWide { display: none; }
-  .svRow .tvPhotoBox, .svRow .tvPhoto { width: 28px; height: 28px; }
+  .svPhoto, .svPhoto .tvPhoto { width: 30px; height: 30px; }
+  /* First name on top, LAST NAME below (as on the pitcher card), bigger */
+  .svWho .tvNameLine { align-items: flex-end; }
+  .svWho .tvFullName { flex-direction: column; align-items: flex-start; gap: 0; }
+  .svWho .tvFirst { flex: none; max-width: 100%; font-size: 0.48rem; line-height: 1.15; }
+  .svWho .tvLast { max-width: 100%; font-size: 0.8rem; }
 }
 
 @media (max-width: 360px) {
-  .svRow { grid-template-columns: 10px 24px minmax(0, 1fr) repeat(3, 20px) 72px; gap: 4px; padding: 5px 8px; }
-  .svRow .tvPhotoBox, .svRow .tvPhoto { width: 24px; height: 24px; }
+  .svRow { grid-template-columns: 26px minmax(0, 1fr) repeat(3, 20px) 72px; gap: 4px; padding: 5px 8px; }
+  .svPhoto, .svPhoto .tvPhoto { width: 26px; height: 26px; }
   .svNum { font-size: 0.56rem; }
+  .svWho .tvLast { font-size: 0.72rem; }
+}
+
+/* Narrow phones (comparison): the middle number columns take room from the
+   halves, so smaller photos, numbers and type keep last names whole. Last in
+   the file so it wins over the 480px rules. */
+@media (max-width: 360px) {
+  .tvRow { grid-template-columns: minmax(0, 1fr) 24px 10px 24px minmax(0, 1fr); padding: 5px 6px; gap: 2px; }
+  .tvBatter { grid-template-columns: 22px minmax(0, 1fr); gap: 3px; }
+  .tvBatterHome { grid-template-columns: minmax(0, 1fr) 22px; }
+  .tvPhotoBox, .tvPhoto { width: 22px; height: 22px; }
+  .tvLast { font-size: 0.6rem; }
+  .tvBat { padding: 1px 3px; font-size: 0.4rem; }
+  .tvVal { font-size: 0.62rem; }
+  .tvTotalVal { font-size: 0.8rem; }
 }
