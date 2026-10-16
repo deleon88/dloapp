@@ -3,6 +3,7 @@ import { mlbApi } from '../client'
 interface RawBoxscorePlayer {
   person: { id: number; fullName: string }
   position: { abbreviation: string }
+  allPositions?: Array<{ abbreviation?: string }>
   seasonStats: { batting: { avg?: string; obp?: string; ops?: string; plateAppearances?: number } }
   jerseyNumber?: string
   battingOrder?: string
@@ -39,7 +40,7 @@ const BOXSCORE_FIELDS = [
   'teams', 'away', 'home',
   'battingOrder',
   'players', 'person', 'id', 'fullName',
-  'position', 'abbreviation',
+  'position', 'allPositions', 'abbreviation',
   'seasonStats', 'batting', 'avg', 'obp', 'ops', 'plateAppearances',
   'jerseyNumber',
 ].join(',')
@@ -79,6 +80,16 @@ export async function getStartingBattingOrders(gamePk: number): Promise<{ away: 
   }
 }
 
+/**
+ * Where the player started: the first of allPositions. `position` is where
+ * they finished (a LF who moved to RF mid-game would show as RF and leave LF
+ * empty). A two-way player listed as P first takes their other position (DH).
+ */
+function startingPosition(p: RawBoxscorePlayer): string {
+  const all = (p.allPositions ?? []).map(x => x.abbreviation ?? '').filter(Boolean)
+  return all.find(x => x !== 'P') ?? all[0] ?? p.position.abbreviation
+}
+
 function buildLineup(team: RawBoxscoreTeam): LineupSlot[] {
   return starters(team.players)
     .map(p => {
@@ -86,7 +97,7 @@ function buildLineup(team: RawBoxscoreTeam): LineupSlot[] {
       return {
         id: p.person.id,
         fullName: p.person.fullName,
-        pos: p.position.abbreviation,
+        pos: startingPosition(p),
         avg: b.avg ?? '.---',
         obp: b.obp ?? '.---',
         pa: b.plateAppearances ?? null,
