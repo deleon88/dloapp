@@ -429,21 +429,6 @@
 }
 
 /* ── Comparison, TV style ───────────────────────────────────────── */
-/* Faded team logo behind each half, clipped to it */
-.tvLogos { overflow: hidden; }
-.tvLogoHalf { position: absolute; top: 0; bottom: 0; left: 0; width: 50%; overflow: hidden; }
-.tvLogoHalfHome { left: auto; right: 0; }
-.tvLogoHalf img {
-  position: absolute;
-  top: 48px;
-  right: 6%;
-  width: min(170px, 86%);
-  opacity: 0.07;
-  -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
-          mask-image: linear-gradient(to bottom, #000 50%, transparent 100%);
-}
-.tvLogoHalfHome img { right: auto; left: 6%; }
-
 .tv { position: relative; }
 
 .tvStatus {
@@ -454,25 +439,33 @@
   padding: 8px 12px 4px;
 }
 
-/* The home chip stays in the last column even when the legend is hidden */
+/* The home chip stays in the last column */
 .tvStatus > :last-child { grid-column: 3; }
 
-/* Status chips here: the compact size of the pitcher card's chips */
+/* Status chips: same as the pitcher card's chips (hand / opener) */
 .tvStatus .statusConfirmed,
 .tvStatus .statusProjected {
   padding: 4px 7px;
-  font-size: 0.52rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-active);
   background: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+  font-size: 0.52rem;
+  font-weight: 700;
+  font-family: var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.tvLegend {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* "wRC+" in the middle, like the pitcher card's FIP / ERA labels */
+.tvColLabel {
   font-family: var(--font-mono);
-  font-size: 0.52rem;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
-  white-space: nowrap;
 }
 
 /* away batter · slot · home batter */
@@ -538,17 +531,19 @@
   color: var(--text-primary);
 }
 
-/* Batting side: small neutral chip next to the name */
+/* Batting side: the pitcher card's chip, scaled to the row */
 .tvBat {
   flex-shrink: 0;
-  padding: 0 3px;
+  padding: 2px 5px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-active);
-  border-radius: 4px;
-  font-family: var(--font-mono);
-  font-size: 0.44rem;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+  font-size: 0.46rem;
   font-weight: 700;
-  color: var(--text-secondary);
-  line-height: 1.5;
+  font-family: var(--font-body);
+  letter-spacing: 0.05em;
+  line-height: 1;
 }
 
 /* position · bar (grows toward the middle) · wRC+ */
@@ -580,77 +575,82 @@
   color: var(--text-primary);
 }
 
-/* Team totals: big numbers and thicker bars */
+/* Team totals: on the batter grid, thicker bar, bigger value next to the middle */
 .tvTotals {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 44px minmax(0, 1fr) 34px;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 12px 2px;
+  padding-top: 10px;
+  padding-bottom: 4px;
   border-top: 1px solid var(--border);
 }
 
+.tvTotalLine { margin-top: 0; }
+
+.tvTotalLabel {
+  font-size: 0.46rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tvBatterHome .tvTotalLabel { text-align: right; }
+
+.tvTotalTrack { height: 9px; border-radius: 5px; }
+
 .tvTotalVal {
+  flex-shrink: 0;
+  min-width: 30px;
+  text-align: center;
   font-family: var(--font-mono);
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--text-primary);
 }
 
-.tvTotalValHome { text-align: right; }
-
-.tvTotalLabel {
-  text-align: center;
-  font-size: 0.46rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  line-height: 1.25;
-}
-
-.tvTotalTrack { height: 9px; border-radius: 5px; }
-
-.tvChips {
+/* OPS / wOBA / xwOBA: same chips as the pitcher card */
+.tvChipView {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-  padding: 10px 12px 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 14px 12px;
 }
+
+.tvChipGroup { display: flex; gap: 5px; }
+.tvChipGroupRight { justify-content: flex-end; }
 
 .tvChip {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 6px 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.22);
+  flex: 1;
+  padding: 5px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  min-width: 0;
 }
 
 .tvChipLabel {
-  font-family: var(--font-mono);
-  font-size: 0.5rem;
-  letter-spacing: 0.06em;
+  font-size: 9px;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
 }
 
 .tvChipVal {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-primary);
 }
 
 @media (max-width: 360px) {
-  .tvLegend { display: none; }   /* the two status chips need the room */
+  .tvStatus .statusConfirmed,
+  .tvStatus .statusProjected { padding: 3px 4px; font-size: 0.44rem; letter-spacing: 0.02em; }
   .tvRow { padding: 5px 8px; gap: 4px; }
   .tvBatter { grid-template-columns: 26px minmax(0, 1fr); gap: 4px; }
   .tvBatterHome { grid-template-columns: minmax(0, 1fr) 26px; }
   .tvPhotoBox, .tvPhoto { width: 26px; height: 26px; }
   .tvLast { font-size: 0.68rem; }
-  .tvChips { gap: 4px; padding: 8px 8px 10px; }
-  .tvChipVal { font-size: 0.7rem; }
+  .tvChipView { gap: 6px; padding: 8px 8px 10px; }
 }

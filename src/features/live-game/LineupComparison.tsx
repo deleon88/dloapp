@@ -10,7 +10,7 @@ import CardBgLayers from './CardBgLayers'
 import FieldingAlignmentModal from './FieldingAlignmentModal'
 import VsPitcherModal from './VsPitcherModal'
 import styles from './LineupComparison.module.css'
-import { cutoutUrl, teamLogoUrl } from './mlbImages'
+import { cutoutUrl } from './mlbImages'
 
 export type ViewMode = 'away' | 'comparison' | 'home'
 
@@ -141,13 +141,6 @@ export default function LineupComparison({
     <BatSides.Provider value={batSidesQuery.data}>
     <div className={styles.card}>
       <CardBgLayers awayColor={awayColor} homeColor={homeColor} mode={mode} />
-      {/* TV look (comparison): a big faded team logo behind each half, clipped to it */}
-      {mode === 'comparison' && (
-        <div className={styles.tvLogos} data-card-bg aria-hidden="true">
-          <div className={styles.tvLogoHalf}><img src={teamLogoUrl(awayTeamId)} alt="" /></div>
-          <div className={`${styles.tvLogoHalf} ${styles.tvLogoHalfHome}`}><img src={teamLogoUrl(homeTeamId)} alt="" /></div>
-        </div>
-      )}
 
       {/* ── Segmented toggle ── */}
       <div className={styles.segmentTrack}>
@@ -268,7 +261,7 @@ function ComparisonView({
       {/* Lineup status of each side, and what the bars mean */}
       <div className={styles.tvStatus}>
         <StatusBadge status={awayLineupStatus} align="left" />
-        <span className={styles.tvLegend}>{t('wrcLegend')}</span>
+        <span className={styles.tvColLabel}>wRC+</span>
         <StatusBadge status={homeLineupStatus} align="right" />
       </div>
 
@@ -280,29 +273,48 @@ function ComparisonView({
         </div>
       ))}
 
-      {/* Team totals: PA-weighted wRC+ of each lineup, as thicker bars */}
-      <div className={styles.tvTotals}>
-        <span className={styles.tvTotalVal}><CountUp value={aAvg} delay={totalsDelay} /></span>
-        <div className={`${styles.barTrack} ${styles.tvTotalTrack}`}>
-          <BarFill className={styles.barFillRight} width={aAvg != null ? barPct(aAvg) : 0} color={awayColor} delay={totalsDelay} />
-          <div className={styles.avgMark} style={{ right: `${AVG_MARK_PCT}%` }} />
-        </div>
-        <span className={styles.tvTotalLabel}>wRC+<br />{t('lineupWord')}</span>
-        <div className={`${styles.barTrack} ${styles.tvTotalTrack}`}>
-          <BarFill className={styles.barFillLeft} width={hAvg != null ? barPct(hAvg) : 0} color={homeColor} delay={totalsDelay} />
-          <div className={styles.avgMark} style={{ left: `${AVG_MARK_PCT}%` }} />
-        </div>
-        <span className={`${styles.tvTotalVal} ${styles.tvTotalValHome}`}><CountUp value={hAvg} delay={totalsDelay} /></span>
+      {/* Team totals (PA-weighted wRC+ of each lineup), laid out like the batter
+          rows: thick bar growing toward the middle, value next to it. */}
+      <div className={`${styles.tvRow} ${styles.tvTotals}`}>
+        <TvTotal side="away" value={aAvg} color={awayColor} delay={totalsDelay} label={t('lineupWord')} />
+        <span />
+        <TvTotal side="home" value={hAvg} color={homeColor} delay={totalsDelay} label={t('lineupWord')} />
       </div>
 
-      <div className={styles.tvChips}>
-        {[aChips, hChips].map((c, k) => (['ops', 'woba', 'xwoba'] as const).map(key => (
-          <div key={`${k}-${key}`} className={styles.tvChip}>
-            <span className={styles.tvChipLabel}>{key === 'ops' ? 'OPS' : key === 'woba' ? 'wOBA' : 'xwOBA'}</span>
-            <span className={styles.tvChipVal}>{c?.[key] ?? '—'}</span>
+      {/* Same chips as the pitcher card */}
+      <div className={styles.tvChipView}>
+        {[aChips, hChips].map((c, k) => (
+          <div key={k} className={`${styles.tvChipGroup} ${k ? styles.tvChipGroupRight : ''}`}>
+            {(['ops', 'woba', 'xwoba'] as const).map(key => (
+              <div key={key} className={styles.tvChip}>
+                <span className={styles.tvChipLabel}>{key === 'ops' ? 'OPS' : key === 'woba' ? 'wOBA' : 'xwOBA'}</span>
+                <span className={styles.tvChipVal}>{c?.[key] ?? '—'}</span>
+              </div>
+            ))}
           </div>
-        )))}
+        ))}
       </div>
+    </div>
+  )
+}
+
+/** A team's lineup wRC+ on the batter-row grid: label where the photo goes. */
+function TvTotal({ side, value, color, delay, label }: {
+  side: 'away' | 'home'; value: number | null; color: string; delay: number; label: string
+}) {
+  const home = side === 'home'
+  const tag = <span className={styles.tvTotalLabel}>{label}</span>
+  return (
+    <div className={`${styles.tvBatter} ${home ? styles.tvBatterHome : ''}`}>
+      {!home && tag}
+      <div className={`${styles.tvLine} ${styles.tvTotalLine}`}>
+        <div className={`${styles.barTrack} ${styles.tvTotalTrack}`}>
+          <BarFill className={home ? styles.barFillLeft : styles.barFillRight} width={value != null ? barPct(value) : 0} color={color} delay={delay} />
+          <div className={styles.avgMark} style={home ? { left: `${AVG_MARK_PCT}%` } : { right: `${AVG_MARK_PCT}%` }} />
+        </div>
+        <span className={styles.tvTotalVal}><CountUp value={value} delay={delay} /></span>
+      </div>
+      {home && tag}
     </div>
   )
 }
