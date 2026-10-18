@@ -263,20 +263,26 @@
 
 .state { padding: 20px 14px; text-align: center; font-size: 0.72rem; color: var(--text-muted); }
 
-/* Each row carries its team: a wash of the team color fading out to the right
-   and the logo, faint, behind the photo. */
+/* Each row carries its team: its color, filled from the left as far as the row's
+   percentile in the sort stat (among the rows shown), and its logo behind the photo. */
 .item {
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--team, transparent) 22%, transparent) 0%, transparent 62%);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--team, transparent) 26%, transparent) 0%,
+    color-mix(in srgb, var(--team, transparent) 12%, transparent) var(--fill, 0%),
+    transparent calc(var(--fill, 0%) + 4%));
 }
 
 .item:last-of-type { border-bottom: none; }
 
 .itemOpen {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--team, transparent) 28%, transparent) 0%, transparent 70%),
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--team, transparent) 32%, transparent) 0%,
+      color-mix(in srgb, var(--team, transparent) 16%, transparent) var(--fill, 0%),
+      transparent calc(var(--fill, 0%) + 4%)),
     rgba(255, 255, 255, 0.025);
 }
 

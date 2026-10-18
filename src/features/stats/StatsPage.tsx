@@ -150,6 +150,12 @@ export default function StatsPage() {
     })
   }, [data, posF, teamF, league, min, role, sortCol, asc])
 
+  // The sort stat's values among the rows shown: each row's color fills to its percentile.
+  const sortVals = useMemo(
+    () => rows.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b),
+    [rows, sortCol],
+  )
+
   function changeSection(s: Section) {
     setSec(s)
     const first = columnsFor(s, chosen[s]).find(c => c.id === DEFAULT_SORT[s]) ?? columnsFor(s, chosen[s])[0]
@@ -266,7 +272,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} cols={cols} pool={rows}
+          <StatRow key={r.id} row={r} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} sortVals={sortVals} cols={cols} pool={rows}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -465,8 +471,8 @@ function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
 
 // ── Row ───────────────────────────────────────────────────────────────
 
-function StatRow({ row, rank, sortCol, cols, pool, open, onToggle }: {
-  row: AnyRow; rank: number; sortCol: Column; cols: Column[]; pool: AnyRow[]; open: boolean; onToggle: () => void
+function StatRow({ row, rank, sortCol, sortVals, cols, pool, open, onToggle }: {
+  row: AnyRow; rank: number; sortCol: Column; sortVals: number[]; cols: Column[]; pool: AnyRow[]; open: boolean; onToggle: () => void
 }) {
   const t = useT()
   const team = isTeamRow(row) ? row.id : row.team
@@ -477,8 +483,11 @@ function StatRow({ row, rank, sortCol, cols, pool, open, onToggle }: {
   const img = isTeamRow(row) ? capLogoUrl(row.id) : cutoutUrl(row.id, 96)
   const href = isTeamRow(row) ? `/team/${row.id}` : `/player/${row.id}`
 
-  // Team branding: a wash of the team color from the left and its logo, faded, behind the photo
-  const brand = meta ? ({ '--team': getBarColor(meta) } as CSSProperties) : undefined
+  // Team branding: the team color from the left and its logo, faded, behind the photo…
+  // …filled as far as its percentile in the sort stat among the rows shown
+  const sv = sortCol.get(row)
+  const fill = sv != null && Number.isFinite(sv) && sortVals.length ? percentile(sortVals, sv, sortCol.low) : 0
+  const brand = meta ? ({ '--team': getBarColor(meta), '--fill': `${Math.max(4, fill)}%` } as CSSProperties) : undefined
 
   return (
     <div className={`${styles.item} ${open ? styles.itemOpen : ''}`} style={brand}>
