@@ -38,7 +38,7 @@ export interface BatterFilter {
 }
 
 // Columnas de conteo compartidas por todas las consultas de bateo.
-function countColumns() {
+export function countColumns() {
   return sql`
     count(*)::int                                                              AS pa,
     count(*) FILTER (WHERE NOT (p.event = ANY(${NON_AB})))::int                AS ab,
@@ -56,7 +56,7 @@ function countColumns() {
 }
 
 // Equipo para el que batea en esa jugada: visitante en la alta, local en la baja.
-function battingTeam() {
+export function battingTeam() {
   return sql`(CASE WHEN p.half = 't' THEN g.away_team_id ELSE g.home_team_id END)`
 }
 

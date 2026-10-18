@@ -13,6 +13,7 @@ import { OpenAuthRoute } from '@/features/auth/AuthModal'
 import AuthCallbackPage from '@/features/auth/AuthCallbackPage'
 import ProfilePage from '@/features/auth/ProfilePage'
 import RankingsPage from '@/features/rankings/RankingsPage'
+import StatsPage from '@/features/stats/StatsPage'
 import { supabase } from '@/lib/supabase'
 import { votingEnabled } from '@/lib/features'
 
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/schedule" replace />} />
           <Route path="schedule" element={<SchedulePage />} />
+          <Route path="stats" element={<StatsPage />} />
           <Route path="game/:gamePk" element={<LiveGamePage />} />
           <Route path="player/:playerId" element={<PlayerPage />} />
           <Route path="team/:teamId" element={<TeamPage />} />
