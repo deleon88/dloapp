@@ -10,6 +10,12 @@ import CardBgLayers from './CardBgLayers'
 import type { ViewMode } from './LineupComparison'
 import styles from './GameVote.module.css'
 
+/**
+ * Vote count, percentages and split bar. Off until there are enough votes for
+ * them to mean something (a single vote reads as "100%"); votes still count.
+ */
+const SHOW_TALLY = false
+
 /** How long a first tap stays armed waiting for the second one. */
 const CONFIRM_WINDOW_MS = 5000
 
@@ -76,7 +82,7 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
   })
   const data = votes.data
   const myVote = data?.myVote ?? null
-  const showResults = !!data && data.total > 0 && (myVote != null || !open)
+  const showResults = SHOW_TALLY && !!data && data.total > 0 && (myVote != null || !open)
   const pct = (id: number) => (data?.total ? Math.round(((data.counts[id] ?? 0) / data.total) * 100) : 0)
 
   const canVote = open && !closedByServer
@@ -91,6 +97,7 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
 
   const total = data?.total ?? 0
   const countLabel = total === 1 ? t('oneVote') : t('votesCount').replace('{n}', String(total))
+  const withCount = (text: string) => (SHOW_TALLY ? `${countLabel} · ${text}` : text)
   const pendingSide = sides.find(s => s.id === pending)
   // Game over and you picked: did you get it right?
   const winner = state === 'Final' ? sides.find(s => s.won) : undefined
@@ -98,10 +105,10 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
   const footnote = closedByServer ? t('votingClosed')
     : vote.isError ? t('voteFailed')
     : pendingSide ? t('tapAgainToConfirm').replace('{team}', pendingSide.name)
-    : verdict ? `${t(verdict === 'right' ? 'pickRight' : 'pickWrong')} · ${countLabel}`
+    : verdict ? (SHOW_TALLY ? `${t(verdict === 'right' ? 'pickRight' : 'pickWrong')} · ${countLabel}` : t(verdict === 'right' ? 'pickRight' : 'pickWrong'))
     : !session ? t('signInToVote')
-    : !open ? `${countLabel} · ${t('votingClosed')}`
-    : `${countLabel} · ${t('canChangeBeforeStart')}`
+    : !open ? withCount(t('votingClosed'))
+    : withCount(t('canChangeBeforeStart'))
   const titleId = `vote-${game.gamePk}`
 
   return (
