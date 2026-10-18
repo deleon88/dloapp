@@ -703,7 +703,7 @@
 .tvStatus .statusConfirmed,
 .tvStatus .statusProjected {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   gap: 5px;
   padding: 0;
   border: none;
@@ -712,13 +712,17 @@
   letter-spacing: 0.06em;
 }
 
+/* The dot on the capitals' center: it sits on the text baseline and rises half a
+   cap height (minus its own half), whatever the font metrics or line height. */
 .statusConfirmed::before,
 .statusProjected::before {
   content: '';
   flex-shrink: 0;
+  align-self: baseline;
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  transform: translateY(calc(3px - 0.5cap));
 }
 
 .statusConfirmed::before { background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15); }
