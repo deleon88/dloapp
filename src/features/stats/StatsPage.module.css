@@ -263,14 +263,13 @@
 
 .state { padding: 20px 14px; text-align: center; font-size: 0.72rem; color: var(--text-muted); }
 
-/* Each row carries its team: a wash of the team color fading out to the right,
-   a thin accent on the left edge and the logo, faint, behind the photo. */
+/* Each row carries its team: a wash of the team color fading out to the right
+   and the logo, faint, behind the photo. */
 .item {
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.035);
   background: linear-gradient(90deg, color-mix(in srgb, var(--team, transparent) 22%, transparent) 0%, transparent 62%);
-  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--team, transparent) 70%, transparent);
 }
 
 .item:last-of-type { border-bottom: none; }
