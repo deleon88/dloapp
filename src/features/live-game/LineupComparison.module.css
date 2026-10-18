@@ -661,3 +661,74 @@
   .tvVal { font-size: 0.62rem; }
   .tvTotalVal { font-size: 0.8rem; }
 }
+
+/* ── Buttons vs. status ────────────────────────────────────────────
+   Fielding / vs pitcher open something: filled, with an arrow, brighter on
+   hover. Confirmed / projected is a state: no box, just a colored dot. Last in
+   the file so it wins over the chip rules above. */
+.fieldingChip,
+.rivalChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px 6px 9px;
+  border-radius: 10px;
+  border: 1px solid var(--border-active);
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.fieldingChip::after,
+.rivalChip::after {
+  content: '›';
+  margin-left: 1px;
+  font-size: 0.8rem;
+  line-height: 0;
+  color: var(--text-secondary);
+}
+
+.fieldingChip:hover,
+.rivalChip:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--text-primary);
+}
+
+.actionIcon { width: 11px; height: 11px; flex-shrink: 0; }
+
+.statusRow .statusConfirmed,
+.statusRow .statusProjected,
+.tvStatus .statusConfirmed,
+.tvStatus .statusProjected {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+}
+
+.statusConfirmed::before,
+.statusProjected::before {
+  content: '';
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.statusConfirmed::before { background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15); }
+.statusProjected::before { background: var(--accent-amber, #e0a52c); box-shadow: 0 0 0 3px rgba(224, 165, 44, 0.15); }
+
+/* Narrow phones: tighter buttons so the three items keep some air */
+@media (max-width: 360px) {
+  .fieldingChip,
+  .rivalChip { gap: 3px; padding: 5px 6px; }
+  .actionIcon { width: 9px; height: 9px; }
+  .statusRow .statusConfirmed,
+  .statusRow .statusProjected { gap: 4px; font-size: 0.46rem; letter-spacing: 0.03em; }
+}
