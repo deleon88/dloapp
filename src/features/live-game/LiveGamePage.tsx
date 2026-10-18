@@ -11,9 +11,13 @@ import { fetchPitcherRoles } from '@/api/pitcherRoles'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
-import { batterSplitFor } from '@/utils/handFilter'
+import { batterLabelKey, batterSplitFor, pitcherLabelKey } from '@/utils/handFilter'
+import { periodLabel } from '@/utils/period'
+import { useT } from '@/i18n/useT'
 import { useStatFilters } from '@/utils/useStatFilters'
 import GameMatchupView from './GameMatchupView'
+import ShareSheet from './share/ShareSheet'
+import type { ShareData } from './share/ShareCard'
 import styles from './LiveGamePage.module.css'
 
 // Stable empty lineup, so memos that depend on the lineup don't recompute every render.
@@ -168,6 +172,31 @@ export default function LiveGamePage() {
     return () => window.removeEventListener('scroll', update)
   }, [])
 
+  // ── Share image: what the page shows, with the filters it follows ──
+  const t = useT()
+  const [sharing, setSharing] = useState(false)
+  const shareData: ShareData | undefined = game ? {
+    game,
+    awayPitcher: awayPitcherId ? pitcherStats?.get(awayPitcherId) : undefined,
+    homePitcher: homePitcherId ? pitcherStats?.get(homePitcherId) : undefined,
+    awayOpener: isOpener(awayPitcherId),
+    homeOpener: isOpener(homePitcherId),
+    awayLineup,
+    homeLineup,
+    wrcMap,
+    awayStatus: awayLineupStatus,
+    homeStatus: homeLineupStatus,
+    awayBullpen: awayBullpenQuery.data,
+    homeBullpen: homeBullpenQuery.data,
+    awayLast5: awayTeamId ? recentResultsQuery.data?.get(awayTeamId) : undefined,
+    homeLast5: homeTeamId ? recentResultsQuery.data?.get(homeTeamId) : undefined,
+    filters: [
+      periodLabel(period, t),
+      `${t('handGroupBatters')}: ${t(batterLabelKey(handFilters.batter))}`,
+      `${t('handGroupPitchers')}: ${t(pitcherLabelKey(handFilters.pitcher))}`,
+    ].join(' · '),
+  } : undefined
+
   return (
     <div className={styles.page}>
       {/* Above the header: once it scrolls out of view the filters are floating. */}
@@ -177,8 +206,15 @@ export default function LiveGamePage() {
         <div className={styles.headerRight}>
           <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
           <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
+          {/* Share: a phone-sized image of the matchup, with the filters above */}
+          <button className={styles.shareBtn} onClick={() => setSharing(true)} disabled={!shareData}
+            aria-label={t('share')} title={t('share')}>
+            <ShareIcon />
+          </button>
         </div>
       </div>
+
+      {sharing && shareData && <ShareSheet data={shareData} onClose={() => setSharing(false)} />}
 
       {gameQuery.isLoading && <p className={styles.loading}>Loading…</p>}
       {gameQuery.error && <p className={styles.loading}>Failed to load game.</p>}
@@ -213,4 +249,12 @@ interface GameWithPitcher {
     away: { probablePitcher?: { id: number } }
     home: { probablePitcher?: { id: number } }
   }
+}
+
+function ShareIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v12" /><path d="m7 8 5-5 5 5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+    </svg>
+  )
 }

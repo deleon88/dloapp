@@ -22,6 +22,24 @@
 
 .pageHeader > * { pointer-events: auto; }
 
+/* Share: same footprint as the hand-filter button next to it */
+.shareBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 27px;
+  border-radius: 5px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.shareBtn:hover:not(:disabled) { background: var(--bg-highlight); border-color: var(--border-active); color: var(--text-primary); }
+.shareBtn:disabled { opacity: 0.4; cursor: default; }
+
 .headerRight {
   display: flex;
   align-items: center;
@@ -37,7 +55,25 @@
   pointer-events: none;
 }
 
-.pageHeaderFloating .headerRight {
+.pageHeaderFloating /* Share: same footprint as the hand-filter button next to it */
+.shareBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 27px;
+  border-radius: 5px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.shareBtn:hover:not(:disabled) { background: var(--bg-highlight); border-color: var(--border-active); color: var(--text-primary); }
+.shareBtn:disabled { opacity: 0.4; cursor: default; }
+
+.headerRight {
   padding: 5px;
   background: rgba(20, 29, 49, 0.82);
   -webkit-backdrop-filter: blur(12px);
@@ -47,7 +83,25 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .headerRight { transition: none; }
+  /* Share: same footprint as the hand-filter button next to it */
+.shareBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 27px;
+  border-radius: 5px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.shareBtn:hover:not(:disabled) { background: var(--bg-highlight); border-color: var(--border-active); color: var(--text-primary); }
+.shareBtn:disabled { opacity: 0.4; cursor: default; }
+
+.headerRight { transition: none; }
 }
 
 .loading {
