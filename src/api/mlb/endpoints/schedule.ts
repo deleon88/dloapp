@@ -13,7 +13,7 @@ export interface GetScheduleParams {
 }
 
 const SCHEDULE_FIELDS = [
-  'dates', 'date', 'games', 'gamePk', 'gameDate', 'officialDate', 'dayNight',
+  'dates', 'date', 'games', 'gamePk', 'gameDate', 'officialDate', 'dayNight', 'rescheduleGameDate',
   'status', 'abstractGameState', 'detailedState',
   'teams', 'away', 'home', 'team', 'id', 'name',
   'leagueRecord', 'wins', 'losses', 'score', 'isWinner',

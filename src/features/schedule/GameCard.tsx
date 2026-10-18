@@ -55,7 +55,13 @@ export default function GameCard({
   const hc = hm?.color ?? "#555";
   const acBar = am ? getBarColor(am) : ac;
   const hcBar = hm ? getBarColor(hm) : hc;
-  const time = format(parseISO(gameDate), "h:mm a");
+  const t = useT();
+  // Postponed / cancelled: say so (and the new date) instead of the start time.
+  const state = game.status.detailedState;
+  const time = state === "Postponed"
+    ? `${t("postponed")}${game.rescheduleGameDate ? ` → ${format(parseISO(game.rescheduleGameDate), "M/d")}` : ""}`
+    : state === "Cancelled" ? t("cancelled")
+    : format(parseISO(gameDate), "h:mm a");
 
   const awayPitcher = (game as GameWithPitcher).teams?.away?.probablePitcher;
   const homePitcher = (game as GameWithPitcher).teams?.home?.probablePitcher;

@@ -140,6 +140,9 @@ export default function SchedulePage() {
     const teamPlayerIds = new Map<number, number[]>()
 
     for (const game of games) {
+      // Only games still to be played get a projection: a postponed game (which
+      // MLB marks Final) or a finished one without a boxscore order gets none.
+      if (game.status.abstractGameState !== 'Preview') continue
       const gp         = game as GameWithPitcher
       const gl         = lineupOffense?.games.get(game.gamePk)
       const homeTeamId = game.teams.home.team.id
@@ -241,8 +244,9 @@ export default function SchedulePage() {
           const gameLineup    = lineupOffense?.games.get(game.gamePk)
           const awayConfirmed = (gameLineup?.awayIds.length ?? 0) > 0
           const homeConfirmed = (gameLineup?.homeIds.length ?? 0) > 0
-          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : projectedInfo.teamPlayerIds.has(game.teams.away.team.id) ? 'projected' as const : undefined
-          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : projectedInfo.teamPlayerIds.has(game.teams.home.team.id) ? 'projected' as const : undefined
+          const upcoming = game.status.abstractGameState === 'Preview'
+          const awayLineupStatus = awayConfirmed ? 'confirmed' as const : upcoming && projectedInfo.teamPlayerIds.has(game.teams.away.team.id) ? 'projected' as const : undefined
+          const homeLineupStatus = homeConfirmed ? 'confirmed' as const : upcoming && projectedInfo.teamPlayerIds.has(game.teams.home.team.id) ? 'projected' as const : undefined
 
           // Hand filter: each lineup faces the OTHER team's starter.
           const awaySplit = batterSplitFor(handFilters.batter, homePitcherId ? pitchHands?.get(homePitcherId) : undefined)
@@ -254,7 +258,7 @@ export default function SchedulePage() {
           const sideWrc = (confirmedIds: number[] | undefined, teamId: number, split: typeof awaySplit) => {
             if (!split) return undefined
             if (confirmedIds?.length) return weightedWrcAvg(confirmedIds, lineupOffense!.wrc, split) ?? undefined
-            if (!projectedWrcMap) return undefined
+            if (!upcoming || !projectedWrcMap) return undefined
             return weightedWrcAvg(projectedInfo.teamPlayerIds.get(teamId) ?? [], projectedWrcMap, split) ?? undefined
           }
           const awayWrc = sideWrc(gameLineup?.awayIds, game.teams.away.team.id, awaySplit)

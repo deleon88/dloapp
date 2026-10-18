@@ -145,6 +145,8 @@ export interface ScheduledGame {
   season: string
   gameDate: string
   officialDate: string
+  /** Postponed games: the date it was moved to (YYYY-MM-DD). */
+  rescheduleGameDate?: string
   status: GameStatusDetail
   teams: {
     away: ScheduledTeam

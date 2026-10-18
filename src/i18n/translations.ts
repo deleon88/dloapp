@@ -34,6 +34,8 @@ export const translations = {
     bullpen: 'Bullpen',
     lineupConfirmed: 'Confirmed Lineup',
     lineupProjected: 'Projected Lineup',
+    postponed: 'Postponed',
+    cancelled: 'Cancelled',
     // Weather
     expectedWeather: 'Expected Weather',
     wind: 'Wind',
@@ -230,6 +232,8 @@ export const translations = {
     bullpen: 'Bullpen',
     lineupConfirmed: 'Lineup Confirmado',
     lineupProjected: 'Lineup Proyectado',
+    postponed: 'Pospuesto',
+    cancelled: 'Cancelado',
     // Weather
     expectedWeather: 'Clima esperado',
     wind: 'Viento',
