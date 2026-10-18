@@ -269,10 +269,14 @@
   color: var(--text-muted);
 }
 
+/* The whole card in the team color, fading into the card background to the right */
 .item {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--bg-card);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--team, var(--bg-card)) 42%, var(--bg-card)) 0%,
+    color-mix(in srgb, var(--team, var(--bg-card)) 16%, var(--bg-card)) 55%,
+    var(--bg-card) 100%);
   overflow: hidden;
 }
 
@@ -376,7 +380,7 @@
   top: 0;
   bottom: 0;
   border-radius: 4px;
-  background: #4aa3ff;
+  background: var(--team-bar, #4aa3ff);
 }
 
 .barMark {

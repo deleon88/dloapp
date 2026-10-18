@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   fetchLeaders, type BatterRow, type LeaderHand, type LeaderRole, type LeadersResponse, type PitcherRow, type TeamRow,
 } from '@/api/leaders'
-import { getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
+import { getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
 import { cutoutUrl, teamLogoUrl } from '@/features/live-game/mlbImages'
@@ -495,12 +495,14 @@ function StatRow({ row, rank, sortCol, scale, cols, pool, open, onToggle }: {
   const [left, right] = sortCol.low ? [scale.hi, scale.lo] : [scale.lo, scale.hi]
 
   return (
-    <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}>
+    // Team colors: the card's gradient and tile in its main color, the bar in its bar color
+    <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}
+      style={meta ? ({ '--team': meta.color, '--team-bar': getBarColor(meta) } as CSSProperties) : undefined}>
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
         <span className={styles.rank}>{rank}</span>
 
         {/* Team tile: its color, its logo and the player's cutout */}
-        <span className={styles.tile} style={meta ? ({ '--team': meta.color } as CSSProperties) : undefined}>
+        <span className={styles.tile}>
           {isTeamRow(row) ? (
             <img className={styles.tileLogoBig} src={teamLogoUrl(team)} alt="" loading="lazy" />
           ) : <>
