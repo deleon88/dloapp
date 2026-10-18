@@ -171,14 +171,14 @@ export default function LineupComparison({
       {mode !== 'comparison' && (
         <div className={styles.statusRow}>
           {mode === 'away'
-            ? <button className={`${styles.fieldingChip} ${styles.statusRowLeft}`} onClick={() => setFieldingOpen(true)}>{t('fieldingAlignment')}</button>
+            ? <button className={`${styles.fieldingChip} ${styles.statusRowLeft}`} onClick={() => setFieldingOpen(true)}><FieldIcon />{t('fieldingAlignment')}</button>
             : opposingPitcher
               ? <button className={`${styles.rivalChip} ${styles.statusRowLeft}`} onClick={() => setVsPitcherOpen(true)}>VS {lastName(opposingPitcher.fullName)}</button>
               : null
           }
           <StatusBadge status={activeStatus} />
           {mode === 'home'
-            ? <button className={`${styles.fieldingChip} ${styles.statusRowRight}`} onClick={() => setFieldingOpen(true)}>{t('fieldingAlignment')}</button>
+            ? <button className={`${styles.fieldingChip} ${styles.statusRowRight}`} onClick={() => setFieldingOpen(true)}><FieldIcon />{t('fieldingAlignment')}</button>
             : opposingPitcher
               ? <button className={`${styles.rivalChip} ${styles.statusRowRight}`} onClick={() => setVsPitcherOpen(true)}>VS {lastName(opposingPitcher.fullName)}</button>
               : null
@@ -471,6 +471,15 @@ function StatusBadge({ status, align = 'center' }: { status?: LineupStatus; alig
     >
       {status === 'confirmed' ? t('confirmed') : t('projected')}
     </span>
+  )
+}
+
+/** Small diamond for the fielding button. */
+function FieldIcon() {
+  return (
+    <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3 21 12 12 21 3 12Z" /><circle cx="12" cy="12" r="1.8" fill="currentColor" />
+    </svg>
   )
 }
 
