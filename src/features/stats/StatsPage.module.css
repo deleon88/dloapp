@@ -50,7 +50,7 @@
 .segBtn:hover { color: var(--text-secondary); }
 .segOn { color: var(--text-primary); }
 
-/* ── Filter chips: native selects dressed as the app's neutral chips ── */
+/* ── Filter chips (the app's neutral chips) ──────────────────────────── */
 .filters {
   display: flex;
   gap: 6px;
@@ -83,42 +83,62 @@
 
 .chipSet { border-color: rgba(59, 130, 246, 0.6); background: rgba(59, 130, 246, 0.1); }
 
-/* The select covers the chip (the phone opens its own picker); the text shows. */
-.chip select {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  opacity: 0;
-  cursor: pointer;
-  font-size: 16px;   /* iOS won't zoom on focus */
+.caret { color: var(--text-muted); transition: transform 0.15s; }
+.caretOpen { transform: rotate(180deg); }
+
+/* ── Dark menu, fixed to the screen (the chip row scrolls sideways) ── */
+.menu {
+  position: fixed;
+  z-index: 300;
+  width: 200px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: dropIn 0.12s ease both;
 }
 
-.caret { color: var(--text-muted); }
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
 
-/* ── Stat groups ──────────────────────────────────────────────────── */
-.groups {
+.menuTitle {
+  padding: 6px 12px 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.menuDivider { height: 1px; margin: 4px 0; background: var(--border); }
+
+.menuOption {
   display: flex;
-  gap: 18px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  border-bottom: 1px solid var(--border);
-  margin-top: 2px;
-}
-
-.groups::-webkit-scrollbar { display: none; }
-
-.groupBtn {
-  flex-shrink: 0;
-  padding: 2px 0 9px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
   border: none;
-  border-bottom: 2px solid transparent;
   background: none;
-  color: var(--text-muted);
-  font: 700 0.72rem var(--font-body);
+  color: var(--text-secondary);
+  font: 500 0.75rem var(--font-body);
+  text-align: left;
   cursor: pointer;
 }
 
-.groupOn { color: var(--text-primary); border-bottom-color: var(--text-primary); }
+.menuOption:hover { background: var(--bg-highlight); color: var(--text-primary); }
+.menuSelected { color: var(--text-primary); background: var(--bg-subtle); }
+
+/* Teams / positions: a compact grid of abbreviations */
+.menuGrid { display: grid; padding: 0 6px 4px; gap: 2px; }
+.menuGrid .menuOption { justify-content: center; padding: 8px 4px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.68rem; }
+.menuGrid .menuSelected { background: var(--text-primary); color: var(--bg-deep); }
 
 /* ── Sort ─────────────────────────────────────────────────────────── */
 .sortRow { display: flex; gap: 6px; }
@@ -160,6 +180,22 @@
   background: rgba(0, 0, 0, 0.18);
   color: var(--text-primary);
   font: 800 0.9rem var(--font-mono);
+  cursor: pointer;
+}
+
+.pickBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-active);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+  font: 700 0.62rem var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
@@ -342,6 +378,107 @@
 
 .notes { font-size: 0.6rem; color: var(--text-muted); text-align: center; }
 .notes p { margin: 0; }
+
+/* ── Stat picker: bottom sheet on phones, dialog on wider screens ── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(2, 6, 16, 0.72);
+  animation: fadeIn 0.16s ease;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  overflow: hidden;
+  animation: sheetUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 520px) {
+  .backdrop { align-items: center; padding: 16px; }
+  .sheet { border-bottom: 1px solid var(--border-active); border-radius: 22px; }
+}
+
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes sheetUp { from { transform: translateY(100%); } }
+
+.sheetHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 10px;
+}
+
+.sheetTitle { margin: 0; font-size: 1rem; font-weight: 800; color: var(--text-primary); }
+.sheetHint { margin: 3px 0 0; font-size: 0.68rem; color: var(--text-muted); line-height: 1.4; }
+
+.sheetCount {
+  min-width: 26px;
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+  background: var(--bg-highlight);
+  font: 800 0.7rem var(--font-mono);
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.sheetBody { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 18px 8px; }
+
+.cat { padding: 8px 0; }
+.cat + .cat { border-top: 1px solid var(--border); }
+
+.catTitle {
+  margin: 0 0 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.catStats { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.statToggle {
+  padding: 7px 11px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-active);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 700 0.66rem var(--font-mono);
+  cursor: pointer;
+}
+
+.statOn { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-deep); }
+
+.sheetFoot {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+
+.resetBtn, .doneBtn {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font: 700 0.78rem var(--font-body);
+  cursor: pointer;
+}
+
+.resetBtn { border: 1px solid var(--border-active); background: transparent; color: var(--text-secondary); }
+.doneBtn { border: none; background: var(--text-primary); color: var(--bg-deep); }
 
 @media (max-width: 360px) {
   .row { grid-template-columns: 20px 30px minmax(0, 1fr) auto 10px; gap: 6px; padding: 7px 10px; }

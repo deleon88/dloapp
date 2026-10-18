@@ -59,6 +59,21 @@ async function teamGames(f: LeaderFilter): Promise<Record<number, number>> {
   return Object.fromEntries(rows.map(r => [r.team_id, r.g]))
 }
 
+/**
+ * Share of the league's plate appearances against that hand (pitcher's hand for
+ * batters, batter's for pitchers) in the window: with a hand filter the
+ * "qualified" minimum scales by it, or nobody would reach 3.1 PA per team game.
+ */
+async function handShare(f: LeaderFilter, column: 'pitch_hand' | 'bat_side'): Promise<number> {
+  if (!f.hand) return 1
+  const [row] = await sql<{ share: number | null }[]>`
+    SELECT (count(*) FILTER (WHERE ${sql(column)} = ${f.hand}))::float / nullif(count(*), 0) AS share
+    FROM plays p JOIN games g USING (game_pk)
+    WHERE g.season = ${f.season} AND g.game_type = 'R' AND p.is_pa ${dates(f)}
+  `
+  return row?.share ?? 1
+}
+
 // ── Lines ────────────────────────────────────────────────────────────
 
 interface BatCounts {
@@ -151,7 +166,7 @@ export interface BatterRow extends BatLine, Partial<HittingExtras> {
 
 export async function getBattingLeaders(f: LeaderFilter) {
   type Row = BatCounts & { id: number; team_id: number; g: number; last: string }
-  const [rows, k, parks, dir, games, extras] = await Promise.all([
+  const [rows, k, parks, dir, games, extras, share] = await Promise.all([
     sql<Row[]>`
       SELECT p.batter_id AS id, ${battingTeam()} AS team_id,
              count(DISTINCT p.game_pk)::int AS g, max(p.game_date)::text AS last,
@@ -167,6 +182,7 @@ export async function getBattingLeaders(f: LeaderFilter) {
     teamGames(f),
     // Runs / steals have no pitcher-hand split: only without one.
     f.hand ? Promise.resolve(null) : getHittingExtras(f).catch(() => null),
+    handShare(f, 'pitch_hand'),
   ])
   const acc = accumulate<BatCounts, Row>(rows, BAT_KEYS, emptyBat, 'pa', parks)
   const players: BatterRow[] = []
@@ -179,7 +195,7 @@ export async function getBattingLeaders(f: LeaderFilter) {
       ...(extras ? (extras.get(id) ?? { r: 0, sb: 0, cs: 0 }) : {}),
     })
   }
-  return { teamGames: games, players }
+  return { teamGames: games, qualShare: share, players }
 }
 
 // ── Pitchers ─────────────────────────────────────────────────────────
@@ -225,7 +241,7 @@ const roleWhere = (role?: Role) =>
 export async function getPitchingLeaders(f: LeaderFilter) {
   type Row = PitCounts & { id: number; team_id: number; g: number; gs: number; last: string }
   const role = f.role ?? 'all'
-  const [rows, k, parks, dir, games, records] = await Promise.all([
+  const [rows, k, parks, dir, games, records, share] = await Promise.all([
     sql<Row[]>`
       WITH ${startersCte(f)}
       SELECT p.pitcher_id AS id, ${fieldingTeam} AS team_id,
@@ -245,6 +261,7 @@ export async function getPitchingLeaders(f: LeaderFilter) {
     teamGames(f),
     // ERA / W-L have no batter-hand split: only without one.
     f.hand ? Promise.resolve(null) : getPitchingRecords({ ...f, role }).catch(() => null),
+    handShare(f, 'bat_side'),
   ])
   const acc = accumulate<PitCounts, Row>(rows, PIT_KEYS, emptyPit, 'bf', parks)
   const players: PitcherRow[] = []
@@ -258,7 +275,7 @@ export async function getPitchingLeaders(f: LeaderFilter) {
       ...(records ? (records.get(id) ?? {}) : {}),
     })
   }
-  return { teamGames: games, players, recordsAvailable: records != null }
+  return { teamGames: games, qualShare: share, players, recordsAvailable: records != null }
 }
 
 // ── Teams ────────────────────────────────────────────────────────────

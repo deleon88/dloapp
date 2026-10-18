@@ -1,6 +1,6 @@
-// Columns of the Stats page: which stats each section / group shows, how to
-// read them from a row and how to print them. `low` = lower is better (for the
-// default sort direction and the percentile colors).
+// Stats of the Stats page: every stat each section offers (the user picks which
+// ones to show), how to read it from a row and how to print it. `low` = lower
+// is better (default sort direction and percentile colors).
 import type { BatterRow, PitcherRow, TeamRow } from '@/api/leaders'
 import type { TKey } from '@/i18n/useT'
 
@@ -18,12 +18,10 @@ export interface Column {
   low?: boolean
 }
 
-export interface Group {
-  id: string
+/** A heading of the stat picker. */
+export interface Category {
   label: TKey
   cols: Column[]
-  /** Default sort column. */
-  def: string
 }
 
 const c = <R extends AnyRow>(id: string, label: string, get: (r: R) => number | null | undefined, fmt: Fmt, low = false): Column =>
@@ -115,35 +113,52 @@ const team = {
   wrcPlus: c<T>('wrcPlus', 'wRC+', r => r.bat.wrcPlus, 'int'),
   era: c<T>('era', 'ERA', r => r.era, 'dec2', true),
   ip: c<T>('ip', 'IP', r => r.pit.ip, 'ip'),
-  pkPct: c<T>('pkPct', 'K%', r => r.pit.kPct, 'pct'),
-  pbbPct: c<T>('pbbPct', 'BB%', r => r.pit.bbPct, 'pct', true),
+  pkPct: c<T>('pkPct', 'K% (P)', r => r.pit.kPct, 'pct'),
+  pbbPct: c<T>('pbbPct', 'BB% (P)', r => r.pit.bbPct, 'pct', true),
   kbbPct: c<T>('kbbPct', 'K-BB%', r => r.pit.kbbPct, 'pct'),
   hr9: c<T>('hr9', 'HR/9', r => r.pit.hr9, 'dec2', true),
   whip: c<T>('whip', 'WHIP', r => r.pit.whip, 'dec2', true),
-  pbabip: c<T>('pbabip', 'BABIP', r => r.pit.babip, 'rate', true),
+  pbabip: c<T>('pbabip', 'BABIP (P)', r => r.pit.babip, 'rate', true),
   gbPct: c<T>('gbPct', 'GB%', r => r.pit.gbPct, 'pct'),
   fip: c<T>('fip', 'FIP', r => r.pit.fip, 'dec2', true),
   fipMinus: c<T>('fipMinus', 'FIP-', r => r.pit.fipMinus, 'int', true),
   xfip: c<T>('xfip', 'xFIP', r => r.pit.xfip, 'dec2', true),
 }
 
-export const GROUPS: Record<Section, Group[]> = {
+export const CATALOG: Record<Section, Category[]> = {
   bat: [
-    { id: 'dash', label: 'grpDashboard', def: 'wrcPlus', cols: [bat.g, bat.pa, bat.hr, bat.r, bat.rbi, bat.sb, bat.bbPct, bat.kPct, bat.iso, bat.babip, bat.avg, bat.obp, bat.slg, bat.woba, bat.wrcPlus] },
-    { id: 'std', label: 'grpStandard', def: 'hr', cols: [bat.g, bat.pa, bat.ab, bat.h, bat.d2, bat.d3, bat.hr, bat.r, bat.rbi, bat.bb, bat.so, bat.hbp, bat.sb, bat.cs, bat.avg] },
-    { id: 'adv', label: 'grpAdvanced', def: 'wrcPlus', cols: [bat.bbPct, bat.kPct, bat.kbbPct, bat.avg, bat.obp, bat.slg, bat.ops, bat.iso, bat.babip, bat.woba, bat.wrcPlus] },
-    { id: 'bb', label: 'grpBattedBall', def: 'ldPct', cols: [bat.gbPct, bat.ldPct, bat.fbPct, bat.hrFb, bat.babip, bat.iso] },
+    { label: 'catStandard', cols: [bat.g, bat.pa, bat.ab, bat.h, bat.d2, bat.d3, bat.hr, bat.r, bat.rbi, bat.bb, bat.so, bat.hbp, bat.sb, bat.cs] },
+    { label: 'catRates', cols: [bat.avg, bat.obp, bat.slg, bat.ops, bat.iso, bat.babip] },
+    { label: 'catDiscipline', cols: [bat.bbPct, bat.kPct, bat.kbbPct] },
+    { label: 'catValue', cols: [bat.woba, bat.wrcPlus] },
+    { label: 'grpBattedBall', cols: [bat.gbPct, bat.ldPct, bat.fbPct, bat.hrFb] },
   ],
   pit: [
-    { id: 'dash', label: 'grpDashboard', def: 'fip', cols: [pit.w, pit.l, pit.sv, pit.g, pit.gs, pit.ip, pit.kPct, pit.bbPct, pit.hr9, pit.babip, pit.gbPct, pit.era, pit.fip, pit.xfip] },
-    { id: 'std', label: 'grpStandard', def: 'era', cols: [pit.w, pit.l, pit.era, pit.g, pit.gs, pit.sv, pit.hld, pit.ip, pit.h, pit.hr, pit.bb, pit.so, pit.whip, pit.avg] },
-    { id: 'adv', label: 'grpAdvanced', def: 'kbbPct', cols: [pit.kPct, pit.bbPct, pit.kbbPct, pit.whip, pit.babip, pit.avg, pit.woba, pit.era, pit.fip, pit.fipMinus, pit.xfip] },
-    { id: 'bb', label: 'grpBattedBall', def: 'gbPct', cols: [pit.gbPct, pit.ldPct, pit.fbPct, pit.hrFb, pit.hr9, pit.babip] },
+    { label: 'catStandard', cols: [pit.w, pit.l, pit.era, pit.g, pit.gs, pit.sv, pit.hld, pit.ip, pit.h, pit.hr, pit.bb, pit.so, pit.whip, pit.avg] },
+    { label: 'catDiscipline', cols: [pit.kPct, pit.bbPct, pit.kbbPct, pit.hr9] },
+    { label: 'grpAdvanced', cols: [pit.babip, pit.woba, pit.fip, pit.fipMinus, pit.xfip] },
+    { label: 'grpBattedBall', cols: [pit.gbPct, pit.ldPct, pit.fbPct, pit.hrFb] },
   ],
   team: [
-    { id: 'tbat', label: 'grpBatting', def: 'wrcPlus', cols: [team.w, team.l, team.r, team.hr, team.sb, team.bbPct, team.kPct, team.iso, team.babip, team.avg, team.obp, team.slg, team.woba, team.wrcPlus] },
-    { id: 'tpit', label: 'grpPitching', def: 'fip', cols: [team.era, team.ip, team.pkPct, team.pbbPct, team.kbbPct, team.hr9, team.whip, team.pbabip, team.gbPct, team.fip, team.fipMinus, team.xfip] },
+    { label: 'grpBatting', cols: [team.w, team.l, team.r, team.hr, team.sb, team.bbPct, team.kPct, team.iso, team.babip, team.avg, team.obp, team.slg, team.woba, team.wrcPlus] },
+    { label: 'grpPitching', cols: [team.era, team.ip, team.pkPct, team.pbbPct, team.kbbPct, team.hr9, team.whip, team.pbabip, team.gbPct, team.fip, team.fipMinus, team.xfip] },
   ],
+}
+
+/** What each section shows until the user picks its own stats. */
+export const DEFAULT_STATS: Record<Section, string[]> = {
+  bat: ['pa', 'hr', 'r', 'rbi', 'sb', 'avg', 'obp', 'slg', 'bbPct', 'kPct', 'woba', 'wrcPlus'],
+  pit: ['w', 'l', 'era', 'ip', 'kPct', 'bbPct', 'kbbPct', 'whip', 'fip', 'xfip'],
+  team: ['w', 'l', 'r', 'hr', 'woba', 'wrcPlus', 'era', 'kbbPct', 'fip'],
+}
+
+/** Sort column of a section when it opens (if shown). */
+export const DEFAULT_SORT: Record<Section, string> = { bat: 'wrcPlus', pit: 'fip', team: 'wrcPlus' }
+
+/** The chosen stats, in catalog order (unknown ids are dropped). */
+export function columnsFor(sec: Section, ids: string[]): Column[] {
+  const want = new Set(ids)
+  return CATALOG[sec].flatMap(cat => cat.cols).filter(col => want.has(col.id))
 }
 
 /** "158.667" innings → "158.2" (outs after the dot). */

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -8,7 +8,9 @@ import { capLogoUrl, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
 import { cutoutUrl } from '@/features/live-game/mlbImages'
-import { formatStat, GROUPS, type AnyRow, type Column, type Section } from './columns'
+import {
+  CATALOG, columnsFor, DEFAULT_SORT, DEFAULT_STATS, formatStat, type AnyRow, type Column, type Section,
+} from './columns'
 import styles from './StatsPage.module.css'
 
 /** Rows rendered before "Show more" (images are the heavy part). */
@@ -21,7 +23,6 @@ type Min = 'q' | 'all' | number
 const MIN_PA = [50, 100, 200, 300]
 const MIN_IP = [10, 20, 50, 100]
 
-const rowId = (r: AnyRow) => r.id
 const isTeamRow = (r: AnyRow): r is TeamRow => 'bat' in r
 
 function splitName(full: string): [string, string] {
@@ -45,6 +46,26 @@ function heat(p: number): string {
   return `rgb(${x.map((c, i) => Math.round(c + (y[i] - c) * u)).join(',')})`
 }
 
+// ── Chosen stats per section, kept on this device ─────────────────────
+const STORE_KEY = 'dlo.stats.cols.v1'
+
+function loadStats(): Record<Section, string[]> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) ?? 'null') as Partial<Record<Section, string[]>> | null
+    return {
+      bat: saved?.bat?.length ? saved.bat : DEFAULT_STATS.bat,
+      pit: saved?.pit?.length ? saved.pit : DEFAULT_STATS.pit,
+      team: saved?.team?.length ? saved.team : DEFAULT_STATS.team,
+    }
+  } catch {
+    return { ...DEFAULT_STATS }
+  }
+}
+
+function saveStats(v: Record<Section, string[]>) {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(v)) } catch { /* private mode: keep it in memory */ }
+}
+
 export default function StatsPage() {
   const t = useT()
   const [sec, setSec] = useState<Section>('bat')
@@ -53,17 +74,18 @@ export default function StatsPage() {
   const [hand, setHand] = useState<LeaderHand>('all')
   const [role, setRole] = useState<LeaderRole>('all')
   const [min, setMin] = useState<Min>('q')
-  const [teamId, setTeamId] = useState(0)
-  const [pos, setPos] = useState('all')
+  /** 'all', 't:<teamId>' or 'p:<position>' — one selector for both. */
+  const [scope, setScope] = useState('all')
   const [league, setLeague] = useState<'all' | 'AL' | 'NL'>('all')
-  const [groupId, setGroupId] = useState(GROUPS.bat[0].id)
-  const [sort, setSort] = useState({ id: GROUPS.bat[0].def, asc: false })
+  const [chosen, setChosen] = useState(loadStats)
+  const [picking, setPicking] = useState(false)
+  const [sort, setSort] = useState({ id: DEFAULT_SORT.bat, asc: false })
   const [open, setOpen] = useState<number | null>(null)
   const [limit, setLimit] = useState(PAGE)
 
-  const groups = GROUPS[sec]
-  const group = groups.find(g => g.id === groupId) ?? groups[0]
-  const sortCol = group.cols.find(c => c.id === sort.id) ?? group.cols.find(c => c.id === group.def)!
+  const cols = useMemo(() => columnsFor(sec, chosen[sec]), [sec, chosen])
+  const sortCol = cols.find(c => c.id === sort.id) ?? cols[0]
+  const asc = sortCol.id === sort.id ? sort.asc : !!sortCol.low
 
   const query = useQuery({
     queryKey: ['leaders', sec, season, period, hand, sec === 'bat' ? 'all' : role],
@@ -74,67 +96,69 @@ export default function StatsPage() {
   })
   const data = query.data
 
-  // Filter (min sample, team, position, league), then sort; nulls always last.
+  // Filter (min sample, team / position, league), then sort; nulls always last.
   const rows = useMemo(() => {
     if (!data) return []
     const games = 'teamGames' in data ? data.teamGames : {}
+    // With a hand filter, "qualified" scales by the league's share of PAs vs that hand.
+    const share = 'qualShare' in data ? data.qualShare : 1
     const list: AnyRow[] = data.type === 'team' ? data.teams : data.players
     const filtered = list.filter(r => {
       const team = isTeamRow(r) ? r.id : r.team
-      if (teamId && team !== teamId) return false
+      if (scope.startsWith('t:') && team !== Number(scope.slice(2))) return false
       if (league !== 'all') {
         const meta = getTeamMeta(team)
         if (!meta || teamLeague(meta) !== league) return false
       }
       if (data.type === 'bat') {
         const b = r as BatterRow
-        if (pos !== 'all') {
-          const p = b.pos === 'TWP' ? 'DH' : b.pos
-          if (pos === 'OF' ? !OUTFIELD.has(p) : p !== pos) return false
+        if (scope.startsWith('p:')) {
+          const want = scope.slice(2), p = b.pos === 'TWP' ? 'DH' : b.pos
+          if (want === 'OF' ? !OUTFIELD.has(p) : p !== want) return false
         }
-        if (min === 'q') return b.pa >= 3.1 * (games[b.team] ?? 0)
+        if (min === 'q') return b.pa >= 3.1 * share * (games[b.team] ?? 0)
         if (typeof min === 'number') return b.pa >= min
       }
       if (data.type === 'pit') {
         const p = r as PitcherRow
         // Relievers don't reach 1 IP per team game: a third of it.
-        if (min === 'q') return p.ip >= (role === 'rp' ? 1 / 3 : 1) * (games[p.team] ?? 0)
+        if (min === 'q') return p.ip >= (role === 'rp' ? 1 / 3 : 1) * share * (games[p.team] ?? 0)
         if (typeof min === 'number') return p.ip >= min
       }
       return true
     })
-    const dir = sort.asc ? 1 : -1
+    const dir = asc ? 1 : -1
     return filtered.sort((a, b) => {
       const x = sortCol.get(a), y = sortCol.get(b)
       if (x == null) return y == null ? 0 : 1
       if (y == null) return -1
       return (x - y) * dir
     })
-  }, [data, teamId, league, pos, min, role, sortCol, sort.asc])
+  }, [data, scope, league, min, role, sortCol, asc])
 
   function changeSection(s: Section) {
-    const g = GROUPS[s][0]
-    setSec(s); setGroupId(g.id); setSort({ id: g.def, asc: !!g.cols.find(c => c.id === g.def)?.low })
-    setOpen(null); setLimit(PAGE); setPos('all'); setMin('q'); setRole('all')
-  }
-  function changeGroup(id: string) {
-    const g = groups.find(x => x.id === id)!
-    setGroupId(id); setOpen(null)
-    // Keep the sort column when the new group has it; else the group's default.
-    if (!g.cols.some(c => c.id === sort.id)) setSort({ id: g.def, asc: !!g.cols.find(c => c.id === g.def)?.low })
+    setSec(s)
+    const first = columnsFor(s, chosen[s]).find(c => c.id === DEFAULT_SORT[s]) ?? columnsFor(s, chosen[s])[0]
+    setSort({ id: first.id, asc: !!first.low })
+    setOpen(null); setLimit(PAGE); setScope('all'); setMin('q'); setRole('all')
   }
   function sortBy(col: Column) {
-    setSort(s => (s.id === col.id ? { id: col.id, asc: !s.asc } : { id: col.id, asc: !!col.low }))
+    setSort(col.id === sortCol.id ? { id: col.id, asc: !asc } : { id: col.id, asc: !!col.low })
     setLimit(PAGE)
+  }
+  function pickStats(ids: string[]) {
+    const next = { ...chosen, [sec]: ids }
+    setChosen(next)
+    saveStats(next)
   }
 
   const secIdx = ['bat', 'pit', 'team'].indexOf(sec)
-  const handLabels = sec === 'pit'
-    ? [t('statsVsLhb'), t('statsVsRhb')]
-    : sec === 'bat' ? [t('statsVsLhp'), t('statsVsRhp')]
-    : group.id === 'tpit' ? [t('statsVsLhb'), t('statsVsRhb')] : [t('statsVsLhp'), t('statsVsRhp')]
-  const showRole = sec === 'pit' || (sec === 'team' && group.id === 'tpit')
-  const notes = noteFor(data, sec, hand, role, period, group.id, t)
+  // Teams: the hand is the pitchers' for their batting and the batters' for their pitching.
+  const handLabels = sec === 'pit' ? [t('statsVsLhb'), t('statsVsRhb')]
+    : sec === 'team' ? [t('statsVsLefties'), t('statsVsRighties')]
+    : [t('statsVsLhp'), t('statsVsRhp')]
+  const clubs = useMemo(() => getMlbClubs().sort((a, b) => a.abbr.localeCompare(b.abbr)), [])
+  const notes = noteFor(data, sec, hand, role, period, t)
 
   return (
     <div className={styles.page}>
@@ -148,53 +172,48 @@ export default function StatsPage() {
       </div>
 
       <div className={styles.filters}>
-        <Chip set={season !== currentSeason()} value={season} onChange={v => setSeason(Number(v))}
-          options={[currentSeason(), currentSeason() - 1].map(y => [String(y), String(y)])} />
-        <Chip set={period !== 'season'} value={period} onChange={v => setPeriod(v as StatPeriod)}
-          options={PERIOD_OPTIONS.map(o => [o.value, o.value === 'season' ? t('periodSeason') : t(o.value)])} />
-        <Chip set={hand !== 'all'} value={hand} onChange={v => setHand(v as LeaderHand)}
-          options={[['all', t('statsVsAll')], ['L', handLabels[0]], ['R', handLabels[1]]]} />
-        {showRole && (
-          <Chip set={role !== 'all'} value={role} onChange={v => setRole(v as LeaderRole)}
-            options={[['all', t('roleAll')], ['sp', t('roleSp')], ['rp', t('roleRp')]]} />
+        <Dropdown value={String(season)} set={season !== currentSeason()} onChange={v => setSeason(Number(v))}
+          sections={[{ options: [currentSeason(), currentSeason() - 1].map(y => [String(y), String(y)]) }]} />
+        <Dropdown value={period} set={period !== 'season'} onChange={v => setPeriod(v as StatPeriod)}
+          sections={[{ options: PERIOD_OPTIONS.map(o => [o.value, o.value === 'season' ? t('periodSeason') : t(o.value)]) }]} />
+        <Dropdown value={hand} set={hand !== 'all'} onChange={v => setHand(v as LeaderHand)}
+          sections={[{ options: [['all', t('statsVsAll')], ['L', handLabels[0]], ['R', handLabels[1]]] }]} />
+        {sec !== 'bat' && (
+          <Dropdown value={role} set={role !== 'all'} onChange={v => setRole(v as LeaderRole)}
+            sections={[{ options: [['all', t('roleAll')], ['sp', t('roleSp')], ['rp', t('roleRp')]] }]} />
         )}
         {sec !== 'team' && (
-          <Chip set={min !== 'q'} value={String(min)} onChange={v => setMin(v === 'q' || v === 'all' ? v : Number(v))}
-            options={[['q', t('minQualified')], ['all', t('minAll')],
-              ...(sec === 'bat' ? MIN_PA.map(n => [String(n), `≥ ${n} PA`]) : MIN_IP.map(n => [String(n), `≥ ${n} IP`]))] as [string, string][]} />
+          <Dropdown value={String(min)} set={min !== 'q'} onChange={v => setMin(v === 'q' || v === 'all' ? v : Number(v))}
+            sections={[{ options: [['q', t('minQualified')], ['all', t('minAll')],
+              ...(sec === 'bat' ? MIN_PA.map(n => [String(n), `≥ ${n} PA`]) : MIN_IP.map(n => [String(n), `≥ ${n} IP`]))] as [string, string][] }]} />
         )}
         {sec !== 'team' && (
-          <Chip set={teamId !== 0} value={teamId} onChange={v => setTeamId(Number(v))}
-            options={[['0', t('allTeams')], ...getMlbClubs().sort((a, b) => a.abbr.localeCompare(b.abbr)).map(c => [String(c.id), c.abbr] as [string, string])]} />
+          <Dropdown value={scope} set={scope !== 'all'} onChange={setScope}
+            sections={[
+              { options: [['all', t('teamOrPos')]] },
+              ...(sec === 'bat' ? [{ title: t('positionsLabel'), options: BAT_POSITIONS.map(p => [`p:${p}`, p] as [string, string]), grid: 5 }] : []),
+              { title: t('statsTeams'), options: clubs.map(c => [`t:${c.id}`, c.abbr] as [string, string]), grid: 3 },
+            ]} />
         )}
-        {sec === 'bat' && (
-          <Chip set={pos !== 'all'} value={pos} onChange={setPos}
-            options={[['all', t('allPositions')], ...BAT_POSITIONS.map(p => [p, p] as [string, string])]} />
-        )}
-        <Chip set={league !== 'all'} value={league} onChange={v => setLeague(v as 'all' | 'AL' | 'NL')}
-          options={[['all', t('allLeagues')], ['AL', 'AL'], ['NL', 'NL']]} />
-      </div>
-
-      <div className={styles.groups}>
-        {groups.map(g => (
-          <button key={g.id} className={`${styles.groupBtn} ${g.id === group.id ? styles.groupOn : ''}`} onClick={() => changeGroup(g.id)}>
-            {t(g.label)}
-          </button>
-        ))}
+        <Dropdown value={league} set={league !== 'all'} onChange={v => setLeague(v as 'all' | 'AL' | 'NL')}
+          sections={[{ options: [['all', t('allLeagues')], ['AL', 'AL'], ['NL', 'NL']] }]} />
       </div>
 
       <div className={styles.sortRow}>
         <label className={styles.sortSel}>
           <span className={styles.sortLabel}>{t('sortBy')}</span>
-          <select value={sortCol.id} onChange={e => sortBy(group.cols.find(c => c.id === e.target.value)!)}>
-            {group.cols.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          <select value={sortCol.id} onChange={e => sortBy(cols.find(c => c.id === e.target.value)!)}>
+            {cols.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </label>
-        <button className={styles.dirBtn} onClick={() => setSort(s => ({ ...s, asc: !s.asc }))}
-          aria-label={sort.asc ? '↑' : '↓'}>{sort.asc ? '↑' : '↓'}</button>
+        <button className={styles.dirBtn} onClick={() => setSort({ id: sortCol.id, asc: !asc })}
+          aria-label={asc ? '↑' : '↓'}>{asc ? '↑' : '↓'}</button>
+        <button className={styles.pickBtn} onClick={() => setPicking(true)}>
+          <SlidersIcon /> {t('statsPick')}
+        </button>
       </div>
       <div className={styles.pills}>
-        {group.cols.map(c => (
+        {cols.map(c => (
           <button key={c.id} className={`${styles.pill} ${c.id === sortCol.id ? styles.pillOn : ''}`} onClick={() => sortBy(c)}>{c.label}</button>
         ))}
       </div>
@@ -211,8 +230,8 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={rowId(r)} row={r} rank={i + 1} sortCol={sortCol} cols={group.cols} pool={rows}
-            open={open === rowId(r)} onToggle={() => setOpen(o => (o === rowId(r) ? null : rowId(r)))} />
+          <StatRow key={r.id} row={r} rank={i + 1} sortCol={sortCol} cols={cols} pool={rows}
+            open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
         {rows.length > limit && (
@@ -223,35 +242,160 @@ export default function StatsPage() {
       </div>
 
       {notes.length > 0 && <div className={styles.notes}>{notes.map(n => <p key={n}>{n}</p>)}</div>}
+
+      {picking && (
+        <StatPicker sec={sec} chosen={chosen[sec]} onChange={pickStats}
+          onReset={() => pickStats(DEFAULT_STATS[sec])} onClose={() => setPicking(false)} />
+      )}
     </div>
   )
 }
 
-/** Why some columns read "—" with the current filters. */
+/** Why some stats read "—" with the current filters. */
 function noteFor(data: LeadersResponse | undefined, sec: Section, hand: LeaderHand, role: LeaderRole,
-  period: StatPeriod, groupId: string, t: ReturnType<typeof useT>): string[] {
+  period: StatPeriod, t: ReturnType<typeof useT>): string[] {
   if (!data) return []
-  if (sec === 'bat' && hand !== 'all') return [t('noRunsHand')]
-  const pitching = sec === 'pit' || (sec === 'team' && groupId === 'tpit')
-  if (pitching && hand !== 'all') return [t('noEraHand')]
-  if (pitching && role !== 'all' && period !== 'season') return [t('noEraRoleWindow')]
+  if (sec === 'bat') return hand !== 'all' ? [t('noRunsHand')] : []
+  if (hand !== 'all') return [t('noEraHand')]
+  if (role !== 'all' && period !== 'season') return [t('noEraRoleWindow')]
   return []
 }
 
-/** A filter as a chip: a styled native select (the phone's own picker). */
-function Chip({ value, options, onChange, set }: {
-  value: string | number; options: [string, string][]; onChange: (v: string) => void; set?: boolean
+// ── Filter chip with a dark menu ───────────────────────────────────────
+
+/** grid: lay the options out in that many columns (short labels). */
+interface MenuSection { title?: string; options: [string, string][]; grid?: number }
+
+/**
+ * A filter chip that opens the app's dark menu. The menu is fixed to the
+ * screen (the chip row scrolls sideways and would clip it).
+ */
+function Dropdown({ value, sections, onChange, set }: {
+  value: string; sections: MenuSection[]; onChange: (v: string) => void; set?: boolean
 }) {
+  const [pos, setPos] = useState<{ top: number; left: number; maxH: number } | null>(null)
+  const btn = useRef<HTMLButtonElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
+  const label = sections.flatMap(s => s.options).find(([v]) => v === value)?.[1] ?? ''
+
+  useEffect(() => {
+    if (!pos) return
+    const close = (e: Event) => {
+      const target = e.target as Node
+      if (menu.current?.contains(target) || btn.current?.contains(target)) return
+      setPos(null)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPos(null) }
+    const onScroll = (e: Event) => { if (!menu.current?.contains(e.target as Node)) setPos(null) }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', () => setPos(null), { once: true })
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', onScroll, true)
+    }
+  }, [pos])
+
+  function toggle() {
+    if (pos) return setPos(null)
+    const r = btn.current!.getBoundingClientRect()
+    const width = 200
+    setPos({
+      top: r.bottom + 6,
+      left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)),
+      maxH: Math.max(160, window.innerHeight - r.bottom - 18),
+    })
+  }
+
   return (
-    <label className={`${styles.chip} ${set ? styles.chipSet : ''}`}>
-      <select value={String(value)} onChange={e => onChange(e.target.value)}>
-        {options.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
-      </select>
-      <span className={styles.chipText}>{options.find(([v]) => v === String(value))?.[1]}</span>
-      <svg className={styles.caret} width="8" height="8" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 11L3 6h10z" /></svg>
-    </label>
+    <>
+      <button ref={btn} className={`${styles.chip} ${set ? styles.chipSet : ''}`} onClick={toggle} aria-expanded={!!pos} aria-haspopup="listbox">
+        <span>{label}</span>
+        <svg className={`${styles.caret} ${pos ? styles.caretOpen : ''}`} width="8" height="8" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 11L3 6h10z" /></svg>
+      </button>
+      {pos && (
+        <div ref={menu} className={styles.menu} role="listbox" style={{ top: pos.top, left: pos.left, maxHeight: pos.maxH }}>
+          {sections.map((s, i) => (
+            <div key={i}>
+              {i > 0 && <div className={styles.menuDivider} />}
+              {s.title && <div className={styles.menuTitle}>{s.title}</div>}
+              <div className={s.grid ? styles.menuGrid : undefined} style={s.grid ? { gridTemplateColumns: `repeat(${s.grid}, 1fr)` } : undefined}>
+                {s.options.map(([v, text]) => {
+                  const selected = v === value
+                  return (
+                    <button key={v} role="option" aria-selected={selected}
+                      className={`${styles.menuOption} ${selected ? styles.menuSelected : ''}`}
+                      onClick={() => { onChange(v); setPos(null) }}>
+                      <span>{text}</span>
+                      {selected && !s.grid && <CheckIcon />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   )
 }
+
+// ── Stat picker ────────────────────────────────────────────────────────
+
+function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
+  sec: Section; chosen: string[]; onChange: (ids: string[]) => void; onReset: () => void; onClose: () => void
+}) {
+  const t = useT()
+  const on = new Set(chosen)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  function toggle(id: string) {
+    if (on.has(id)) {
+      if (on.size === 1) return   // at least one stat
+      onChange(chosen.filter(x => x !== id))
+    } else onChange([...chosen, id])
+  }
+
+  return (
+    <div className={styles.backdrop} onClick={onClose}>
+      <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={t('statsPickTitle')} onClick={e => e.stopPropagation()}>
+        <div className={styles.sheetHead}>
+          <div>
+            <h2 className={styles.sheetTitle}>{t('statsPickTitle')}</h2>
+            <p className={styles.sheetHint}>{t('statsPickHint')}</p>
+          </div>
+          <span className={styles.sheetCount}>{chosen.length}</span>
+        </div>
+        <div className={styles.sheetBody}>
+          {CATALOG[sec].map(cat => (
+            <section key={cat.label} className={styles.cat}>
+              <h3 className={styles.catTitle}>{t(cat.label)}</h3>
+              <div className={styles.catStats}>
+                {cat.cols.map(c => (
+                  <button key={c.id} className={`${styles.statToggle} ${on.has(c.id) ? styles.statOn : ''}`}
+                    aria-pressed={on.has(c.id)} onClick={() => toggle(c.id)}>{c.label}</button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+        <div className={styles.sheetFoot}>
+          <button className={styles.resetBtn} onClick={onReset}>{t('statsReset')}</button>
+          <button className={styles.doneBtn} onClick={onClose}>{t('statsDone')}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Row ───────────────────────────────────────────────────────────────
 
 function StatRow({ row, rank, sortCol, cols, pool, open, onToggle }: {
   row: AnyRow; rank: number; sortCol: Column; cols: Column[]; pool: AnyRow[]; open: boolean; onToggle: () => void
@@ -305,5 +449,22 @@ function StatRow({ row, rank, sortCol, cols, pool, open, onToggle }: {
         </div>
       )}
     </div>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function SlidersIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      <line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="18" x2="20" y2="18" />
+      <circle cx="9" cy="6" r="2.2" fill="currentColor" /><circle cx="15" cy="12" r="2.2" fill="currentColor" /><circle cx="7" cy="18" r="2.2" fill="currentColor" />
+    </svg>
   )
 }

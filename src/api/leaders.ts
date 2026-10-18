@@ -51,8 +51,9 @@ export interface LeadersQuery {
 }
 
 export type LeadersResponse =
-  | { type: 'bat'; teamGames: Record<string, number>; players: BatterRow[] }
-  | { type: 'pit'; teamGames: Record<string, number>; players: PitcherRow[]; recordsAvailable: boolean }
+  /** qualShare: the league's share of PAs vs the filtered hand (1 without one); scales "qualified". */
+  | { type: 'bat'; teamGames: Record<string, number>; qualShare: number; players: BatterRow[] }
+  | { type: 'pit'; teamGames: Record<string, number>; qualShare: number; players: PitcherRow[]; recordsAvailable: boolean }
   | { type: 'team'; teams: TeamRow[] }
 
 export async function fetchLeaders(q: LeadersQuery): Promise<LeadersResponse> {
