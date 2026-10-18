@@ -70,9 +70,9 @@
   gap: 5px;
   padding: 7px 10px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-active);
+  border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.18);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font: 700 0.58rem var(--font-body);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -81,7 +81,8 @@
   cursor: pointer;
 }
 
-.chipSet { border-color: rgba(59, 130, 246, 0.6); background: rgba(59, 130, 246, 0.1); }
+.chip:hover { color: var(--text-primary); border-color: var(--border-active); }
+.chipSet { color: var(--text-primary); border-color: var(--border-active); background: rgba(255, 255, 255, 0.07); }
 
 .chipLocked { opacity: 0.45; cursor: not-allowed; }
 
@@ -139,52 +140,50 @@
 
 /* Teams / positions: a compact grid of abbreviations */
 .menuGrid { display: grid; padding: 0 6px 4px; gap: 2px; }
-.menuGrid .menuOption { justify-content: center; padding: 8px 4px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.68rem; }
-.menuGrid .menuSelected { background: var(--text-primary); color: var(--bg-deep); }
+.menuGrid .menuOption { justify-content: center; padding: 7px 4px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-muted); }
+.menuGrid .menuOption:hover { color: var(--text-primary); }
+.menuGrid .menuSelected { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px var(--border-active); }
 
-/* MLB button and the AL / NL blocks below the positions */
-.menuBlock { padding: 6px 8px 0; }
-.menuBlock:last-child { padding-bottom: 6px; }
+/* MLB and the AL / NL groups below the positions */
+.menuBlock { padding: 0 6px; }
+.menuBlock:last-child { padding-bottom: 4px; }
 
 .menuFull {
+  display: block;
   width: 100%;
-  padding: 8px;
-  border: 1px solid var(--border-active);
-  border-radius: 10px;
-  background: var(--bg-subtle);
-  color: var(--text-secondary);
-  font: 700 0.72rem var(--font-mono);
+  margin: 2px 0 4px;
+  padding: 7px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  font: 700 0.66rem var(--font-mono);
+  letter-spacing: 0.04em;
   cursor: pointer;
 }
 
 .menuFull:hover { color: var(--text-primary); background: var(--bg-highlight); }
-.menuFull.menuSelected { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-deep); }
+.menuFull.menuSelected { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px var(--border-active); }
 
-.menuBox {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  overflow: hidden;
-}
-
-.menuBox .menuGrid { padding: 2px 4px 6px; }
+/* A league: its name (picks the whole league) over its teams, on a faint panel */
+.menuBox { margin-bottom: 4px; border-radius: 10px; background: rgba(255, 255, 255, 0.025); }
+.menuBox .menuGrid { padding: 0 2px 4px; }
 
 .menuBoxHead {
   display: block;
   width: 100%;
-  padding: 7px;
+  padding: 7px 4px 5px;
   border: none;
-  border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
-  font: 800 0.66rem var(--font-mono);
-  letter-spacing: 0.06em;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  font: 700 0.6rem var(--font-body);
+  letter-spacing: 0.08em;
   cursor: pointer;
 }
 
-.menuBoxHead:hover { background: var(--bg-highlight); }
-.menuBoxHeadOn { background: var(--text-primary); color: var(--bg-deep); }
-.menuBoxHeadOn:hover { background: var(--text-primary); }
+.menuBoxHead:hover { color: var(--text-primary); }
+.menuBoxHeadOn { color: var(--text-primary); }
 
 /* ── Sort ──────────────────────────────────────────────────────────── */
 .dirBtn {
@@ -192,12 +191,14 @@
   width: 34px;
   height: 32px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-active);
+  border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.18);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font: 800 0.9rem var(--font-mono);
   cursor: pointer;
 }
+
+.dirBtn:hover, .pickBtn:hover { color: var(--text-primary); border-color: var(--border-active); }
 
 .pickBtn {
   flex-shrink: 0;
@@ -207,9 +208,9 @@
   height: 32px;
   padding: 0 10px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-active);
+  border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.18);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font: 700 0.62rem var(--font-body);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -246,14 +247,16 @@
   flex-shrink: 0;
   padding: 6px 10px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font: 700 0.62rem var(--font-mono);
   cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-.pillOn { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-deep); }
+.pill:hover { color: var(--text-primary); }
+.pillOn { color: var(--text-primary); background: rgba(255, 255, 255, 0.07); border-color: var(--border-active); }
 
 /* ── List ─────────────────────────────────────────────────────────── */
 .list {
@@ -485,14 +488,16 @@
 .statToggle {
   padding: 7px 11px;
   border-radius: var(--radius-full);
-  border: 1px solid var(--border-active);
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font: 700 0.66rem var(--font-mono);
   cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-.statOn { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-deep); }
+.statToggle:hover { color: var(--text-primary); }
+.statOn { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); border-color: var(--border-active); }
 
 .sheetFoot {
   display: flex;
