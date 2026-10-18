@@ -537,7 +537,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
                 <span className={styles.track}>
                   {p != null && <>
                     <span className={styles.fill} style={scaleFill(p, 50)} />
-                    <span className={styles.knob} style={{ left: `${p}%` }}>{Math.round(p)}</span>
+                    <span className={styles.knob} style={{ left: `${p}%`, background: toneAt(p) }}>{Math.round(p)}</span>
                   </>}
                 </span>
                 <span className={styles.prVal}>{formatStat(v, c.fmt)}</span>
@@ -565,6 +565,13 @@ function scaleFill(width: number, mid: number): CSSProperties {
     backgroundSize: `${width > 0 ? 10000 / width : 100}% 100%`,
     '--mid': `${mid}%`,
   } as CSSProperties
+}
+
+/** The bar's color at percentile `p` (its gradient's tones), for the percentile knob. */
+function toneAt(p: number): string {
+  return p <= 50
+    ? `color-mix(in srgb, var(--tone-mid) ${p * 2}%, var(--tone-low))`
+    : `color-mix(in srgb, var(--tone-high) ${(p - 50) * 2}%, var(--tone-mid))`
 }
 
 /** The sample behind a line: PA (batters), IP and BF (pitchers), games (teams). */
