@@ -42,14 +42,6 @@ function percentile(vals: number[], v: number, low?: boolean): number {
   return low ? 100 - p : p
 }
 
-/** Blue (worse) → slate (average) → red (better), as on Baseball Savant. */
-function heat(p: number): string {
-  const a = [43, 94, 168], m = [70, 80, 104], b = [190, 58, 58]
-  const t = Math.max(0, Math.min(100, p)) / 100
-  const [x, y, u] = t < 0.5 ? [a, m, t * 2] : [m, b, (t - 0.5) * 2]
-  return `rgb(${x.map((c, i) => Math.round(c + (y[i] - c) * u)).join(',')})`
-}
-
 // ── Chosen stats per section, kept on this device ─────────────────────
 const STORE_KEY = 'dlo.stats.cols.v1'
 
@@ -517,7 +509,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
         <span className={styles.body}>
           <span className={styles.topLine}>
             <span className={styles.name}>{name}</span>
-            <span className={styles.val}>{formatStat(v, sortCol.fmt)}</span>
+            <span className={styles.val}><AnimatedStat value={v} col={sortCol} delay={Math.min(order, 12) * 35 + 80} /></span>
           </span>
           <span className={styles.meta}>{sub}</span>
           <span className={styles.bar}>
@@ -534,6 +526,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
 
       {open && (
         <div className={styles.detail}>
+          <div className={styles.sample}>{sampleOf(row).map(([k, val]) => <span key={k}>{k} <b>{val}</b></span>)}</div>
           {cols.map(c => {
             const v = c.get(row)
             const vals = pool.map(c.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b)
@@ -543,8 +536,8 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
                 <span className={styles.prLabel}>{c.label}</span>
                 <span className={styles.track}>
                   {p != null && <>
-                    <span className={styles.fill} style={{ width: `${p}%`, background: heat(p) }} />
-                    <span className={styles.knob} style={{ left: `${p}%`, background: heat(p) }}>{Math.round(p)}</span>
+                    <span className={styles.fill} style={{ width: `${p}%` }} />
+                    <span className={styles.knob} style={{ left: `${p}%` }}>{Math.round(p)}</span>
                   </>}
                 </span>
                 <span className={styles.prVal}>{formatStat(v, c.fmt)}</span>
@@ -559,6 +552,49 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
       )}
     </div>
   )
+}
+
+/** The sample behind a line: PA (batters), IP and BF (pitchers), games (teams). */
+function sampleOf(row: AnyRow): [string, string][] {
+  if (isTeamRow(row)) return [['G', String(row.g)], ['PA', String(row.bat.pa)], ['IP', formatStat(row.pit.ip, 'ip')]]
+  if ('pa' in row) return [['PA', String(row.pa)], ['G', String(row.g)]]
+  return [['IP', formatStat(row.ip, 'ip')], ['BF', String(row.bf)], ['G', String(row.g)]]
+}
+
+/**
+ * The value counting up to its number (from 0 when it appears or the stat
+ * changes, from the old value when only the number changes), in the stat's format.
+ */
+function AnimatedStat({ value, col, delay }: { value: number | null | undefined; col: Column; delay: number }) {
+  const target = value != null && Number.isFinite(value) ? value : null
+  const [shown, setShown] = useState<number | null>(target == null ? null : 0)
+  const last = useRef<{ col: string; v: number }>({ col: col.id, v: 0 })
+  const first = useRef(true)
+
+  useEffect(() => {
+    if (target == null || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setShown(target)
+      return
+    }
+    const from = last.current.col === col.id ? last.current.v : 0
+    const wait = first.current ? delay : 0
+    first.current = false
+    let frame = 0
+    const start = performance.now() + wait
+    const step = (now: number) => {
+      const p = Math.min(1, Math.max(0, (now - start) / 650))
+      const v = from + (target - from) * (1 - Math.pow(1 - p, 3))
+      setShown(v)
+      last.current = { col: col.id, v }
+      if (p < 1) frame = requestAnimationFrame(step)
+    }
+    frame = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(frame)
+    // delay only matters for the first run
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, col.id])
+
+  return <>{formatStat(shown ?? target, col.fmt)}</>
 }
 
 function CheckIcon() {
