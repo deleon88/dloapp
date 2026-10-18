@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   fetchLeaders, type BatterRow, type LeaderHand, type LeaderRole, type LeadersResponse, type PitcherRow, type TeamRow,
 } from '@/api/leaders'
-import { capLogoUrl, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
+import { capLogoUrl, getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
-import { cutoutUrl } from '@/features/live-game/mlbImages'
+import { cutoutUrl, teamLogoUrl } from '@/features/live-game/mlbImages'
 import {
   CATALOG, columnsFor, DEFAULT_SORT, DEFAULT_STATS, formatStat, type AnyRow, type Column, type Section,
 } from './columns'
@@ -477,8 +477,12 @@ function StatRow({ row, rank, sortCol, cols, pool, open, onToggle }: {
   const img = isTeamRow(row) ? capLogoUrl(row.id) : cutoutUrl(row.id, 96)
   const href = isTeamRow(row) ? `/team/${row.id}` : `/player/${row.id}`
 
+  // Team branding: a wash of the team color from the left and its logo, faded, behind the photo
+  const brand = meta ? ({ '--team': getBarColor(meta) } as CSSProperties) : undefined
+
   return (
-    <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}>
+    <div className={`${styles.item} ${open ? styles.itemOpen : ''}`} style={brand}>
+      {meta && <img className={styles.rowLogo} src={teamLogoUrl(team)} alt="" loading="lazy" aria-hidden="true" />}
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
         <span className={styles.rank}>{rank}</span>
         <img className={isTeamRow(row) ? styles.cap : styles.photo} src={img} alt="" loading="lazy"

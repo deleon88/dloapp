@@ -263,9 +263,39 @@
 
 .state { padding: 20px 14px; text-align: center; font-size: 0.72rem; color: var(--text-muted); }
 
-.item { border-bottom: 1px solid rgba(255, 255, 255, 0.035); }
+/* Each row carries its team: a wash of the team color fading out to the right,
+   a thin accent on the left edge and the logo, faint, behind the photo. */
+.item {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--team, transparent) 22%, transparent) 0%, transparent 62%);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--team, transparent) 70%, transparent);
+}
+
 .item:last-of-type { border-bottom: none; }
-.itemOpen { background: rgba(255, 255, 255, 0.025); }
+
+.itemOpen {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--team, transparent) 28%, transparent) 0%, transparent 70%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.rowLogo {
+  position: absolute;
+  top: 0;
+  left: 18px;
+  width: 92px;
+  height: 52px;
+  object-fit: contain;
+  object-position: left center;
+  opacity: 0.1;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, #000 40%, transparent);
+          mask-image: linear-gradient(to right, #000 40%, transparent);
+}
+
+.row, .detail { position: relative; z-index: 1; }
 
 /* rank · photo · name · value · chevron */
 .row {
