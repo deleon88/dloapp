@@ -100,6 +100,9 @@ export const translations = {
     // Rankings
     rankingsNav: 'Ranking',
     statsNav: 'Stats',
+    todaysStarters: "Today's starters",
+    allPos: 'All pos',
+    seasonYear: '{year} Season',
     statsBatters: 'Batters',
     statsPitchers: 'Pitchers',
     statsTeams: 'Teams',
@@ -340,6 +343,9 @@ export const translations = {
     // Rankings
     rankingsNav: 'Ranking',
     statsNav: 'Stats',
+    todaysStarters: 'Titulares de hoy',
+    allPos: 'Todas las pos.',
+    seasonYear: 'Temp. {year}',
     statsBatters: 'Bateadores',
     statsPitchers: 'Pitchers',
     statsTeams: 'Equipos',

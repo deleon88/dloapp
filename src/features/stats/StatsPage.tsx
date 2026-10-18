@@ -11,6 +11,7 @@ import { cutoutUrl, teamLogoUrl } from '@/features/live-game/mlbImages'
 import {
   CATALOG, columnsFor, DEFAULT_SORT, DEFAULT_STATS, formatStat, type AnyRow, type Column, type Section,
 } from './columns'
+import { fetchTodaysStarters } from './todaysStarters'
 import styles from './StatsPage.module.css'
 
 /** Rows rendered before "Show more" (images are the heavy part). */
@@ -24,6 +25,12 @@ const MIN_PA = [50, 100, 200, 300]
 const MIN_IP = [10, 20, 50, 100]
 
 const isTeamRow = (r: AnyRow): r is TeamRow => 'bat' in r
+
+/** A batter at a position (OF = any outfield spot; Ohtani's TWP counts as DH). */
+function matchesPos(b: BatterRow, pos: string): boolean {
+  const p = b.pos === 'TWP' ? 'DH' : b.pos
+  return pos === 'OF' ? OUTFIELD.has(p) : p === pos
+}
 
 interface BarScale { lo: number; mid: number; hi: number }
 
@@ -70,6 +77,8 @@ export default function StatsPage() {
   const [hand, setHand] = useState<LeaderHand>('all')
   const [role, setRole] = useState<LeaderRole>('all')
   const [min, setMin] = useState<Min>('q')
+  /** Only today's starters (probable pitchers / starting nine), on or off. */
+  const [startersOnly, setStartersOnly] = useState(false)
   /** Position and team: one chip, combinable (e.g. NYY · SS). '' / 0 = any. */
   const [posF, setPosF] = useState('')
   const [teamF, setTeamF] = useState(0)
@@ -106,6 +115,14 @@ export default function StatsPage() {
   })
   const data = query.data
 
+  const startersQuery = useQuery({
+    queryKey: ['todays-starters'],
+    queryFn: fetchTodaysStarters,
+    enabled: startersOnly && sec !== 'team',
+    staleTime: 10 * 60_000,
+  })
+  const starters = startersOnly && sec !== 'team' ? startersQuery.data : undefined
+
   // Filter (min sample, team / position, league), then sort; nulls always last.
   const rows = useMemo(() => {
     if (!data) return []
@@ -120,12 +137,12 @@ export default function StatsPage() {
         const meta = getTeamMeta(team)
         if (!meta || teamLeague(meta) !== league) return false
       }
+      // Today's starters: just them, whatever their sample (the minimum doesn't apply)
+      if (starters) return (data.type === 'bat' ? starters.batters : starters.pitchers).has((r as BatterRow | PitcherRow).id)
+        && (data.type !== 'bat' || !posF || matchesPos(r as BatterRow, posF))
       if (data.type === 'bat') {
         const b = r as BatterRow
-        if (posF) {
-          const p = b.pos === 'TWP' ? 'DH' : b.pos
-          if (posF === 'OF' ? !OUTFIELD.has(p) : p !== posF) return false
-        }
+        if (posF && !matchesPos(b, posF)) return false
         if (min === 'q') return b.pa >= 3.1 * share * (games[b.team] ?? 0)
         if (typeof min === 'number') return b.pa >= min
       }
@@ -144,7 +161,7 @@ export default function StatsPage() {
       if (y == null) return -1
       return (x - y) * dir
     })
-  }, [data, posF, teamF, league, min, role, sortCol, asc])
+  }, [data, posF, teamF, league, min, role, sortCol, asc, starters])
 
   // The bar scale of the sort stat: its fixed one (wRC+ 0–100–200), else the rows shown
   // (lowest – median – highest). Lower-is-better stats run the other way: longer = better.
@@ -179,10 +196,10 @@ export default function StatsPage() {
     : sec === 'team' ? [t('statsVsLefties'), t('statsVsRighties')]
     : [t('statsVsLhp'), t('statsVsRhp')]
   const clubs = useMemo(() => getMlbClubs().sort((a, b) => a.abbr.localeCompare(b.abbr)), [])
-  // "NYY · SS", "AL · SS", "SS", "NYY"… else the league ("MLB" by default)
+  // "MLB · All pos" by default; "NYY · SS", "AL · SS"… (batters always show the position part)
   const scopeLabel = [
-    teamF ? getTeamMeta(teamF)?.abbr : league !== 'all' ? league : posF ? '' : t('allLeagues'),
-    posF,
+    teamF ? getTeamMeta(teamF)?.abbr : league !== 'all' ? league : t('allLeagues'),
+    posF || (sec === 'bat' ? t('allPos') : ''),
   ].filter(Boolean).join(' · ')
   const notes = noteFor(data, sec, hand, role, period, t)
 
@@ -198,10 +215,33 @@ export default function StatsPage() {
       </div>
 
       <div className={styles.filters}>
-        <Dropdown value={String(season)} set={season !== currentSeason()} onChange={v => setSeason(Number(v))}
-          sections={[{ options: [currentSeason(), currentSeason() - 1].map(y => [String(y), String(y)]) }]} />
-        <Dropdown value={period} set={period !== 'season'} onChange={v => setPeriod(v as StatPeriod)}
-          sections={[{ options: PERIOD_OPTIONS.map(o => [o.value, o.value === 'season' ? t('periodSeason') : t(o.value)]) }]} />
+        {sec !== 'team' && (
+          <button className={`${styles.chip} ${styles.toggle} ${startersOnly ? styles.toggleOn : ''}`}
+            aria-pressed={startersOnly} onClick={() => { setStartersOnly(on => !on); setLimit(PAGE) }}>
+            <span className={styles.toggleDot} aria-hidden="true" />
+            {t('todaysStarters')}
+          </button>
+        )}
+        {/* Date range: this season, last season, or a recent window of this season */}
+        <Dropdown
+          value={season !== currentSeason() ? 'last' : period === 'season' ? 'this' : period}
+          set={season !== currentSeason() || period !== 'season'}
+          onChange={v => {
+            if (v === 'this' || v === 'last') {
+              setSeason(v === 'this' ? currentSeason() : currentSeason() - 1)
+              setPeriod('season')
+            } else {
+              setSeason(currentSeason())
+              setPeriod(v as StatPeriod)
+            }
+          }}
+          sections={[
+            { options: [
+              ['this', t('seasonYear').replace('{year}', String(currentSeason()))],
+              ['last', t('seasonYear').replace('{year}', String(currentSeason() - 1))],
+            ] },
+            { options: PERIOD_OPTIONS.filter(o => o.value !== 'season').map(o => [o.value, t(o.value)]) },
+          ]} />
         <Dropdown value={hand} set={hand !== 'all'} onChange={v => setHand(v as LeaderHand)}
           locked={sortCol.noHand} lockedTitle={t('handLocked').replace('{stat}', sortCol.label)}
           sections={[{ options: [['all', t('statsVsAll')], ['L', handLabels[0]], ['R', handLabels[1]]] }]} />
@@ -210,7 +250,7 @@ export default function StatsPage() {
             sections={[{ options: [['all', t('roleAll')], ['sp', t('roleSp')], ['rp', t('roleRp')]] }]} />
         )}
         {sec !== 'team' && (
-          <Dropdown value={String(min)} set={min !== 'q'} onChange={v => setMin(v === 'q' || v === 'all' ? v : Number(v))}
+          <Dropdown value={String(min)} set={min !== 'q'} locked={!!starters} lockedTitle={t('todaysStarters')} onChange={v => setMin(v === 'q' || v === 'all' ? v : Number(v))}
             sections={[{ options: [['q', t('minQualified')], ['all', t('minAll')],
               ...(sec === 'bat' ? MIN_PA.map(n => [String(n), `≥ ${n} PA`]) : MIN_IP.map(n => [String(n), `≥ ${n} IP`]))] as [string, string][] }]} />
         )}
@@ -221,6 +261,7 @@ export default function StatsPage() {
           <Dropdown value="" set={!!posF || !!teamF || league !== 'all'} label={scopeLabel} keepOpen
             isSelected={v => v === `p:${posF}` || v === `t:${teamF}` || (v === `L:${league}` && !teamF)}
             onChange={v => {
+              // a chosen position again (or "All positions") clears it
               if (v.startsWith('p:')) return setPosF(p => (p === v.slice(2) ? '' : v.slice(2)))
               if (v.startsWith('t:')) {
                 const id = Number(v.slice(2))
@@ -232,7 +273,10 @@ export default function StatsPage() {
               setTeamF(0)
             }}
             sections={[
-              ...(sec === 'bat' ? [{ title: t('positionsLabel'), options: BAT_POSITIONS.map(p => [`p:${p}`, p] as [string, string]), grid: 5 }] : []),
+              ...(sec === 'bat' ? [{
+                title: t('positionsLabel'), header: ['p:', t('allPos')] as [string, string], grid: 5,
+                options: BAT_POSITIONS.map(p => [`p:${p}`, p] as [string, string]),
+              }] : []),
               { options: [['L:all', t('allLeagues')]], full: true },
               ...(['AL', 'NL'] as const).map(lg => ({
                 header: [`L:${lg}`, lg] as [string, string], grid: 3,
