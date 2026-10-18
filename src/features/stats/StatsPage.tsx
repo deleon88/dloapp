@@ -299,7 +299,7 @@ interface MenuSection {
   grid?: number
   /** One full-width option (a big button). */
   full?: boolean
-  /** A boxed block whose title is itself an option. */
+  /** A full-width option above the section's options (e.g. a league over its teams). */
   header?: [string, string]
 }
 
@@ -366,23 +366,24 @@ function Dropdown({ value, sections, onChange, set, locked, lockedTitle, label: 
           {sections.map((s, i) => {
             const pick = (v: string) => { onChange(v); setPos(null) }
             const sel = (v: string) => (isSelected ? isSelected(v) : v === value)
-            const boxed = !!s.header || !!s.full
             return (
-              <div key={i} className={boxed ? styles.menuBlock : undefined}>
-                {i > 0 && !boxed && !sections[i - 1].header && !sections[i - 1].full && <div className={styles.menuDivider} />}
+              <div key={i}>
+                {i > 0 && <div className={styles.menuDivider} />}
                 {s.title && <div className={styles.menuTitle}>{s.title}</div>}
-                <div className={s.header ? styles.menuBox : undefined}>
+                <div>
                   {s.header && (
-                    <button role="option" aria-selected={sel(s.header[0])}
-                      className={`${styles.menuBoxHead} ${sel(s.header[0]) ? styles.menuBoxHeadOn : ''}`}
-                      onClick={() => pick(s.header![0])}>{s.header[1]}</button>
+                    <div className={styles.menuWideWrap}>
+                      <button role="option" aria-selected={sel(s.header[0])}
+                        className={`${styles.menuWide} ${sel(s.header[0]) ? styles.menuWideOn : ''}`}
+                        onClick={() => pick(s.header![0])}>{s.header[1]}</button>
+                    </div>
                   )}
-                  <div className={s.grid ? styles.menuGrid : undefined} style={s.grid ? { gridTemplateColumns: `repeat(${s.grid}, 1fr)` } : undefined}>
+                  <div className={s.grid ? styles.menuGrid : s.full ? styles.menuWideWrap : undefined} style={s.grid ? { gridTemplateColumns: `repeat(${s.grid}, 1fr)` } : undefined}>
                     {s.options.map(([v, text]) => {
                       const selected = sel(v)
                       return (
                         <button key={v} role="option" aria-selected={selected}
-                          className={`${s.full ? styles.menuFull : styles.menuOption} ${selected ? styles.menuSelected : ''}`}
+                          className={s.full ? `${styles.menuWide} ${selected ? styles.menuWideOn : ''}` : `${styles.menuOption} ${selected ? styles.menuSelected : ''}`}
                           onClick={() => pick(v)}>
                           <span>{text}</span>
                           {selected && !s.grid && !s.full && <CheckIcon />}
