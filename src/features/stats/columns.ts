@@ -18,6 +18,8 @@ export interface Column {
   low?: boolean
   /** No opponent-hand split (MLB's runs, steals, ERA, decisions): sorting by it locks the hand filter. */
   noHand?: boolean
+  /** Fixed bar scale [low end, average mark, high end]; without one, the rows shown set it. */
+  scale?: [number, number, number]
 }
 
 /** A heading of the stat picker. */
@@ -29,6 +31,7 @@ export interface Category {
 const c = <R extends AnyRow>(id: string, label: string, get: (r: R) => number | null | undefined, fmt: Fmt, low = false): Column =>
   ({ id, label, get: get as Column['get'], fmt, low })
 const noHand = (col: Column): Column => ({ ...col, noHand: true })
+const scaled = (col: Column, scale: [number, number, number]): Column => ({ ...col, scale })
 
 // ── Batters ──
 type B = BatterRow
@@ -57,7 +60,7 @@ const bat = {
   kPct: c<B>('kPct', 'K%', r => r.kPct, 'pct', true),
   kbbPct: c<B>('kbbPct', 'K-BB%', r => r.kbbPct, 'pct', true),
   woba: c<B>('woba', 'wOBA', r => r.woba, 'rate'),
-  wrcPlus: c<B>('wrcPlus', 'wRC+', r => r.wrcPlus, 'int'),
+  wrcPlus: scaled(c<B>('wrcPlus', 'wRC+', r => r.wrcPlus, 'int'), [0, 100, 200]),
   gbPct: c<B>('gbPct', 'GB%', r => r.gbPct, 'pct'),
   ldPct: c<B>('ldPct', 'LD%', r => r.ldPct, 'pct'),
   fbPct: c<B>('fbPct', 'FB%', r => r.fbPct, 'pct'),
@@ -88,7 +91,7 @@ const pit = {
   hr9: c<P>('hr9', 'HR/9', r => r.hr9, 'dec2', true),
   babip: c<P>('babip', 'BABIP', r => r.babip, 'rate', true),
   fip: c<P>('fip', 'FIP', r => r.fip, 'dec2', true),
-  fipMinus: c<P>('fipMinus', 'FIP-', r => r.fipMinus, 'int', true),
+  fipMinus: scaled(c<P>('fipMinus', 'FIP-', r => r.fipMinus, 'int', true), [0, 100, 200]),
   xfip: c<P>('xfip', 'xFIP', r => r.xfip, 'dec2', true),
   gbPct: c<P>('gbPct', 'GB%', r => r.gbPct, 'pct'),
   ldPct: c<P>('ldPct', 'LD%', r => r.ldPct, 'pct', true),
@@ -113,7 +116,7 @@ const team = {
   obp: c<T>('obp', 'OBP', r => r.bat.obp, 'rate'),
   slg: c<T>('slg', 'SLG', r => r.bat.slg, 'rate'),
   woba: c<T>('woba', 'wOBA', r => r.bat.woba, 'rate'),
-  wrcPlus: c<T>('wrcPlus', 'wRC+', r => r.bat.wrcPlus, 'int'),
+  wrcPlus: scaled(c<T>('wrcPlus', 'wRC+', r => r.bat.wrcPlus, 'int'), [0, 100, 200]),
   era: noHand(c<T>('era', 'ERA', r => r.era, 'dec2', true)),
   ip: c<T>('ip', 'IP', r => r.pit.ip, 'ip'),
   pkPct: c<T>('pkPct', 'K% (P)', r => r.pit.kPct, 'pct'),
@@ -124,7 +127,7 @@ const team = {
   pbabip: c<T>('pbabip', 'BABIP (P)', r => r.pit.babip, 'rate', true),
   gbPct: c<T>('gbPct', 'GB%', r => r.pit.gbPct, 'pct'),
   fip: c<T>('fip', 'FIP', r => r.pit.fip, 'dec2', true),
-  fipMinus: c<T>('fipMinus', 'FIP-', r => r.pit.fipMinus, 'int', true),
+  fipMinus: scaled(c<T>('fipMinus', 'FIP-', r => r.pit.fipMinus, 'int', true), [0, 100, 200]),
   xfip: c<T>('xfip', 'xFIP', r => r.pit.xfip, 'dec2', true),
 }
 

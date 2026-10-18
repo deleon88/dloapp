@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   fetchLeaders, type BatterRow, type LeaderHand, type LeaderRole, type LeadersResponse, type PitcherRow, type TeamRow,
 } from '@/api/leaders'
-import { capLogoUrl, getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
+import { getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
 import { cutoutUrl, teamLogoUrl } from '@/features/live-game/mlbImages'
@@ -25,9 +25,13 @@ const MIN_IP = [10, 20, 50, 100]
 
 const isTeamRow = (r: AnyRow): r is TeamRow => 'bat' in r
 
-function splitName(full: string): [string, string] {
-  const [first, ...rest] = full.trim().split(' ')
-  return rest.length ? [first, rest.join(' ')] : ['', first]
+interface BarScale { lo: number; mid: number; hi: number }
+
+/** Position (0–100) of a value on the scale; reversed for lower-is-better stats. */
+function onScale(v: number, s: BarScale, low?: boolean): number {
+  if (s.hi === s.lo) return 50
+  const p = ((v - s.lo) / (s.hi - s.lo)) * 100
+  return Math.max(0, Math.min(100, low ? 100 - p : p))
 }
 
 /** Percentile (0–100, higher = better) of `v` among `vals` (ascending). */
@@ -150,11 +154,14 @@ export default function StatsPage() {
     })
   }, [data, posF, teamF, league, min, role, sortCol, asc])
 
-  // The sort stat's values among the rows shown: each row's color fills to its percentile.
-  const sortVals = useMemo(
-    () => rows.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b),
-    [rows, sortCol],
-  )
+  // The bar scale of the sort stat: its fixed one (wRC+ 0–100–200), else the rows shown
+  // (lowest – median – highest). Lower-is-better stats run the other way: longer = better.
+  const scale = useMemo<BarScale>(() => {
+    if (sortCol.scale) return { lo: sortCol.scale[0], mid: sortCol.scale[1], hi: sortCol.scale[2] }
+    const vals = rows.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b)
+    if (!vals.length) return { lo: 0, mid: 0, hi: 0 }
+    return { lo: vals[0], mid: vals[Math.floor(vals.length / 2)], hi: vals[vals.length - 1] }
+  }, [rows, sortCol])
 
   function changeSection(s: Section) {
     setSec(s)
@@ -272,7 +279,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} sortVals={sortVals} cols={cols} pool={rows}
+          <StatRow key={r.id} row={r} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={rows}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -471,37 +478,54 @@ function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
 
 // ── Row ───────────────────────────────────────────────────────────────
 
-function StatRow({ row, rank, sortCol, sortVals, cols, pool, open, onToggle }: {
-  row: AnyRow; rank: number; sortCol: Column; sortVals: number[]; cols: Column[]; pool: AnyRow[]; open: boolean; onToggle: () => void
+function StatRow({ row, rank, sortCol, scale, cols, pool, open, onToggle }: {
+  row: AnyRow; rank: number; sortCol: Column; scale: BarScale; cols: Column[]; pool: AnyRow[]; open: boolean; onToggle: () => void
 }) {
   const t = useT()
   const team = isTeamRow(row) ? row.id : row.team
   const meta = getTeamMeta(team)
-  const [first, last] = isTeamRow(row) ? [meta ? teamLeague(meta) : '', meta?.brief ?? String(row.id)] : splitName(row.name)
-  const sub = isTeamRow(row) ? ''
+  const name = isTeamRow(row) ? (meta ? `${meta.name} ${meta.brief}` : String(row.id)) : row.name
+  const sub = isTeamRow(row) ? (meta ? teamLeague(meta) : '')
     : [meta?.abbr, 'pos' in row ? row.pos : row.throws ? `${row.throws}HP` : ''].filter(Boolean).join(' · ')
-  const img = isTeamRow(row) ? capLogoUrl(row.id) : cutoutUrl(row.id, 96)
   const href = isTeamRow(row) ? `/team/${row.id}` : `/player/${row.id}`
 
-  // Team branding: the team color from the left and its logo, faded, behind the photo…
-  // …filled as far as its percentile in the sort stat among the rows shown
-  const sv = sortCol.get(row)
-  const fill = sv != null && Number.isFinite(sv) && sortVals.length ? percentile(sortVals, sv, sortCol.low) : 0
-  const brand = meta ? ({ '--team': getBarColor(meta), '--fill': `${Math.max(4, fill)}%` } as CSSProperties) : undefined
+  const v = sortCol.get(row)
+  const fill = v != null && Number.isFinite(v) ? onScale(v, scale, sortCol.low) : 0
+  const midAt = onScale(scale.mid, scale, sortCol.low)
+  const [left, right] = sortCol.low ? [scale.hi, scale.lo] : [scale.lo, scale.hi]
 
   return (
-    <div className={`${styles.item} ${open ? styles.itemOpen : ''}`} style={brand}>
-      {meta && <img className={styles.rowLogo} src={teamLogoUrl(team)} alt="" loading="lazy" aria-hidden="true" />}
+    <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}>
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
         <span className={styles.rank}>{rank}</span>
-        <img className={isTeamRow(row) ? styles.cap : styles.photo} src={img} alt="" loading="lazy"
-          onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
-        <span className={styles.who}>
-          <span className={styles.first}>{first}{sub && <span className={styles.sub}> · {sub}</span>}</span>
-          <span className={styles.last}>{last}</span>
+
+        {/* Team tile: its color, its logo and the player's cutout */}
+        <span className={styles.tile} style={meta ? ({ '--team': meta.color } as CSSProperties) : undefined}>
+          {isTeamRow(row) ? (
+            <img className={styles.tileLogoBig} src={teamLogoUrl(team)} alt="" loading="lazy" />
+          ) : <>
+            {meta && <img className={styles.tileLogo} src={teamLogoUrl(team)} alt="" loading="lazy" />}
+            <img className={styles.tilePhoto} src={cutoutUrl(row.id, 120)} alt="" loading="lazy"
+              onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+          </>}
         </span>
-        <span className={styles.val}>{formatStat(sortCol.get(row), sortCol.fmt)}</span>
-        <span className={styles.chev} aria-hidden="true">›</span>
+
+        <span className={styles.body}>
+          <span className={styles.topLine}>
+            <span className={styles.name}>{name}</span>
+            <span className={styles.val}>{formatStat(v, sortCol.fmt)}</span>
+          </span>
+          <span className={styles.meta}>{sub}</span>
+          <span className={styles.bar}>
+            <span className={styles.barFill} style={{ width: `${fill}%` }} />
+            <span className={styles.barMark} style={{ left: `${midAt}%` }} />
+          </span>
+          <span className={styles.axis}>
+            <span>{formatStat(left, sortCol.fmt)}</span>
+            <span className={styles.axisMid} style={{ left: `${midAt}%` }}>{formatStat(scale.mid, sortCol.fmt)}</span>
+            <span>{formatStat(right, sortCol.fmt)}</span>
+          </span>
+        </span>
       </button>
 
       {open && (

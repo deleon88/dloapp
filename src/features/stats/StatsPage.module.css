@@ -235,12 +235,11 @@
 .pill:hover { color: var(--text-primary); }
 .pillOn { color: var(--text-primary); background: rgba(255, 255, 255, 0.07); border-color: var(--border-active); }
 
-/* ── List ─────────────────────────────────────────────────────────── */
+/* ── List: one card per player / team ─────────────────────────────── */
 .list {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--bg-card);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   transition: opacity 0.2s;
 }
 
@@ -250,8 +249,7 @@
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr) auto;
   gap: 8px;
-  padding: 8px 32px 6px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
   font: 700 0.52rem var(--font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -261,55 +259,33 @@
 .listHead span:first-child { text-align: center; }
 .listHeadVal { color: var(--text-primary); }
 
-.state { padding: 20px 14px; text-align: center; font-size: 0.72rem; color: var(--text-muted); }
+.state {
+  padding: 20px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
 
-/* Each row carries its team: its color, filled from the left as far as the row's
-   percentile in the sort stat (among the rows shown), and its logo behind the photo. */
 .item {
-  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.035);
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--team, transparent) 26%, transparent) 0%,
-    color-mix(in srgb, var(--team, transparent) 12%, transparent) var(--fill, 0%),
-    transparent calc(var(--fill, 0%) + 4%));
 }
 
-.item:last-of-type { border-bottom: none; }
+.itemOpen { border-color: var(--border-active); }
 
-.itemOpen {
-  background:
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--team, transparent) 32%, transparent) 0%,
-      color-mix(in srgb, var(--team, transparent) 16%, transparent) var(--fill, 0%),
-      transparent calc(var(--fill, 0%) + 4%)),
-    rgba(255, 255, 255, 0.025);
-}
-
-.rowLogo {
-  position: absolute;
-  top: 0;
-  left: 18px;
-  width: 92px;
-  height: 52px;
-  object-fit: contain;
-  object-position: left center;
-  opacity: 0.1;
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(to right, #000 40%, transparent);
-          mask-image: linear-gradient(to right, #000 40%, transparent);
-}
-
-.row, .detail { position: relative; z-index: 1; }
-
-/* rank · photo · name · value · chevron */
+/* rank · team tile · name / value / bar */
 .row {
   display: grid;
-  grid-template-columns: 22px 34px minmax(0, 1fr) auto 12px;
+  grid-template-columns: 18px 76px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 7px 12px;
+  padding: 8px 12px 8px 8px;
   border: none;
   background: none;
   color: inherit;
@@ -318,55 +294,113 @@
   cursor: pointer;
 }
 
-.rank { font: 700 0.62rem var(--font-mono); color: var(--text-muted); text-align: center; }
+.rank { font: 700 0.7rem var(--font-mono); color: var(--text-secondary); text-align: center; }
 
-.photo {
-  width: 34px;
-  height: 34px;
+/* Team tile: the team color, its logo on the left and the player's cutout on the right */
+.tile {
+  position: relative;
+  width: 76px;
+  height: 62px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--team, #334) 85%, #000) 0%,
+    color-mix(in srgb, var(--team, #334) 55%, #000) 100%);
+}
+
+.tileLogo {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translateY(-50%);
+  object-fit: contain;
+}
+
+.tilePhoto {
+  position: absolute;
+  right: -4px;
+  bottom: 0;
+  width: 54px;
+  height: 58px;
   object-fit: contain;
   object-position: bottom;
-  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
-          mask-image: linear-gradient(to bottom, #000 72%, transparent);
 }
 
-.cap { width: 30px; height: 30px; margin: 2px; object-fit: contain; }
-
-.who { display: flex; flex-direction: column; min-width: 0; }
-
-.first {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 0.5rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  line-height: 1.2;
+.tileLogoBig {
+  position: absolute;
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+  object-fit: contain;
 }
 
-.sub { color: var(--text-muted); font-family: var(--font-mono); letter-spacing: 0.02em; }
+.body { display: flex; flex-direction: column; min-width: 0; }
 
-/* line-height leaves room for capital accents (RAMÍREZ) */
-.last {
+.topLine { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+
+/* line-height leaves room for accents (Álvarez) */
+.name {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 0.86rem;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
+  font-weight: 700;
   color: var(--text-primary);
   line-height: 1.3;
 }
 
-.val { font: 800 0.95rem var(--font-mono); color: var(--text-primary); text-align: right; }
+.val { flex-shrink: 0; font: 800 1.05rem var(--font-mono); color: var(--text-primary); }
 
-.chev { color: var(--text-muted); font-size: 0.8rem; transition: transform 0.2s; }
-.itemOpen .chev { transform: rotate(90deg); }
+.meta {
+  font: 600 0.58rem var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-top: -1px;
+}
+
+/* The sort stat on its scale, the average marked */
+.bar {
+  position: relative;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.barFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: #4aa3ff;
+}
+
+.barMark {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.axis {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  font: 500 0.5rem var(--font-mono);
+  color: var(--text-muted);
+}
+
+.axisMid { position: absolute; transform: translateX(-50%); }
 
 /* ── Detail: the group's line as percentile bars ─────────────────── */
-.detail { padding: 2px 14px 12px 52px; }
+.detail { padding: 4px 14px 12px 14px; border-top: 1px solid var(--border); }
 
 .pr {
   display: grid;
@@ -530,8 +564,9 @@
 .doneBtn { border: none; background: var(--text-primary); color: var(--bg-deep); }
 
 @media (max-width: 360px) {
-  .row { grid-template-columns: 20px 30px minmax(0, 1fr) auto 10px; gap: 6px; padding: 7px 10px; }
-  .photo { width: 30px; height: 30px; }
-  .last { font-size: 0.78rem; }
-  .detail { padding-left: 14px; }
+  .row { grid-template-columns: 16px 64px minmax(0, 1fr); gap: 8px; padding: 8px 10px 8px 6px; }
+  .tile { width: 64px; height: 56px; }
+  .tileLogo { width: 24px; height: 24px; }
+  .tilePhoto { width: 46px; height: 52px; }
+  .name { font-size: 0.8rem; }
 }
