@@ -1,5 +1,5 @@
-import { etDate } from '@/utils/etDate'
-import { useState, useEffect, useMemo } from 'react'
+import { mlbToday } from '@/utils/etDate'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
@@ -21,7 +21,7 @@ import StatBarsGuide from './StatBarsGuide'
 import styles from './SchedulePage.module.css'
 
 export default function SchedulePage() {
-  const [date, setDate] = useState(() => etDate())
+  const [date, setDate] = useState(() => mlbToday())
   // Saved across pages; signed-in users only (see useStatFilters).
   const { period, setPeriod, handFilters, setHandFilters, locked: filtersLocked } = useStatFilters()
   const [glossaryOpen, setGlossaryOpen] = useState(false)
@@ -36,12 +36,16 @@ export default function SchedulePage() {
     (a, b) => new Date(a.gameDate).getTime() - new Date(b.gameDate).getTime(),
   )
 
-  // Auto-advance to tomorrow if today's schedule is fully complete
-  const today = etDate()
+  // On first load, jump to tomorrow if today's slate is already complete — only
+  // once, so going back to today with the arrow stays there.
+  const today = mlbToday()
   const allFinal = !!scheduleQuery.data && games.length > 0 && games.every(g => g.status.abstractGameState === 'Final')
+  const advanced = useRef(false)
   useEffect(() => {
-    if (date === today && allFinal) setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))
-  }, [date, today, allFinal])
+    if (advanced.current || date !== today || !scheduleQuery.data) return
+    advanced.current = true
+    if (allFinal) setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))
+  }, [date, today, allFinal, scheduleQuery.data])
 
   // Collect all probable pitcher IDs from the schedule
   const pitcherIds = [
@@ -213,6 +217,7 @@ export default function SchedulePage() {
 
       <DateNav
         date={date}
+        today={today}
         onPrev={() => setDate(format(subDays(parseISO(date), 1), 'yyyy-MM-dd'))}
         onNext={() => setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))}
       />
