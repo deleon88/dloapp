@@ -82,8 +82,21 @@ export default function StatsPage() {
   const [sort, setSort] = useState({ id: DEFAULT_SORT.bat, asc: false })
   const [open, setOpen] = useState<number | null>(null)
   const [limit, setLimit] = useState(PAGE)
+  const pillsRef = useRef<HTMLDivElement>(null)
+  const [pillsMore, setPillsMore] = useState(false)
 
   const cols = useMemo(() => columnsFor(sec, chosen[sec]), [sec, chosen])
+
+  // The pills fade out under the buttons only while there are more to scroll to.
+  const checkPills = () => {
+    const el = pillsRef.current
+    if (el) setPillsMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
+  }
+  useEffect(() => {
+    checkPills()
+    window.addEventListener('resize', checkPills)
+    return () => window.removeEventListener('resize', checkPills)
+  }, [cols])
   const sortCol = cols.find(c => c.id === sort.id) ?? cols[0]
   const asc = sortCol.id === sort.id ? sort.asc : !!sortCol.low
 
@@ -160,6 +173,11 @@ export default function StatsPage() {
     : sec === 'team' ? [t('statsVsLefties'), t('statsVsRighties')]
     : [t('statsVsLhp'), t('statsVsRhp')]
   const clubs = useMemo(() => getMlbClubs().sort((a, b) => a.abbr.localeCompare(b.abbr)), [])
+  // "NYY" for a team; "AL · SS" / "SS" for a position; else the league ("MLB" by default)
+  const leagueText = league === 'all' ? t('allLeagues') : league
+  const scopeLabel = scope.startsWith('t:') ? getTeamMeta(Number(scope.slice(2)))?.abbr ?? ''
+    : scope.startsWith('p:') ? (league === 'all' ? scope.slice(2) : `${league} · ${scope.slice(2)}`)
+    : leagueText
   const notes = noteFor(data, sec, hand, role, period, t)
 
   return (
@@ -190,21 +208,35 @@ export default function StatsPage() {
             sections={[{ options: [['q', t('minQualified')], ['all', t('minAll')],
               ...(sec === 'bat' ? MIN_PA.map(n => [String(n), `≥ ${n} PA`]) : MIN_IP.map(n => [String(n), `≥ ${n} IP`]))] as [string, string][] }]} />
         )}
-        {sec !== 'team' && (
-          <Dropdown value={scope} set={scope !== 'all'} onChange={setScope}
+        {sec !== 'team' ? (
+          // League, position and team in one chip: MLB / AL / NL on top, the teams split by league.
+          <Dropdown value={scope} set={scope !== 'all' || league !== 'all'} label={scopeLabel}
+            isSelected={v => v === scope || v === `L:${league}`}
+            onChange={v => {
+              if (!v.startsWith('L:')) return setScope(v)
+              const lg = v.slice(2) as 'all' | 'AL' | 'NL'
+              setLeague(lg)
+              // A team of the other league no longer fits
+              const meta = scope.startsWith('t:') ? getTeamMeta(Number(scope.slice(2))) : undefined
+              if (lg !== 'all' && meta && teamLeague(meta) !== lg) setScope('all')
+            }}
             sections={[
-              { options: [['all', t('teamOrPos')]] },
+              { title: t('leagueLabel'), options: [['L:all', t('allLeagues')], ['L:AL', 'AL'], ['L:NL', 'NL']], grid: 3 },
               ...(sec === 'bat' ? [{ title: t('positionsLabel'), options: BAT_POSITIONS.map(p => [`p:${p}`, p] as [string, string]), grid: 5 }] : []),
-              { title: t('statsTeams'), options: clubs.map(c => [`t:${c.id}`, c.abbr] as [string, string]), grid: 3 },
+              ...(['AL', 'NL'] as const).filter(lg => league === 'all' || league === lg).map(lg => ({
+                title: lg, grid: 3,
+                options: clubs.filter(c => teamLeague(c) === lg).map(c => [`t:${c.id}`, c.abbr] as [string, string]),
+              })),
             ]} />
+        ) : (
+          <Dropdown value={league} set={league !== 'all'} onChange={v => setLeague(v as 'all' | 'AL' | 'NL')}
+            sections={[{ options: [['all', t('allLeagues')], ['AL', 'AL'], ['NL', 'NL']] }]} />
         )}
-        <Dropdown value={league} set={league !== 'all'} onChange={v => setLeague(v as 'all' | 'AL' | 'NL')}
-          sections={[{ options: [['all', t('allLeagues')], ['AL', 'AL'], ['NL', 'NL']] }]} />
       </div>
 
       {/* Sort: tap a stat (again to flip), the arrow flips too; Stats picks which ones show */}
       <div className={styles.toolbar}>
-        <div className={styles.pills}>
+        <div ref={pillsRef} className={`${styles.pills} ${pillsMore ? styles.pillsFade : ''}`} onScroll={checkPills}>
           {cols.map(c => (
             <button key={c.id} className={`${styles.pill} ${c.id === sortCol.id ? styles.pillOn : ''}`} onClick={() => sortBy(c)}>{c.label}</button>
           ))}
@@ -228,7 +260,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} rank={i + 1} sortCol={sortCol} cols={cols} pool={rows}
+          <StatRow key={r.id} row={r} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} cols={cols} pool={rows}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -267,15 +299,18 @@ interface MenuSection { title?: string; options: [string, string][]; grid?: numb
  * A filter chip that opens the app's dark menu. The menu is fixed to the
  * screen (the chip row scrolls sideways and would clip it).
  */
-function Dropdown({ value, sections, onChange, set, locked, lockedTitle }: {
+function Dropdown({ value, sections, onChange, set, locked, lockedTitle, label: labelProp, isSelected }: {
   value: string; sections: MenuSection[]; onChange: (v: string) => void; set?: boolean
+  /** Chip text when it isn't just the selected option's (several selections). */
+  label?: string
+  isSelected?: (v: string) => boolean
   /** Can't be changed now (shown with a lock); lockedTitle says why. */
   locked?: boolean; lockedTitle?: string
 }) {
   const [pos, setPos] = useState<{ top: number; left: number; maxH: number } | null>(null)
   const btn = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
-  const label = sections.flatMap(s => s.options).find(([v]) => v === value)?.[1] ?? ''
+  const label = labelProp ?? sections.flatMap(s => s.options).find(([v]) => v === value)?.[1] ?? ''
 
   useEffect(() => {
     if (!pos) return
@@ -326,7 +361,7 @@ function Dropdown({ value, sections, onChange, set, locked, lockedTitle }: {
               {s.title && <div className={styles.menuTitle}>{s.title}</div>}
               <div className={s.grid ? styles.menuGrid : undefined} style={s.grid ? { gridTemplateColumns: `repeat(${s.grid}, 1fr)` } : undefined}>
                 {s.options.map(([v, text]) => {
-                  const selected = v === value
+                  const selected = isSelected ? isSelected(v) : v === value
                   return (
                     <button key={v} role="option" aria-selected={selected}
                       className={`${styles.menuOption} ${selected ? styles.menuSelected : ''}`}

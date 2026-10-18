@@ -188,7 +188,10 @@
   overflow-x: auto;
   scrollbar-width: none;
   padding-left: var(--gutter);
-  /* fades out under the buttons */
+}
+
+/* Fades out under the buttons while there are more pills to the right */
+.pillsFade {
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
           mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
 }
