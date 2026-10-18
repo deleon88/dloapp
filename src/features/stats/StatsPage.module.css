@@ -142,6 +142,50 @@
 .menuGrid .menuOption { justify-content: center; padding: 8px 4px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.68rem; }
 .menuGrid .menuSelected { background: var(--text-primary); color: var(--bg-deep); }
 
+/* MLB button and the AL / NL blocks below the positions */
+.menuBlock { padding: 6px 8px 0; }
+.menuBlock:last-child { padding-bottom: 6px; }
+
+.menuFull {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-active);
+  border-radius: 10px;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font: 700 0.72rem var(--font-mono);
+  cursor: pointer;
+}
+
+.menuFull:hover { color: var(--text-primary); background: var(--bg-highlight); }
+.menuFull.menuSelected { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-deep); }
+
+.menuBox {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.menuBox .menuGrid { padding: 2px 4px 6px; }
+
+.menuBoxHead {
+  display: block;
+  width: 100%;
+  padding: 7px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font: 800 0.66rem var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.menuBoxHead:hover { background: var(--bg-highlight); }
+.menuBoxHeadOn { background: var(--text-primary); color: var(--bg-deep); }
+.menuBoxHeadOn:hover { background: var(--text-primary); }
+
 /* ── Sort ──────────────────────────────────────────────────────────── */
 .dirBtn {
   flex-shrink: 0;

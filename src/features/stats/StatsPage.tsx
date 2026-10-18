@@ -209,22 +209,21 @@ export default function StatsPage() {
               ...(sec === 'bat' ? MIN_PA.map(n => [String(n), `≥ ${n} PA`]) : MIN_IP.map(n => [String(n), `≥ ${n} IP`]))] as [string, string][] }]} />
         )}
         {sec !== 'team' ? (
-          // League, position and team in one chip: MLB / AL / NL on top, the teams split by league.
+          // Position, league and team in one chip: positions on top, then MLB and an AL / NL
+          // block each (the block's title picks the league, its teams pick one team).
           <Dropdown value={scope} set={scope !== 'all' || league !== 'all'} label={scopeLabel}
-            isSelected={v => v === scope || v === `L:${league}`}
+            isSelected={v => v === scope || (v === `L:${league}` && !scope.startsWith('t:'))}
             onChange={v => {
-              if (!v.startsWith('L:')) return setScope(v)
-              const lg = v.slice(2) as 'all' | 'AL' | 'NL'
-              setLeague(lg)
-              // A team of the other league no longer fits
-              const meta = scope.startsWith('t:') ? getTeamMeta(Number(scope.slice(2))) : undefined
-              if (lg !== 'all' && meta && teamLeague(meta) !== lg) setScope('all')
+              if (v.startsWith('t:')) { setScope(v); setLeague('all'); return }
+              if (v.startsWith('p:')) return setScope(v)
+              setLeague(v.slice(2) as 'all' | 'AL' | 'NL')
+              if (scope.startsWith('t:')) setScope('all')
             }}
             sections={[
-              { title: t('leagueLabel'), options: [['L:all', t('allLeagues')], ['L:AL', 'AL'], ['L:NL', 'NL']], grid: 3 },
               ...(sec === 'bat' ? [{ title: t('positionsLabel'), options: BAT_POSITIONS.map(p => [`p:${p}`, p] as [string, string]), grid: 5 }] : []),
-              ...(['AL', 'NL'] as const).filter(lg => league === 'all' || league === lg).map(lg => ({
-                title: lg, grid: 3,
+              { options: [['L:all', t('allLeagues')]], full: true },
+              ...(['AL', 'NL'] as const).map(lg => ({
+                header: [`L:${lg}`, lg] as [string, string], grid: 3,
                 options: clubs.filter(c => teamLeague(c) === lg).map(c => [`t:${c.id}`, c.abbr] as [string, string]),
               })),
             ]} />
@@ -293,7 +292,16 @@ function noteFor(data: LeadersResponse | undefined, sec: Section, hand: LeaderHa
 // ── Filter chip with a dark menu ───────────────────────────────────────
 
 /** grid: lay the options out in that many columns (short labels). */
-interface MenuSection { title?: string; options: [string, string][]; grid?: number }
+interface MenuSection {
+  title?: string
+  options: [string, string][]
+  /** Lay the options out in that many columns (short labels). */
+  grid?: number
+  /** One full-width option (a big button). */
+  full?: boolean
+  /** A boxed block whose title is itself an option. */
+  header?: [string, string]
+}
 
 /**
  * A filter chip that opens the app's dark menu. The menu is fixed to the
@@ -355,25 +363,37 @@ function Dropdown({ value, sections, onChange, set, locked, lockedTitle, label: 
       </button>
       {pos && (
         <div ref={menu} className={styles.menu} role="listbox" style={{ top: pos.top, left: pos.left, maxHeight: pos.maxH }}>
-          {sections.map((s, i) => (
-            <div key={i}>
-              {i > 0 && <div className={styles.menuDivider} />}
-              {s.title && <div className={styles.menuTitle}>{s.title}</div>}
-              <div className={s.grid ? styles.menuGrid : undefined} style={s.grid ? { gridTemplateColumns: `repeat(${s.grid}, 1fr)` } : undefined}>
-                {s.options.map(([v, text]) => {
-                  const selected = isSelected ? isSelected(v) : v === value
-                  return (
-                    <button key={v} role="option" aria-selected={selected}
-                      className={`${styles.menuOption} ${selected ? styles.menuSelected : ''}`}
-                      onClick={() => { onChange(v); setPos(null) }}>
-                      <span>{text}</span>
-                      {selected && !s.grid && <CheckIcon />}
-                    </button>
-                  )
-                })}
+          {sections.map((s, i) => {
+            const pick = (v: string) => { onChange(v); setPos(null) }
+            const sel = (v: string) => (isSelected ? isSelected(v) : v === value)
+            const boxed = !!s.header || !!s.full
+            return (
+              <div key={i} className={boxed ? styles.menuBlock : undefined}>
+                {i > 0 && !boxed && !sections[i - 1].header && !sections[i - 1].full && <div className={styles.menuDivider} />}
+                {s.title && <div className={styles.menuTitle}>{s.title}</div>}
+                <div className={s.header ? styles.menuBox : undefined}>
+                  {s.header && (
+                    <button role="option" aria-selected={sel(s.header[0])}
+                      className={`${styles.menuBoxHead} ${sel(s.header[0]) ? styles.menuBoxHeadOn : ''}`}
+                      onClick={() => pick(s.header![0])}>{s.header[1]}</button>
+                  )}
+                  <div className={s.grid ? styles.menuGrid : undefined} style={s.grid ? { gridTemplateColumns: `repeat(${s.grid}, 1fr)` } : undefined}>
+                    {s.options.map(([v, text]) => {
+                      const selected = sel(v)
+                      return (
+                        <button key={v} role="option" aria-selected={selected}
+                          className={`${s.full ? styles.menuFull : styles.menuOption} ${selected ? styles.menuSelected : ''}`}
+                          onClick={() => pick(v)}>
+                          <span>{text}</span>
+                          {selected && !s.grid && !s.full && <CheckIcon />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </>
