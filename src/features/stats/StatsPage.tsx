@@ -145,6 +145,8 @@ export default function StatsPage() {
   function sortBy(col: Column) {
     setSort(col.id === sortCol.id ? { id: col.id, asc: !asc } : { id: col.id, asc: !!col.low })
     setLimit(PAGE)
+    // Runs, steals, ERA… have no hand split: sorting by one clears the hand filter.
+    if (col.noHand) setHand('all')
   }
   function pickStats(ids: string[]) {
     const next = { ...chosen, [sec]: ids }
@@ -177,6 +179,7 @@ export default function StatsPage() {
         <Dropdown value={period} set={period !== 'season'} onChange={v => setPeriod(v as StatPeriod)}
           sections={[{ options: PERIOD_OPTIONS.map(o => [o.value, o.value === 'season' ? t('periodSeason') : t(o.value)]) }]} />
         <Dropdown value={hand} set={hand !== 'all'} onChange={v => setHand(v as LeaderHand)}
+          locked={sortCol.noHand} lockedTitle={t('handLocked').replace('{stat}', sortCol.label)}
           sections={[{ options: [['all', t('statsVsAll')], ['L', handLabels[0]], ['R', handLabels[1]]] }]} />
         {sec !== 'bat' && (
           <Dropdown value={role} set={role !== 'all'} onChange={v => setRole(v as LeaderRole)}
@@ -199,23 +202,18 @@ export default function StatsPage() {
           sections={[{ options: [['all', t('allLeagues')], ['AL', 'AL'], ['NL', 'NL']] }]} />
       </div>
 
-      <div className={styles.sortRow}>
-        <label className={styles.sortSel}>
-          <span className={styles.sortLabel}>{t('sortBy')}</span>
-          <select value={sortCol.id} onChange={e => sortBy(cols.find(c => c.id === e.target.value)!)}>
-            {cols.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </select>
-        </label>
+      {/* Sort: tap a stat (again to flip), the arrow flips too; Stats picks which ones show */}
+      <div className={styles.toolbar}>
+        <div className={styles.pills}>
+          {cols.map(c => (
+            <button key={c.id} className={`${styles.pill} ${c.id === sortCol.id ? styles.pillOn : ''}`} onClick={() => sortBy(c)}>{c.label}</button>
+          ))}
+        </div>
         <button className={styles.dirBtn} onClick={() => setSort({ id: sortCol.id, asc: !asc })}
           aria-label={asc ? '↑' : '↓'}>{asc ? '↑' : '↓'}</button>
-        <button className={styles.pickBtn} onClick={() => setPicking(true)}>
+        <button className={styles.pickBtn} onClick={() => setPicking(true)} aria-label={t('statsPickTitle')}>
           <SlidersIcon /> {t('statsPick')}
         </button>
-      </div>
-      <div className={styles.pills}>
-        {cols.map(c => (
-          <button key={c.id} className={`${styles.pill} ${c.id === sortCol.id ? styles.pillOn : ''}`} onClick={() => sortBy(c)}>{c.label}</button>
-        ))}
       </div>
 
       <div className={`${styles.list} ${query.isFetching && data ? styles.listLoading : ''}`}>
@@ -255,8 +253,7 @@ export default function StatsPage() {
 function noteFor(data: LeadersResponse | undefined, sec: Section, hand: LeaderHand, role: LeaderRole,
   period: StatPeriod, t: ReturnType<typeof useT>): string[] {
   if (!data) return []
-  if (sec === 'bat') return hand !== 'all' ? [t('noRunsHand')] : []
-  if (hand !== 'all') return [t('noEraHand')]
+  if (sec === 'bat' || hand !== 'all') return []
   if (role !== 'all' && period !== 'season') return [t('noEraRoleWindow')]
   return []
 }
@@ -270,8 +267,10 @@ interface MenuSection { title?: string; options: [string, string][]; grid?: numb
  * A filter chip that opens the app's dark menu. The menu is fixed to the
  * screen (the chip row scrolls sideways and would clip it).
  */
-function Dropdown({ value, sections, onChange, set }: {
+function Dropdown({ value, sections, onChange, set, locked, lockedTitle }: {
   value: string; sections: MenuSection[]; onChange: (v: string) => void; set?: boolean
+  /** Can't be changed now (shown with a lock); lockedTitle says why. */
+  locked?: boolean; lockedTitle?: string
 }) {
   const [pos, setPos] = useState<{ top: number; left: number; maxH: number } | null>(null)
   const btn = useRef<HTMLButtonElement>(null)
@@ -311,9 +310,13 @@ function Dropdown({ value, sections, onChange, set }: {
 
   return (
     <>
-      <button ref={btn} className={`${styles.chip} ${set ? styles.chipSet : ''}`} onClick={toggle} aria-expanded={!!pos} aria-haspopup="listbox">
+      <button ref={btn} className={`${styles.chip} ${set ? styles.chipSet : ''} ${locked ? styles.chipLocked : ''}`}
+        onClick={locked ? undefined : toggle} aria-disabled={locked} title={locked ? lockedTitle : undefined}
+        aria-expanded={!!pos} aria-haspopup="listbox">
         <span>{label}</span>
-        <svg className={`${styles.caret} ${pos ? styles.caretOpen : ''}`} width="8" height="8" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 11L3 6h10z" /></svg>
+        {locked ? <LockIcon /> : (
+          <svg className={`${styles.caret} ${pos ? styles.caretOpen : ''}`} width="8" height="8" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 11L3 6h10z" /></svg>
+        )}
       </button>
       {pos && (
         <div ref={menu} className={styles.menu} role="listbox" style={{ top: pos.top, left: pos.left, maxHeight: pos.maxH }}>
@@ -456,6 +459,14 @@ function CheckIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   )
 }

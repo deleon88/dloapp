@@ -83,6 +83,8 @@
 
 .chipSet { border-color: rgba(59, 130, 246, 0.6); background: rgba(59, 130, 246, 0.1); }
 
+.chipLocked { opacity: 0.45; cursor: not-allowed; }
+
 .caret { color: var(--text-muted); transition: transform 0.15s; }
 .caretOpen { transform: rotate(180deg); }
 
@@ -140,41 +142,11 @@
 .menuGrid .menuOption { justify-content: center; padding: 8px 4px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.68rem; }
 .menuGrid .menuSelected { background: var(--text-primary); color: var(--bg-deep); }
 
-/* ── Sort ─────────────────────────────────────────────────────────── */
-.sortRow { display: flex; gap: 6px; }
-
-.sortSel {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-active);
-  background: rgba(0, 0, 0, 0.18);
-}
-
-.sortLabel { font-size: 0.66rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
-
-.sortSel select {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  border: none;
-  background: transparent;
-  color: var(--text-primary);
-  font: 800 16px var(--font-mono);
-  cursor: pointer;
-  outline: none;
-}
-
-.sortSel select option { background: var(--bg-card); }
-
+/* ── Sort ──────────────────────────────────────────────────────────── */
 .dirBtn {
-  width: 40px;
-  height: 36px;
+  flex-shrink: 0;
+  width: 34px;
+  height: 32px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-active);
   background: rgba(0, 0, 0, 0.18);
@@ -184,11 +156,12 @@
 }
 
 .pickBtn {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 10px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-active);
   background: rgba(0, 0, 0, 0.18);
@@ -199,13 +172,25 @@
   cursor: pointer;
 }
 
+/* stat pills (scroll) · direction · Stats picker, on one row */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: calc(-1 * var(--gutter));
+}
+
 .pills {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
-  margin: 0 calc(-1 * var(--gutter));
-  padding: 0 var(--gutter);
+  padding-left: var(--gutter);
+  /* fades out under the buttons */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
 }
 
 .pills::-webkit-scrollbar { display: none; }

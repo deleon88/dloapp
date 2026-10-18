@@ -16,6 +16,8 @@ export interface Column {
   get: (r: AnyRow) => number | null | undefined
   fmt: Fmt
   low?: boolean
+  /** No opponent-hand split (MLB's runs, steals, ERA, decisions): sorting by it locks the hand filter. */
+  noHand?: boolean
 }
 
 /** A heading of the stat picker. */
@@ -26,6 +28,7 @@ export interface Category {
 
 const c = <R extends AnyRow>(id: string, label: string, get: (r: R) => number | null | undefined, fmt: Fmt, low = false): Column =>
   ({ id, label, get: get as Column['get'], fmt, low })
+const noHand = (col: Column): Column => ({ ...col, noHand: true })
 
 // ── Batters ──
 type B = BatterRow
@@ -37,13 +40,13 @@ const bat = {
   d2: c<B>('d2', '2B', r => r.d2, 'int'),
   d3: c<B>('d3', '3B', r => r.d3, 'int'),
   hr: c<B>('hr', 'HR', r => r.hr, 'int'),
-  r: c<B>('r', 'R', r => r.r, 'int'),
+  r: noHand(c<B>('r', 'R', r => r.r, 'int')),
   rbi: c<B>('rbi', 'RBI', r => r.rbi, 'int'),
   bb: c<B>('bb', 'BB', r => r.bb, 'int'),
   so: c<B>('so', 'SO', r => r.so, 'int', true),
   hbp: c<B>('hbp', 'HBP', r => r.hbp, 'int'),
-  sb: c<B>('sb', 'SB', r => r.sb, 'int'),
-  cs: c<B>('cs', 'CS', r => r.cs, 'int', true),
+  sb: noHand(c<B>('sb', 'SB', r => r.sb, 'int')),
+  cs: noHand(c<B>('cs', 'CS', r => r.cs, 'int', true)),
   avg: c<B>('avg', 'AVG', r => r.avg, 'rate'),
   obp: c<B>('obp', 'OBP', r => r.obp, 'rate'),
   slg: c<B>('slg', 'SLG', r => r.slg, 'rate'),
@@ -64,10 +67,10 @@ const bat = {
 // ── Pitchers ──
 type P = PitcherRow
 const pit = {
-  w: c<P>('w', 'W', r => r.w, 'int'),
-  l: c<P>('l', 'L', r => r.l, 'int', true),
-  sv: c<P>('sv', 'SV', r => r.sv, 'int'),
-  hld: c<P>('hld', 'HLD', r => r.hld, 'int'),
+  w: noHand(c<P>('w', 'W', r => r.w, 'int')),
+  l: noHand(c<P>('l', 'L', r => r.l, 'int', true)),
+  sv: noHand(c<P>('sv', 'SV', r => r.sv, 'int')),
+  hld: noHand(c<P>('hld', 'HLD', r => r.hld, 'int')),
   g: c<P>('g', 'G', r => r.g, 'int'),
   gs: c<P>('gs', 'GS', r => r.gs, 'int'),
   ip: c<P>('ip', 'IP', r => r.ip, 'ip'),
@@ -75,7 +78,7 @@ const pit = {
   hr: c<P>('hr', 'HR', r => r.hr, 'int', true),
   bb: c<P>('bb', 'BB', r => r.bb, 'int', true),
   so: c<P>('so', 'SO', r => r.so, 'int'),
-  era: c<P>('era', 'ERA', r => r.era, 'dec2', true),
+  era: noHand(c<P>('era', 'ERA', r => r.era, 'dec2', true)),
   whip: c<P>('whip', 'WHIP', r => r.whip, 'dec2', true),
   avg: c<P>('avg', 'AVG', r => r.avgAgainst, 'rate', true),
   woba: c<P>('woba', 'wOBA', r => r.wobaAgainst, 'rate', true),
@@ -101,7 +104,7 @@ const team = {
   g: c<T>('g', 'G', r => r.g, 'int'),
   r: c<T>('r', 'R', r => r.r, 'int'),
   hr: c<T>('hr', 'HR', r => r.bat.hr, 'int'),
-  sb: c<T>('sb', 'SB', r => r.sb, 'int'),
+  sb: noHand(c<T>('sb', 'SB', r => r.sb, 'int')),
   bbPct: c<T>('bbPct', 'BB%', r => r.bat.bbPct, 'pct'),
   kPct: c<T>('kPct', 'K%', r => r.bat.kPct, 'pct', true),
   iso: c<T>('iso', 'ISO', r => r.bat.iso, 'rate'),
@@ -111,7 +114,7 @@ const team = {
   slg: c<T>('slg', 'SLG', r => r.bat.slg, 'rate'),
   woba: c<T>('woba', 'wOBA', r => r.bat.woba, 'rate'),
   wrcPlus: c<T>('wrcPlus', 'wRC+', r => r.bat.wrcPlus, 'int'),
-  era: c<T>('era', 'ERA', r => r.era, 'dec2', true),
+  era: noHand(c<T>('era', 'ERA', r => r.era, 'dec2', true)),
   ip: c<T>('ip', 'IP', r => r.pit.ip, 'ip'),
   pkPct: c<T>('pkPct', 'K% (P)', r => r.pit.kPct, 'pct'),
   pbbPct: c<T>('pbbPct', 'BB% (P)', r => r.pit.bbPct, 'pct', true),
