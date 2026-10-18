@@ -271,7 +271,8 @@
 
 /* The whole card in the team color, fading into the card background to the right */
 .item {
-  border: 1px solid var(--border);
+  /* entrance: rows come in one after another (capped, so long lists don't wait) */
+  --delay: calc(min(var(--i, 0), 12) * 35ms);
   border-radius: var(--radius-md);
   background: linear-gradient(90deg,
     color-mix(in srgb, var(--team, var(--bg-card)) 42%, var(--bg-card)) 0%,
@@ -280,7 +281,7 @@
   overflow: hidden;
 }
 
-.itemOpen { border-color: var(--border-active); }
+.itemOpen { box-shadow: inset 0 0 0 1px var(--border-active); }
 
 /* rank · team tile · name / value / bar */
 .row {
@@ -310,6 +311,7 @@
 }
 
 .tileLogo {
+  animation: logoIn 0.5s ease var(--delay) both;
   position: absolute;
   left: -6px;
   top: 50%;
@@ -329,9 +331,14 @@
   object-fit: contain;
   object-position: bottom;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+  /* fades softly into the card toward the bottom */
+  -webkit-mask-image: linear-gradient(to bottom, #000 62%, rgba(0, 0, 0, 0.35) 100%);
+          mask-image: linear-gradient(to bottom, #000 62%, rgba(0, 0, 0, 0.35) 100%);
+  animation: photoIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--delay) + 60ms) both;
 }
 
 .tileLogoBig {
+  animation: photoIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) var(--delay) both;
   position: absolute;
   inset: 12px 6px;
   width: calc(100% - 12px);
@@ -380,6 +387,17 @@
   bottom: 0;
   border-radius: 4px;
   background: var(--team-bar, #4aa3ff);
+  /* grows in on load; slides to the new length when the sort changes */
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: barIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--delay) + 80ms) backwards;
+}
+
+@keyframes barIn { from { width: 0; } }
+@keyframes photoIn { from { opacity: 0; transform: translateY(8px); } }
+@keyframes logoIn { from { opacity: 0; transform: translateY(-50%) scale(0.85); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tileLogo, .tilePhoto, .tileLogoBig, .barFill { animation: none; transition: none; }
 }
 
 .barMark {

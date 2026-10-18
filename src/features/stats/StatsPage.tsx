@@ -279,7 +279,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={rows}
+          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={rows}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -478,7 +478,9 @@ function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
 
 // ── Row ───────────────────────────────────────────────────────────────
 
-function StatRow({ row, rank, sortCol, scale, cols, pool, open, onToggle }: {
+function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle }: {
+  /** Place in the batch just shown, to stagger the entrance. */
+  order: number
   row: AnyRow; rank: number; sortCol: Column; scale: BarScale; cols: Column[]; pool: AnyRow[]; open: boolean; onToggle: () => void
 }) {
   const t = useT()
@@ -497,7 +499,7 @@ function StatRow({ row, rank, sortCol, scale, cols, pool, open, onToggle }: {
   return (
     // Team colors: the card's gradient and tile in its main color, the bar in its bar color
     <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}
-      style={meta ? ({ '--team': meta.color, '--team-bar': getBarColor(meta) } as CSSProperties) : undefined}>
+      style={{ '--i': order, ...(meta ? { '--team': meta.color, '--team-bar': getBarColor(meta) } : {}) } as CSSProperties}>
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
         <span className={styles.rank}>{rank}</span>
 
