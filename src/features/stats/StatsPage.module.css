@@ -386,7 +386,8 @@
   top: 0;
   bottom: 0;
   border-radius: 4px;
-  background: var(--team-bar, #4aa3ff);
+  /* the team's bar color, dark at the start and full at the tip */
+  background: linear-gradient(90deg, color-mix(in srgb, var(--team-bar, #4aa3ff) 35%, #000), var(--team-bar, #4aa3ff));
   /* grows in on load; slides to the new length when the sort changes */
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   animation: barIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--delay) + 80ms) backwards;
@@ -446,7 +447,14 @@
 .prOn .prLabel { color: var(--text-primary); }
 
 .track { position: relative; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.06); }
-.fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--team-bar, #4aa3ff); }
+.fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--team-bar, #4aa3ff) 35%, #000), var(--team-bar, #4aa3ff));
+}
 
 .knob {
   position: absolute;
