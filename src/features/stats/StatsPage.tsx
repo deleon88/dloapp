@@ -74,8 +74,9 @@ export default function StatsPage() {
   const [hand, setHand] = useState<LeaderHand>('all')
   const [role, setRole] = useState<LeaderRole>('all')
   const [min, setMin] = useState<Min>('q')
-  /** 'all', 't:<teamId>' or 'p:<position>' — one selector for both. */
-  const [scope, setScope] = useState('all')
+  /** Position and team: one chip, combinable (e.g. NYY · SS). '' / 0 = any. */
+  const [posF, setPosF] = useState('')
+  const [teamF, setTeamF] = useState(0)
   const [league, setLeague] = useState<'all' | 'AL' | 'NL'>('all')
   const [chosen, setChosen] = useState(loadStats)
   const [picking, setPicking] = useState(false)
@@ -118,16 +119,16 @@ export default function StatsPage() {
     const list: AnyRow[] = data.type === 'team' ? data.teams : data.players
     const filtered = list.filter(r => {
       const team = isTeamRow(r) ? r.id : r.team
-      if (scope.startsWith('t:') && team !== Number(scope.slice(2))) return false
+      if (teamF && team !== teamF) return false
       if (league !== 'all') {
         const meta = getTeamMeta(team)
         if (!meta || teamLeague(meta) !== league) return false
       }
       if (data.type === 'bat') {
         const b = r as BatterRow
-        if (scope.startsWith('p:')) {
-          const want = scope.slice(2), p = b.pos === 'TWP' ? 'DH' : b.pos
-          if (want === 'OF' ? !OUTFIELD.has(p) : p !== want) return false
+        if (posF) {
+          const p = b.pos === 'TWP' ? 'DH' : b.pos
+          if (posF === 'OF' ? !OUTFIELD.has(p) : p !== posF) return false
         }
         if (min === 'q') return b.pa >= 3.1 * share * (games[b.team] ?? 0)
         if (typeof min === 'number') return b.pa >= min
@@ -147,13 +148,13 @@ export default function StatsPage() {
       if (y == null) return -1
       return (x - y) * dir
     })
-  }, [data, scope, league, min, role, sortCol, asc])
+  }, [data, posF, teamF, league, min, role, sortCol, asc])
 
   function changeSection(s: Section) {
     setSec(s)
     const first = columnsFor(s, chosen[s]).find(c => c.id === DEFAULT_SORT[s]) ?? columnsFor(s, chosen[s])[0]
     setSort({ id: first.id, asc: !!first.low })
-    setOpen(null); setLimit(PAGE); setScope('all'); setMin('q'); setRole('all')
+    setOpen(null); setLimit(PAGE); setPosF(''); setTeamF(0); setMin('q'); setRole('all')
   }
   function sortBy(col: Column) {
     setSort(col.id === sortCol.id ? { id: col.id, asc: !asc } : { id: col.id, asc: !!col.low })
@@ -173,11 +174,11 @@ export default function StatsPage() {
     : sec === 'team' ? [t('statsVsLefties'), t('statsVsRighties')]
     : [t('statsVsLhp'), t('statsVsRhp')]
   const clubs = useMemo(() => getMlbClubs().sort((a, b) => a.abbr.localeCompare(b.abbr)), [])
-  // "NYY" for a team; "AL · SS" / "SS" for a position; else the league ("MLB" by default)
-  const leagueText = league === 'all' ? t('allLeagues') : league
-  const scopeLabel = scope.startsWith('t:') ? getTeamMeta(Number(scope.slice(2)))?.abbr ?? ''
-    : scope.startsWith('p:') ? (league === 'all' ? scope.slice(2) : `${league} · ${scope.slice(2)}`)
-    : leagueText
+  // "NYY · SS", "AL · SS", "SS", "NYY"… else the league ("MLB" by default)
+  const scopeLabel = [
+    teamF ? getTeamMeta(teamF)?.abbr : league !== 'all' ? league : posF ? '' : t('allLeagues'),
+    posF,
+  ].filter(Boolean).join(' · ')
   const notes = noteFor(data, sec, hand, role, period, t)
 
   return (
@@ -210,14 +211,20 @@ export default function StatsPage() {
         )}
         {sec !== 'team' ? (
           // Position, league and team in one chip: positions on top, then MLB and an AL / NL
-          // block each (the block's title picks the league, its teams pick one team).
-          <Dropdown value={scope} set={scope !== 'all' || league !== 'all'} label={scopeLabel}
-            isSelected={v => v === scope || (v === `L:${league}` && !scope.startsWith('t:'))}
+          // block each (the block's title picks the league, its teams pick one team). A
+          // position combines with a league or a team; tapping a chosen one again clears it.
+          <Dropdown value="" set={!!posF || !!teamF || league !== 'all'} label={scopeLabel} keepOpen
+            isSelected={v => v === `p:${posF}` || v === `t:${teamF}` || (v === `L:${league}` && !teamF)}
             onChange={v => {
-              if (v.startsWith('t:')) { setScope(v); setLeague('all'); return }
-              if (v.startsWith('p:')) return setScope(v)
+              if (v.startsWith('p:')) return setPosF(p => (p === v.slice(2) ? '' : v.slice(2)))
+              if (v.startsWith('t:')) {
+                const id = Number(v.slice(2))
+                setTeamF(x => (x === id ? 0 : id))
+                setLeague('all')
+                return
+              }
               setLeague(v.slice(2) as 'all' | 'AL' | 'NL')
-              if (scope.startsWith('t:')) setScope('all')
+              setTeamF(0)
             }}
             sections={[
               ...(sec === 'bat' ? [{ title: t('positionsLabel'), options: BAT_POSITIONS.map(p => [`p:${p}`, p] as [string, string]), grid: 5 }] : []),
@@ -307,11 +314,13 @@ interface MenuSection {
  * A filter chip that opens the app's dark menu. The menu is fixed to the
  * screen (the chip row scrolls sideways and would clip it).
  */
-function Dropdown({ value, sections, onChange, set, locked, lockedTitle, label: labelProp, isSelected }: {
+function Dropdown({ value, sections, onChange, set, locked, lockedTitle, label: labelProp, isSelected, keepOpen }: {
   value: string; sections: MenuSection[]; onChange: (v: string) => void; set?: boolean
   /** Chip text when it isn't just the selected option's (several selections). */
   label?: string
   isSelected?: (v: string) => boolean
+  /** Stay open after a pick (several choices combine). */
+  keepOpen?: boolean
   /** Can't be changed now (shown with a lock); lockedTitle says why. */
   locked?: boolean; lockedTitle?: string
 }) {
@@ -364,7 +373,7 @@ function Dropdown({ value, sections, onChange, set, locked, lockedTitle, label: 
       {pos && (
         <div ref={menu} className={styles.menu} role="listbox" style={{ top: pos.top, left: pos.left, maxHeight: pos.maxH }}>
           {sections.map((s, i) => {
-            const pick = (v: string) => { onChange(v); setPos(null) }
+            const pick = (v: string) => { onChange(v); if (!keepOpen) setPos(null) }
             const sel = (v: string) => (isSelected ? isSelected(v) : v === value)
             return (
               <div key={i}>
