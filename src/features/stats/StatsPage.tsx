@@ -501,7 +501,7 @@ function StatRow({ row, rank, sortCol, scale, cols, pool, open, onToggle }: {
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
         <span className={styles.rank}>{rank}</span>
 
-        {/* Team tile: its color, its logo and the player's cutout */}
+        {/* Team corner: its logo, faint, and the player's cutout */}
         <span className={styles.tile}>
           {isTeamRow(row) ? (
             <img className={styles.tileLogoBig} src={teamLogoUrl(team)} alt="" loading="lazy" />

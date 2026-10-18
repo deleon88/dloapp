@@ -300,43 +300,42 @@
 
 .rank { font: 700 0.7rem var(--font-mono); color: var(--text-secondary); text-align: center; }
 
-/* Team tile: the team color, its logo on the left and the player's cutout on the right */
+/* Team corner: no box — the logo as a big faint watermark and the player's
+   cutout standing on the card's bottom edge, both on the card's team gradient */
 .tile {
   position: relative;
+  align-self: stretch;
   width: 76px;
-  height: 62px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--team, #334) 85%, #000) 0%,
-    color-mix(in srgb, var(--team, #334) 55%, #000) 100%);
+  margin: -8px 0;   /* the full card height: the cutout reaches the bottom edge */
 }
 
 .tileLogo {
   position: absolute;
-  left: 4px;
+  left: -6px;
   top: 50%;
-  width: 30px;
-  height: 30px;
+  width: 54px;
+  height: 54px;
   transform: translateY(-50%);
   object-fit: contain;
+  opacity: 0.35;
 }
 
 .tilePhoto {
   position: absolute;
-  right: -4px;
+  right: -6px;
   bottom: 0;
-  width: 54px;
-  height: 58px;
+  width: 66px;
+  height: calc(100% - 4px);
   object-fit: contain;
   object-position: bottom;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
 }
 
 .tileLogoBig {
   position: absolute;
-  inset: 8px;
-  width: calc(100% - 16px);
-  height: calc(100% - 16px);
+  inset: 12px 6px;
+  width: calc(100% - 12px);
+  height: calc(100% - 24px);
   object-fit: contain;
 }
 
@@ -569,8 +568,8 @@
 
 @media (max-width: 360px) {
   .row { grid-template-columns: 16px 64px minmax(0, 1fr); gap: 8px; padding: 8px 10px 8px 6px; }
-  .tile { width: 64px; height: 56px; }
-  .tileLogo { width: 24px; height: 24px; }
-  .tilePhoto { width: 46px; height: 52px; }
+  .tile { width: 64px; }
+  .tileLogo { width: 46px; height: 46px; }
+  .tilePhoto { width: 56px; }
   .name { font-size: 0.8rem; }
 }
