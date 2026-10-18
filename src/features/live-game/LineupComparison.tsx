@@ -60,7 +60,7 @@ function lineupAvgWrc(lineup: LineupSlot[], wrcMap: Map<number, PlayerStats>): n
   return Math.round(sumWrcPa / sumPa)
 }
 
-interface LineupChipStats { ops: string; woba: string; xwoba: string }
+interface LineupChipStats { ops: string; woba: string; kbb: string }
 
 function avgRate(vals: (string | null)[]): string {
   const nums = vals.map(v => parseFloat(v ?? '')).filter(v => !isNaN(v))
@@ -69,13 +69,23 @@ function avgRate(vals: (string | null)[]): string {
   return avg.toFixed(3).replace(/^0/, '')
 }
 
+/** Lineup K-BB% = (K − BB) / PA × 100 over the whole lineup, as on the pitcher card. */
+function lineupKbb(stats: PlayerStats[]): string {
+  let k = 0, bb = 0, pa = 0
+  for (const s of stats) {
+    if (s.so == null || s.bb == null || !s.pa) continue
+    k += s.so; bb += s.bb; pa += s.pa
+  }
+  return pa ? ((k - bb) / pa * 100).toFixed(1) + '%' : '—'
+}
+
 function lineupChipStats(lineup: LineupSlot[], wrcMap: Map<number, PlayerStats>): LineupChipStats | null {
   const stats = lineup.map(p => wrcMap.get(p.id)).filter((s): s is PlayerStats => s != null)
   if (!stats.length) return null
   return {
     ops:   avgRate(stats.map(s => s.ops)),
     woba:  avgRate(stats.map(s => s.woba)),
-    xwoba: avgRate(stats.map(s => s.xwoba)),
+    kbb:   lineupKbb(stats),
   }
 }
 
@@ -288,9 +298,9 @@ function ComparisonView({
       <div className={styles.tvChipView}>
         {[aChips, hChips].map((c, k) => (
           <div key={k} className={`${styles.tvChipGroup} ${k ? styles.tvChipGroupRight : ''}`}>
-            {(['ops', 'woba', 'xwoba'] as const).map(key => (
+            {(['ops', 'woba', 'kbb'] as const).map(key => (
               <div key={key} className={styles.tvChip}>
-                <span className={styles.tvChipLabel}>{key === 'ops' ? 'OPS' : key === 'woba' ? 'wOBA' : 'xwOBA'}</span>
+                <span className={styles.tvChipLabel}>{key === 'ops' ? 'OPS' : key === 'woba' ? 'wOBA' : 'K-BB%'}</span>
                 <span className={styles.tvChipVal}>{c?.[key] ?? '—'}</span>
               </div>
             ))}

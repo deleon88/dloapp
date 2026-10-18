@@ -149,6 +149,9 @@ export interface SplitLine {
   ops: number | null
   hr: number
   rbi: number
+  /** Strikeouts and walks (intentional included), for K% / BB% / K-BB%. */
+  so: number
+  bb: number
 }
 
 function ops(b: BatterCounts): number | null {
@@ -210,6 +213,8 @@ export async function getBatterLines(f: Omit<BatterFilter, 'vsHand' | 'teamId'>)
       ops: o == null ? null : Math.round(o * 1000) / 1000,
       hr: counts.hr,
       rbi: counts.rbi,
+      so: counts.so,
+      bb: counts.ubb + counts.ibb,
     }
   }
 

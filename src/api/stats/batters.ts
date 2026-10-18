@@ -9,6 +9,8 @@ export interface SplitLine {
   ops: number | null
   hr: number
   rbi: number
+  so: number
+  bb: number
 }
 
 export interface BatterLine extends SplitLine {
