@@ -513,7 +513,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
           </span>
           <span className={styles.meta}>{sub}</span>
           <span className={styles.bar}>
-            <span className={styles.barFill} style={{ width: `${fill}%` }} />
+            <span className={styles.barFill} style={scaleFill(fill, midAt)} />
             <span className={styles.barMark} style={{ left: `${midAt}%` }} />
           </span>
           <span className={styles.axis}>
@@ -536,7 +536,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
                 <span className={styles.prLabel}>{c.label}</span>
                 <span className={styles.track}>
                   {p != null && <>
-                    <span className={styles.fill} style={{ width: `${p}%` }} />
+                    <span className={styles.fill} style={scaleFill(p, 50)} />
                     <span className={styles.knob} style={{ left: `${p}%` }}>{Math.round(p)}</span>
                   </>}
                 </span>
@@ -552,6 +552,19 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
       )}
     </div>
   )
+}
+
+/**
+ * A bar filled to `width`% whose gradient is laid over the whole scale, not just
+ * the fill: neutral at the low end, the team color faint at the average mark
+ * (`mid`%) and stronger at the top — an average player ends faint, a good one strong.
+ */
+function scaleFill(width: number, mid: number): CSSProperties {
+  return {
+    width: `${width}%`,
+    backgroundSize: `${width > 0 ? 10000 / width : 100}% 100%`,
+    '--mid': `${mid}%`,
+  } as CSSProperties
 }
 
 /** The sample behind a line: PA (batters), IP and BF (pitchers), games (teams). */
