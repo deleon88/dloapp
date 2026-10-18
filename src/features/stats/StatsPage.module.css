@@ -138,10 +138,20 @@
 .menuOption:hover { background: var(--bg-highlight); color: var(--text-primary); }
 .menuSelected { color: var(--text-primary); background: var(--bg-subtle); }
 
-/* Teams / positions: a compact grid of abbreviations */
-.menuGrid { display: grid; padding: 0 6px 4px; gap: 2px; }
-.menuGrid .menuOption { justify-content: center; padding: 8px 4px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.68rem; }
-.menuGrid .menuSelected { background: var(--text-primary); color: var(--bg-deep); }
+/* Positions / teams: buttons like MLB / AL / NL, each filling its cell */
+.menuGrid { display: grid; padding: 4px 8px; gap: 4px; }
+.menuGrid .menuOption {
+  justify-content: center;
+  padding: 7px 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+.menuGrid .menuOption:hover { background: var(--bg-highlight); }
+.menuGrid .menuSelected, .menuGrid .menuSelected:hover { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-deep); }
 
 /* MLB / AL / NL: full-width buttons (a league's sits over its teams) */
 .menuWideWrap { padding: 4px 8px; }
