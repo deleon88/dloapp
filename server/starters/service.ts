@@ -53,8 +53,8 @@ export async function projectStarters(date: string): Promise<GameProjections> {
   if (!teams.length) return {}
 
   const season = Number(date.slice(0, 4))
-  const rows = await sql<{ team_id: number; d: string; pitcher_id: number; pitches: number }[]>`
-    SELECT a.team_id, g.game_date::text AS d, a.pitcher_id, a.pitches
+  const rows = await sql<{ team_id: number; d: string; t: string; pitcher_id: number; pitches: number }[]>`
+    SELECT a.team_id, g.game_date::text AS d, g.game_type AS t, a.pitcher_id, a.pitches
     FROM pitcher_appearances a JOIN games g USING (game_pk)
     WHERE a.team_id = ANY(${teams}) AND a.seq = 0 AND g.game_date >= ${shiftDate(date, -HISTORY_DAYS)}
     ORDER BY g.game_date, g.game_pk
@@ -74,7 +74,7 @@ export async function projectStarters(date: string): Promise<GameProjections> {
     // Not on the active roster, or hurt: can't start
     const unavailable = new Set<number>(roster?.unavailable ?? [])
     if (roster?.active) for (const id of ids) if (!roster.active.has(id)) unavailable.add(id)
-    const starts: Start[] = rows.filter(r => r.team_id === teamId).map(r => ({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches }))
+    const starts: Start[] = rows.filter(r => r.team_id === teamId).map(r => ({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches, post: r.t !== 'R' }))
     const teamGames = games.filter(g => g.teams.away.team.id === teamId || g.teams.home.team.id === teamId)
     const series = projectSeries(starts, teamGames.map(g => {
       const side = g.teams.away.team.id === teamId ? 'away' : 'home'

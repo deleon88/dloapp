@@ -33,11 +33,11 @@ for (const season of seasons) {
 
   // [games, top-1, top-3] per horizon, regular season; next-game only for the postseason
   const reg = new Map(HORIZONS.map(h => [h, { n: 0, top1: 0, top3: 0, fixed: 0 }]))
-  const post = { n: 0, top1: 0, top3: 0 }
+  const post = { n: 0, top1: 0, top3: 0, fip: 0 }
   let reachable = 0
 
   for (const list of byTeam.values()) {
-    const starts: Start[] = list.map(r => ({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches }))
+    const starts: Start[] = list.map(r => ({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches, post: r.t !== 'R' }))
     for (let i = 10; i < list.length; i++) {
       const isPost = list[i].t !== 'R'
       const opts: ProjectOptions = { postseason: isPost, quality, staleDays: STALE_DAYS, cycleBack: CYCLE_BACK }
@@ -46,6 +46,7 @@ for (const season of seasons) {
         post.n++
         if (ranked[0] === list[i].pitcher_id) post.top1++
         if (ranked.slice(0, 3).includes(list[i].pitcher_id)) post.top3++
+        if (rankStarters(starts.slice(0, i), list[i].d, { ...opts, postseasonRank: 'fip' })[0] === list[i].pitcher_id) post.fip++
         continue
       }
       if (rotation(starts.slice(0, i)).includes(list[i].pitcher_id)) reachable++
@@ -74,6 +75,6 @@ for (const season of seasons) {
     const t = reg.get(h)!
     console.log(`  G+${String(h).padEnd(6)} ${pct(t.top1, t.n).padEnd(8)} ${pct(t.top3, t.n).padEnd(8)} ${h <= CYCLE_BACK ? pct(t.fixed, t.n) : '—'}`)
   }
-  console.log(`${season} postseason, next game: top-1 ${pct(post.top1, post.n)} · top-3 ${pct(post.top3, post.n)} (${post.n} games)`)
+  console.log(`${season} postseason, next game: top-1 ${pct(post.top1, post.n)} · top-3 ${pct(post.top3, post.n)} (${post.n} games) · by FIP instead: top-1 ${pct(post.fip, post.n)}`)
 }
 await sql.end()

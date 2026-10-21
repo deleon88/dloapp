@@ -5,17 +5,22 @@
 // The rotation is the team's last distinct real starters (35+ pitches), minus
 // arms that haven't started in STALE_DAYS (hurt or sent down). In the regular
 // season it's the turn — whoever started CYCLE_BACK games ago, if rested — and
-// otherwise the member with the longest rest; in the postseason, with off days,
-// teams go back to their best arms: among those rested, the lowest FIP.
+// otherwise the member with the longest rest. In the postseason, with off days,
+// teams line their best arms up again: among those rested, the order the team
+// used them in its latest playoff series (Rasmussen → Peralta → Jax → Martinez),
+// or the lowest FIP before it has one.
 //
-// Backtest (npm run db:validate-starters), right / reachable (the real starter
-// was in the rotation at all): 2025 regular 70.9% / 78.0%, postseason 52%;
-// 2026 regular 69.1% / 76.1%, postseason 49%.
+// Backtest (npm run db:validate-starters), next game, top-1 / top-3: 2025
+// regular 70.9% / 77.7% (78.0% reachable: the real starter was in the rotation
+// at all), postseason 55.3% / 83.0%; 2026 regular 69.1% / 75.4% (76.1%),
+// postseason 51.4% / 65.7%. A fixed five-man rotation: 67.7% / 66.3%.
 
 export interface Start {
   date: string        // YYYY-MM-DD
   pitcherId: number
   pitches: number
+  /** A postseason game (its order says how the team ranks its starters). */
+  post?: boolean
 }
 
 export interface ProjectOptions {
@@ -24,10 +29,11 @@ export interface ProjectOptions {
   quality?: Map<number, number>
   /** Not available (injured list, announced elsewhere…). */
   unavailable?: Set<number>
-  /** Tuning (backtests): rotation size, days without a start that drop an arm, postseason ranking. */
+  /** Tuning (backtests): rotation size, days without a start that drop an arm, postseason ranking
+   * ('order' = the team's latest series order then FIP, the default; 'fip'; 'rest'). */
   rotationSize?: number
   staleDays?: number
-  postseasonRank?: 'fip' | 'rest'
+  postseasonRank?: 'order' | 'fip' | 'rest'
   /** Regular season: the starter of this many team games ago, when rested (the turn). */
   cycleBack?: number
 }
@@ -40,6 +46,28 @@ const REST_MIN = 4              // short rest, only if nobody has a full one
 export const STALE_DAYS = 12
 /** A five-man turn: the starter of five team games ago comes up again. */
 export const CYCLE_BACK = 5
+/** Postseason: this many days without a start means a new series (the order restarts at #1). */
+const NEW_SERIES_GAP = 3
+
+/**
+ * How the team ranks its starters in the postseason: the order its real
+ * starters first took the ball in its latest playoff series (a run of games
+ * with no NEW_SERIES_GAP-day break) that used at least three of them. Empty
+ * before such a series exists.
+ */
+export function seriesOrder(starts: Start[]): number[] {
+  const post = starts.filter(s => s.post && s.pitches >= REAL_START)
+  let end = post.length
+  while (end > 0) {
+    let i = end - 1
+    while (i > 0 && daysBetween(post[i - 1].date, post[i].date) < NEW_SERIES_GAP) i--
+    const order: number[] = []
+    for (const s of post.slice(i, end)) if (!order.includes(s.pitcherId)) order.push(s.pitcherId)
+    if (order.length >= 3) return order
+    end = i
+  }
+  return []
+}
 
 export function daysBetween(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000)
@@ -74,12 +102,17 @@ export function rankStarters(starts: Start[], date: string, opts: ProjectOptions
   }
 
   const fip = (id: number) => opts.quality?.get(id) ?? Infinity
-  const order = (a: number, b: number) => opts.postseason && (opts.postseasonRank ?? 'fip') === 'fip'
-    ? fip(a) - fip(b) || rest(b) - rest(a)
+  // Postseason: the team's own order from its latest series, then FIP
+  const rank = opts.postseasonRank ?? 'order'
+  const seq = opts.postseason && rank === 'order' ? seriesOrder(before) : []
+  const place = (id: number) => (seq.includes(id) ? seq.indexOf(id) : seq.length)
+  const order = (a: number, b: number) => opts.postseason && rank !== 'rest'
+    ? place(a) - place(b) || fip(a) - fip(b) || rest(b) - rest(a)
     : rest(b) - rest(a) || fip(a) - fip(b)
   const full = members.filter(id => rest(id) >= REST_FULL).sort(order)
   const short = members.filter(id => rest(id) >= REST_MIN && rest(id) < REST_FULL).sort(order)
   let ranked = [...full, ...short]
+
 
   // The turn: whoever started N games ago comes up again, if rested and still around
   if (!opts.postseason && opts.cycleBack) {
@@ -106,7 +139,7 @@ export function projectSeries(
   const history = [...starts]
   return games.map(g => {
     const id = g.announced ?? nextStarter(history, g.date, opts)
-    if (id != null) history.push({ date: g.date, pitcherId: id, pitches: 90 })
+    if (id != null) history.push({ date: g.date, pitcherId: id, pitches: 90, post: opts.postseason })
     return { id, projected: g.announced == null && id != null }
   })
 }

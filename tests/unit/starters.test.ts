@@ -29,7 +29,16 @@ test('unavailable arms are skipped and the next one up starts', () => {
   assert.equal(nextStarter(turn, '2026-06-11', { ...REG, unavailable: new Set([1]) }), 2)
 })
 
-test('postseason: among the rested arms, the best FIP', () => {
+test('postseason: the order of the latest playoff series beats FIP', () => {
+  // LCS order: 1, 2, 3, 4; 3 has the best FIP, but 2 comes after 1
+  const quality = new Map([[1, 2.8], [2, 3.4], [3, 2.6], [4, 3.9]])
+  const lcs = [1, 2, 3, 4].map((id, i) => ({ ...st(`2026-10-1${i + 2}`, id), post: true }))
+  const series = projectSeries(lcs, [{ date: '2026-10-23' }, { date: '2026-10-24' }, { date: '2026-10-26' }],
+    { postseason: true, quality, staleDays: STALE_DAYS })
+  assert.deepEqual(series.map(s => s.id), [1, 2, 3])
+})
+
+test('postseason before any playoff series: among the rested arms, the best FIP', () => {
   const quality = new Map([[1, 4.5], [2, 2.6], [3, 3.9], [4, 3.1], [5, 4.0]])
   const starts = [st('2026-10-01', 1), st('2026-10-02', 2), st('2026-10-04', 3), st('2026-10-05', 4)]
   // Oct 9: 1, 2 and 3 have 4+ days of rest; 2 has the best FIP
