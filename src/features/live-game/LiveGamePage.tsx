@@ -7,7 +7,7 @@ import { applyPitcherHand, fetchPitcherStats } from '@/api/mlb/endpoints/pitcher
 import { getGameLineup, type LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
-import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, withProjectedStarters } from '@/api/pitcherRoles'
+import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
@@ -77,7 +77,9 @@ export default function LiveGamePage() {
     enabled: pitcherIds.length > 0 && !!game,
     staleTime: 3_600_000,
   })
-  const isOpener = (id?: number) => id != null && rolesQuery.data?.get(id)?.role === 'opener'
+  // A projected opener (the projection knows it opens ahead of a bulk arm) counts too
+  const projBulks = useMemo(() => (game ? projectedBulks([game]) : new Map()), [game])
+  const isOpener = (id?: number) => id != null && (rolesQuery.data?.get(id)?.role === 'opener' || projBulks.has(id))
 
   // 3. Batting orders from boxscore (Live / Final games)
   const isPreview = game?.status.abstractGameState === 'Preview'

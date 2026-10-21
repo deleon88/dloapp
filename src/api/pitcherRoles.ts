@@ -63,15 +63,31 @@ export const shortName = (n: string) => {
 
 // ── Projected starters (server/starters) ─────────────────────────────────────
 
-export interface ProjectedStarter { id: number; fullName: string }
+/** A projected starter; an opener comes with the arm projected for the bulk behind them. */
+export interface ProjectedStarter { id: number; fullName: string; bulk?: BulkArm }
 /** gamePk → the projected starter of each side that has no announced probable. */
 export type GameProjections = Record<string, { away?: ProjectedStarter; home?: ProjectedStarter }>
 
-type Side = { probablePitcher?: { id: number; fullName: string; projected?: boolean } }
+type Side = { probablePitcher?: { id: number; fullName: string; projected?: boolean; bulk?: BulkArm } }
 interface ProjectableGame {
   gamePk: number
   status: { abstractGameState: string }
   teams: { away: object; home: object }
+}
+
+/**
+ * Projected openers and their bulk arms in these games, by the opener's id:
+ * the roles endpoint may not see a pitcher as an opener yet, the projection does.
+ */
+export function projectedBulks(games: Array<{ teams: { away: object; home: object } }>): Map<number, BulkArm> {
+  const out = new Map<number, BulkArm>()
+  for (const g of games) {
+    for (const side of [g.teams.away, g.teams.home] as Side[]) {
+      const p = side.probablePitcher
+      if (p?.projected && p.bulk) out.set(p.id, p.bulk)
+    }
+  }
+  return out
 }
 
 /** A game still to be played with a side whose starter isn't announced. */

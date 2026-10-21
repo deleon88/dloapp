@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { CYCLE_BACK, nextStarter, projectSeries, rankStarters, rotation, STALE_DAYS, type ProjectOptions, type Start } from '../../server/starters/project.js'
+import { asTurn, CYCLE_BACK, nextStarter, projectSeries, rankStarters, rotation, STALE_DAYS, type ProjectOptions, type Start } from '../../server/starters/project.js'
 
 const REG: ProjectOptions = { postseason: false, staleDays: STALE_DAYS, cycleBack: CYCLE_BACK }
 const st = (date: string, pitcherId: number, pitches = 90): Start => ({ date, pitcherId, pitches })
@@ -50,4 +50,19 @@ test('a series projection uses each pick up before the next game and keeps the a
     { date: '2026-06-11' }, { date: '2026-06-12', announced: 4 }, { date: '2026-06-13' },
   ], REG)
   assert.deepEqual(series, [{ id: 1, projected: true }, { id: 4, projected: false }, { id: 3, projected: true }])
+})
+
+test("an opener's game is its bulk arm's turn, and the pair is projected together", () => {
+  const OPENER = 8, BULK = 9
+  // the LCS: 1, 2, 3, then 8 opens (25 pitches) with 9 behind him (70)
+  const lcs = [
+    asTurn({ ...st('2026-10-11', 1), post: true }),
+    asTurn({ ...st('2026-10-12', 2), post: true }),
+    asTurn({ ...st('2026-10-14', 3), post: true }),
+    asTurn({ date: '2026-10-15', pitcherId: OPENER, pitches: 25, post: true, bulkId: BULK, bulkPitches: 70 }),
+  ]
+  assert.deepEqual(lcs[3], { date: '2026-10-15', pitcherId: BULK, pitches: 70, post: true, opener: OPENER })
+  const series = projectSeries(lcs, [{ date: '2026-10-23' }, { date: '2026-10-24' }, { date: '2026-10-26' }, { date: '2026-10-27' }],
+    { postseason: true, staleDays: STALE_DAYS })
+  assert.deepEqual(series[3], { id: BULK, projected: true, opener: OPENER })
 })

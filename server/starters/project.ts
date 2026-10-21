@@ -21,6 +21,27 @@ export interface Start {
   pitches: number
   /** A postseason game (its order says how the team ranks its starters). */
   post?: boolean
+  /** The turn was an opener's: who opened ahead of this (bulk) pitcher. */
+  opener?: number
+}
+
+/** A start as the game's starter recorded it, with the longest reliever behind it. */
+export interface GameStart extends Start {
+  bulkId?: number | null
+  bulkPitches?: number | null
+}
+
+/**
+ * The rotation turn of a start: a short opening (under REAL_START pitches) with
+ * a long reliever behind it is that reliever's turn, the opener attached
+ * (Drohan opens, May pitches the bulk: May's turn).
+ */
+export function asTurn(s: GameStart): Start {
+  const { bulkId, bulkPitches, ...start } = s
+  if (s.pitches < REAL_START && bulkId && (bulkPitches ?? 0) >= REAL_START) {
+    return { ...start, pitcherId: bulkId, pitches: bulkPitches!, opener: s.pitcherId }
+  }
+  return start
 }
 
 export interface ProjectOptions {
@@ -135,11 +156,14 @@ export function projectSeries(
   starts: Start[],
   games: Array<{ date: string; announced?: number | null }>,
   opts: ProjectOptions,
-): Array<{ id: number | null; projected: boolean }> {
+): Array<{ id: number | null; projected: boolean; opener?: number }> {
   const history = [...starts]
   return games.map(g => {
     const id = g.announced ?? nextStarter(history, g.date, opts)
-    if (id != null) history.push({ date: g.date, pitcherId: id, pitches: 90, post: opts.postseason })
-    return { id, projected: g.announced == null && id != null }
+    // A bulk arm whose last turn came behind an opener: projected with that opener again
+    const lastTurn = id != null && g.announced == null ? [...history].reverse().find(s => s.pitcherId === id) : undefined
+    const opener = lastTurn?.opener != null && !opts.unavailable?.has(lastTurn.opener) ? lastTurn.opener : undefined
+    if (id != null) history.push({ date: g.date, pitcherId: id, pitches: 90, post: opts.postseason, opener })
+    return { id, projected: g.announced == null && id != null, ...(opener != null ? { opener } : {}) }
   })
 }

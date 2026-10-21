@@ -8,7 +8,7 @@ import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { applyPitcherHand, fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
-import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, starterValue, withProjectedStarters } from '@/api/pitcherRoles'
+import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, starterValue, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { batterSplitFor } from '@/utils/handFilter'
 import { useStatFilters } from '@/utils/useStatFilters'
@@ -98,10 +98,15 @@ export default function SchedulePage() {
     enabled: probables.length > 0,
     staleTime: 3_600_000,
   })
-  const isOpener = (id?: number) => id != null && rolesQuery.data?.get(id)?.role === 'opener'
-  const bulkOf = (id?: number) => (id != null ? rolesQuery.data?.get(id)?.bulk ?? undefined : undefined)
+  // A projected opener (the projection knows it opens ahead of a bulk arm) counts too
+  const projBulks = useMemo(() => projectedBulks(games), [games])
+  const isOpener = (id?: number) => id != null && (rolesQuery.data?.get(id)?.role === 'opener' || projBulks.has(id))
+  const bulkOf = (id?: number) => (id != null ? rolesQuery.data?.get(id)?.bulk ?? projBulks.get(id) ?? undefined : undefined)
   // Probable bulk arms behind openers: their FIP+ replaces the bullpen's in the blend.
-  const bulkIds = [...(rolesQuery.data?.values() ?? [])].flatMap(r => (r.bulk ? [r.bulk.id] : []))
+  const bulkIds = [...new Set([
+    ...[...(rolesQuery.data?.values() ?? [])].flatMap(r => (r.bulk ? [r.bulk.id] : [])),
+    ...[...projBulks.values()].map(b => b.id),
+  ])]
   const bulkStatsQuery = useQuery({
     queryKey: ['pitcher-stats', period, ...bulkIds],
     queryFn: () => fetchPitcherStats(bulkIds, period),

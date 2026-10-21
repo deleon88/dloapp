@@ -8,22 +8,28 @@
 //   npm run db:validate-starters -- [--season 2026]
 import { sql } from '../../server/db.js'
 import { getPitcherLines } from '../../server/stats/pitching.js'
-import { CYCLE_BACK, rankStarters, rotation, STALE_DAYS, type ProjectOptions, type Start } from '../../server/starters/project.js'
+import { asTurn, CYCLE_BACK, rankStarters, rotation, STALE_DAYS, type ProjectOptions, type Start } from '../../server/starters/project.js'
 
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined }
 const seasons = arg('season') ? [Number(arg('season'))] : [2025, 2026]
 const HORIZONS = [1, 2, 3, 5, 7, 10]
 const pct = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : '—')
 
-interface Row { team_id: number; d: string; t: string; pitcher_id: number; pitches: number }
+interface Row { team_id: number; d: string; t: string; pitcher_id: number; pitches: number; bulk_id: number | null; bulk_pitches: number | null }
 
 for (const season of seasons) {
   const rows: Row[] = [...await sql<Row[]>`
-    SELECT a.team_id, g.game_date::text AS d, g.game_type AS t, a.pitcher_id, a.pitches
+    SELECT a.team_id, g.game_date::text AS d, g.game_type AS t, a.pitcher_id, a.pitches,
+           b.pitcher_id AS bulk_id, b.pitches AS bulk_pitches
     FROM pitcher_appearances a JOIN games g USING (game_pk)
+    LEFT JOIN LATERAL (
+      SELECT r.pitcher_id, r.pitches FROM pitcher_appearances r
+      WHERE r.game_pk = a.game_pk AND r.team_id = a.team_id AND r.seq > 0
+      ORDER BY r.outs DESC, r.pitches DESC LIMIT 1
+    ) b ON a.pitches < 35
     WHERE g.season = ${season} AND a.seq = 0
     ORDER BY a.team_id, g.game_date, g.game_pk`]
-  const ids = [...new Set(rows.map(r => r.pitcher_id))]
+  const ids = [...new Set(rows.flatMap(r => (r.bulk_id ? [r.pitcher_id, r.bulk_id] : [r.pitcher_id])))]
   const lines = await getPitcherLines({ season, pitcherIds: ids, to: `${season}-09-30` })
   const quality = new Map<number, number>()
   for (const [id, l] of lines) if (l.fip != null && l.ip >= 20) quality.set(id, l.fip)
@@ -37,32 +43,34 @@ for (const season of seasons) {
   let reachable = 0
 
   for (const list of byTeam.values()) {
-    const starts: Start[] = list.map(r => ({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches, post: r.t !== 'R' }))
+    // each game as its rotation turn (an opener's game is its bulk arm's turn)
+    const starts: Start[] = list.map(r => asTurn({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches, post: r.t !== 'R', bulkId: r.bulk_id, bulkPitches: r.bulk_pitches }))
     for (let i = 10; i < list.length; i++) {
       const isPost = list[i].t !== 'R'
       const opts: ProjectOptions = { postseason: isPost, quality, staleDays: STALE_DAYS, cycleBack: CYCLE_BACK }
       if (isPost) {
         const ranked = rankStarters(starts.slice(0, i), list[i].d, opts)
         post.n++
-        if (ranked[0] === list[i].pitcher_id) post.top1++
-        if (ranked.slice(0, 3).includes(list[i].pitcher_id)) post.top3++
-        if (rankStarters(starts.slice(0, i), list[i].d, { ...opts, postseasonRank: 'fip' })[0] === list[i].pitcher_id) post.fip++
+        if (ranked[0] === starts[i].pitcherId) post.top1++
+        if (ranked.slice(0, 3).includes(starts[i].pitcherId)) post.top3++
+        if (rankStarters(starts.slice(0, i), list[i].d, { ...opts, postseasonRank: 'fip' })[0] === starts[i].pitcherId) post.fip++
         continue
       }
-      if (rotation(starts.slice(0, i)).includes(list[i].pitcher_id)) reachable++
+      if (rotation(starts.slice(0, i)).includes(starts[i].pitcherId)) reachable++
       // chain: project game i, i+1, … using only what was known before game i
       const history = starts.slice(0, i)
       for (let k = 1; k <= Math.max(...HORIZONS) && i + k - 1 < list.length; k++) {
         const g = list[i + k - 1]
+        const real = starts[i + k - 1].pitcherId   // the turn (bulk arm behind an opener)
         if (g.t !== 'R') break
         const ranked = rankStarters(history, g.d, opts)
         const t = reg.get(k)
         if (t) {
           t.n++
-          if (ranked[0] === g.pitcher_id) t.top1++
-          if (ranked.slice(0, 3).includes(g.pitcher_id)) t.top3++
+          if (ranked[0] === real) t.top1++
+          if (ranked.slice(0, 3).includes(real)) t.top3++
           // fixed rotation: the real starter five games earlier (known before game i only up to G+5)
-          if (k <= CYCLE_BACK && list[i + k - 1 - CYCLE_BACK]?.pitcher_id === g.pitcher_id) t.fixed++
+          if (k <= CYCLE_BACK && starts[i + k - 1 - CYCLE_BACK]?.pitcherId === real) t.fixed++
         }
         if (ranked[0] != null) history.push({ date: g.d, pitcherId: ranked[0], pitches: 90 })
       }

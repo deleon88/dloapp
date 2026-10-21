@@ -9,12 +9,14 @@ import { getJson } from '../mlb/pbp.js'
 import { etDate } from '../ingest.js'
 import { loadRoster } from '../lineups/goTo.js'
 import { getPitcherLines } from '../stats/pitching.js'
-import { CYCLE_BACK, projectSeries, STALE_DAYS, type Start } from './project.js'
+import { asTurn, CYCLE_BACK, projectSeries, STALE_DAYS, type Start } from './project.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 const HISTORY_DAYS = 45
 
-export interface ProjectedStarter { id: number; fullName: string }
+export interface BulkArm { id: number; fullName: string; pitchHand: string | null }
+/** The projected starter; when it's an opener, the arm expected to pitch most of the game behind them. */
+export interface ProjectedStarter { id: number; fullName: string; bulk?: BulkArm }
 /** gamePk → the projected starter of each side that has none announced. */
 export type GameProjections = Record<number, { away?: ProjectedStarter; home?: ProjectedStarter }>
 
@@ -53,13 +55,20 @@ export async function projectStarters(date: string): Promise<GameProjections> {
   if (!teams.length) return {}
 
   const season = Number(date.slice(0, 4))
-  const rows = await sql<{ team_id: number; d: string; t: string; pitcher_id: number; pitches: number }[]>`
-    SELECT a.team_id, g.game_date::text AS d, g.game_type AS t, a.pitcher_id, a.pitches
+  // Each start, and for a short one the longest reliever behind it (an opener's bulk)
+  const rows = await sql<{ team_id: number; d: string; t: string; pitcher_id: number; pitches: number; bulk_id: number | null; bulk_pitches: number | null }[]>`
+    SELECT a.team_id, g.game_date::text AS d, g.game_type AS t, a.pitcher_id, a.pitches,
+           b.pitcher_id AS bulk_id, b.pitches AS bulk_pitches
     FROM pitcher_appearances a JOIN games g USING (game_pk)
+    LEFT JOIN LATERAL (
+      SELECT r.pitcher_id, r.pitches FROM pitcher_appearances r
+      WHERE r.game_pk = a.game_pk AND r.team_id = a.team_id AND r.seq > 0
+      ORDER BY r.outs DESC, r.pitches DESC LIMIT 1
+    ) b ON a.pitches < 35
     WHERE a.team_id = ANY(${teams}) AND a.seq = 0 AND g.game_date >= ${shiftDate(date, -HISTORY_DAYS)}
     ORDER BY g.game_date, g.game_pk
   `
-  const ids = [...new Set(rows.map(r => r.pitcher_id))]
+  const ids = [...new Set(rows.flatMap(r => (r.bulk_id ? [r.pitcher_id, r.bulk_id] : [r.pitcher_id])))]
   const [lines, rosters] = await Promise.all([
     ids.length ? getPitcherLines({ season, pitcherIds: ids }).catch(() => new Map()) : Promise.resolve(new Map()),
     Promise.all(teams.map(t => loadRoster(t, season).catch(() => null))),
@@ -74,7 +83,7 @@ export async function projectStarters(date: string): Promise<GameProjections> {
     // Not on the active roster, or hurt: can't start
     const unavailable = new Set<number>(roster?.unavailable ?? [])
     if (roster?.active) for (const id of ids) if (!roster.active.has(id)) unavailable.add(id)
-    const starts: Start[] = rows.filter(r => r.team_id === teamId).map(r => ({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches, post: r.t !== 'R' }))
+    const starts: Start[] = rows.filter(r => r.team_id === teamId).map(r => asTurn({ date: r.d, pitcherId: r.pitcher_id, pitches: r.pitches, post: r.t !== 'R', bulkId: r.bulk_id, bulkPitches: r.bulk_pitches }))
     const teamGames = games.filter(g => g.teams.away.team.id === teamId || g.teams.home.team.id === teamId)
     const series = projectSeries(starts, teamGames.map(g => {
       const side = g.teams.away.team.id === teamId ? 'away' : 'home'
@@ -87,18 +96,31 @@ export async function projectStarters(date: string): Promise<GameProjections> {
       const p = series[k]
       if (g.officialDate !== date || !p.projected || p.id == null) return
       const side = g.teams.away.team.id === teamId ? 'away' : 'home'
-      ;(out[g.gamePk] ??= {})[side] = { id: p.id, fullName: roster?.names.get(p.id)?.fullName ?? '' }
+      const name = (id: number) => roster?.names.get(id)?.fullName ?? ''
+      // An opener's turn: the opener is the starter, the projected arm pitches the bulk
+      ;(out[g.gamePk] ??= {})[side] = p.opener != null
+        ? { id: p.opener, fullName: name(p.opener), bulk: { id: p.id, fullName: name(p.id), pitchHand: null } }
+        : { id: p.id, fullName: name(p.id) }
       picked.add(p.id)
+      if (p.opener != null) picked.add(p.opener)
     })
   })
 
-  // Names the rosters didn't have (rare): one call
-  const missing = [...picked].filter(id => !Object.values(out).some(g => [g.away, g.home].some(s => s?.id === id && s.fullName)))
-  if (missing.length) {
-    const people = await getJson<{ people?: Array<{ id: number; fullName: string }> }>(
-      `${MLB_API}/people?personIds=${missing.join(',')}&fields=people,id,fullName`).catch(() => ({ people: [] }))
-    const names = new Map((people.people ?? []).map(p => [p.id, p.fullName]))
-    for (const g of Object.values(out)) for (const s of [g.away, g.home]) if (s && !s.fullName) s.fullName = names.get(s.id) ?? ''
+  // Names the rosters didn't have, and the bulk arms' hands: one call
+  if (picked.size) {
+    const people = await getJson<{ people?: Array<{ id: number; fullName: string; pitchHand?: { code?: string } }> }>(
+      `${MLB_API}/people?personIds=${[...picked].join(',')}&fields=people,id,fullName,pitchHand,code`).catch(() => ({ people: [] }))
+    const byId = new Map((people.people ?? []).map(p => [p.id, p]))
+    for (const g of Object.values(out)) {
+      for (const s of [g.away, g.home]) {
+        if (!s) continue
+        if (!s.fullName) s.fullName = byId.get(s.id)?.fullName ?? ''
+        if (s.bulk) {
+          s.bulk.fullName ||= byId.get(s.bulk.id)?.fullName ?? ''
+          s.bulk.pitchHand = byId.get(s.bulk.id)?.pitchHand?.code ?? null
+        }
+      }
+    }
   }
   return out
 }
