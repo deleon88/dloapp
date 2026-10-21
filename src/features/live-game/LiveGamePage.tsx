@@ -7,7 +7,7 @@ import { applyPitcherHand, fetchPitcherStats } from '@/api/mlb/endpoints/pitcher
 import { getGameLineup, type LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
-import { fetchPitcherRoles } from '@/api/pitcherRoles'
+import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
@@ -38,7 +38,15 @@ export default function LiveGamePage() {
     enabled: !!pk,
     staleTime: 60_000,
   })
-  const game = gameQuery.data
+  // A starter not announced yet comes projected from the rotation (flagged on the cards)
+  const rawGame = gameQuery.data
+  const projectedQuery = useQuery({
+    queryKey: ['projected-starters', rawGame?.officialDate],
+    queryFn: () => fetchProjectedStarters(rawGame!.officialDate),
+    enabled: !!rawGame && missingProbable(rawGame),
+    staleTime: 30 * 60_000,
+  })
+  const game = useMemo(() => (rawGame ? withProjectedStarters(rawGame, projectedQuery.data) : rawGame), [rawGame, projectedQuery.data])
 
   // 2. Pitcher season stats
   const awayPitcherId = (game as GameWithPitcher)?.teams?.away?.probablePitcher?.id

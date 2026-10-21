@@ -85,7 +85,7 @@ function Dots({ results, color, right }: { results?: GameResult[]; color: string
   )
 }
 
-function Pitcher({ p, opener, side, teamId }: { p?: PitcherInfo; opener?: boolean; side: 'away' | 'home'; teamId: number }) {
+function Pitcher({ p, opener, projected, side, teamId }: { p?: PitcherInfo; opener?: boolean; projected?: boolean; side: 'away' | 'home'; teamId: number }) {
   const t = useT()
   // The team's primary logo, faint, behind the starter (as on the pitcher card), kept inside its half
   const logo = <img className={styles.pitcherLogo} src={teamLogoUrl(teamId)} alt="" crossOrigin="anonymous" />
@@ -104,6 +104,7 @@ function Pitcher({ p, opener, side, teamId }: { p?: PitcherInfo; opener?: boolea
         <div className={styles.chips}>
           {p.pitchHand && <span className={styles.chip}>{p.pitchHand}HP</span>}
           {opener && <span className={styles.chip}>{t('opener')}</span>}
+          {projected && <span className={styles.chip}>{t('projected')}</span>}
         </div>
       </div>
     </div>
@@ -192,8 +193,10 @@ const ShareCard = forwardRef<HTMLDivElement, { data: ShareData }>(function Share
       </div>
 
       <div className={styles.duel}>
-        <Pitcher p={data.awayPitcher} opener={data.awayOpener} side="away" teamId={game.teams.away.team.id} />
-        <Pitcher p={data.homePitcher} opener={data.homeOpener} side="home" teamId={game.teams.home.team.id} />
+        <Pitcher p={data.awayPitcher} opener={data.awayOpener} side="away" teamId={game.teams.away.team.id}
+          projected={(game.teams.away as { probablePitcher?: { projected?: boolean } }).probablePitcher?.projected} />
+        <Pitcher p={data.homePitcher} opener={data.homeOpener} side="home" teamId={game.teams.home.team.id}
+          projected={(game.teams.home as { probablePitcher?: { projected?: boolean } }).probablePitcher?.projected} />
       </div>
 
       <Compare label="FIP" a={ap?.fip ?? null} h={hp?.fip ?? null} max={6} low show={fmt2} ac={ac} hc={hc} />

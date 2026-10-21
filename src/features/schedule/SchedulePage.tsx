@@ -8,7 +8,7 @@ import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { applyPitcherHand, fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
-import { fetchPitcherRoles, starterValue } from '@/api/pitcherRoles'
+import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, starterValue, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { batterSplitFor } from '@/utils/handFilter'
 import { useStatFilters } from '@/utils/useStatFilters'
@@ -32,9 +32,18 @@ export default function SchedulePage() {
     staleTime: 30_000,
   })
 
-  const games = [...(scheduleQuery.data?.dates?.[0]?.games ?? [])].sort(
+  const rawGames = useMemo(() => [...(scheduleQuery.data?.dates?.[0]?.games ?? [])].sort(
     (a, b) => new Date(a.gameDate).getTime() - new Date(b.gameDate).getTime(),
-  )
+  ), [scheduleQuery.data])
+
+  // Starters not announced yet: projected from the rotation (flagged on the card)
+  const projectedQuery = useQuery({
+    queryKey: ['projected-starters', date],
+    queryFn: () => fetchProjectedStarters(date),
+    enabled: rawGames.some(missingProbable),
+    staleTime: 30 * 60_000,
+  })
+  const games = useMemo(() => rawGames.map(g => withProjectedStarters(g, projectedQuery.data)), [rawGames, projectedQuery.data])
 
   // On first load, jump to tomorrow if today's slate is already complete — only
   // once, so going back to today with the arrow stays there.

@@ -21,6 +21,9 @@ interface Props {
   homePitcherName?: string
   /** Probable starter is an opener (an inning or two, then the bullpen): tagged. */
   awayOpener?: boolean
+  /** Starters not announced yet: projected from the rotation. */
+  awayProjected?: boolean
+  homeProjected?: boolean
   homeOpener?: boolean
   /** For the team logos behind each half. */
   awayTeamId?: number
@@ -31,14 +34,14 @@ interface Props {
 const CUTOUT = (id: number) => cutoutUrl(id)
 const TEAM_LOGO = teamLogoUrl
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayTeamId, homeTeamId, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayProjected, homeProjected, awayTeamId, homeTeamId, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
 
-  const away: SideView = { info: awayPitcher, name: awayPitcher?.fullName ?? awayPitcherName ?? 'TBD', opener: !!awayOpener }
-  const home: SideView = { info: homePitcher, name: homePitcher?.fullName ?? homePitcherName ?? 'TBD', opener: !!homeOpener }
+  const away: SideView = { info: awayPitcher, name: awayPitcher?.fullName ?? awayPitcherName ?? 'TBD', opener: !!awayOpener, projected: !!awayProjected }
+  const home: SideView = { info: homePitcher, name: homePitcher?.fullName ?? homePitcherName ?? 'TBD', opener: !!homeOpener, projected: !!homeProjected }
   const as = away.info?.seasonStats
   const hs = home.info?.seasonStats
 
@@ -125,6 +128,7 @@ interface SideView {
   info?: PitcherInfo
   name: string
   opener: boolean     // the probable starter is an opener
+  projected: boolean  // not announced: projected from the rotation
 }
 
 function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }) {
@@ -143,10 +147,11 @@ function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }
         {rest.length > 0 && <div className={styles.firstName}>{first}</div>}
         <div className={styles.pitcherName} title={view.name}>{last}</div>
         {s && <div className={styles.pitcherRecord}>{s.wins}-{s.losses} · {s.inningsPitched} IP</div>}
-        {(hand || view.opener) && (
+        {(hand || view.opener || view.projected) && (
           <div className={styles.tagRow}>
             {hand && <span className={styles.tag}>{hand}HP</span>}
             {view.opener && <span className={styles.tag} title={t('openerNote')}>{t('opener')}</span>}
+            {view.projected && <span className={styles.tag} title={t('projectedStarterNote')}>{t('projected')}</span>}
           </div>
         )}
       </div>

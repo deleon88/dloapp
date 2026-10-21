@@ -87,6 +87,7 @@ export default function GameCard({
           wins={teams.away.leagueRecord.wins}
           losses={teams.away.leagueRecord.losses}
           pitcher={awayPitcher?.fullName}
+          projected={awayPitcher?.projected}
           pitchHand={awayPitchHand}
           color={ac}
           lineupStatus={awayLineupStatus}
@@ -100,6 +101,7 @@ export default function GameCard({
           wins={teams.home.leagueRecord.wins}
           losses={teams.home.leagueRecord.losses}
           pitcher={homePitcher?.fullName}
+          projected={homePitcher?.projected}
           pitchHand={homePitchHand}
           color={hc}
           lineupStatus={homeLineupStatus}
@@ -135,6 +137,7 @@ function TeamSide({
   lineupStatus,
   opener,
   bulk,
+  projected,
 }: {
   teamId: number;
   city: string;
@@ -147,6 +150,8 @@ function TeamSide({
   lineupStatus?: LineupStatus;
   opener?: boolean;
   bulk?: BulkArm;
+  /** Not announced yet: projected from the rotation. */
+  projected?: boolean;
 }) {
   const t = useT();
   return (
@@ -174,6 +179,7 @@ function TeamSide({
           <div className={styles.pitcherHand}>
             {pitchHand ? `${pitchHand}HP` : "TBD"}
             {opener && <span className={styles.openerTag} title={t("openerBlend")}>{t("opener")}</span>}
+            {projected && <span className={styles.openerTag} title={t("projectedStarterNote")}>{t("projected")}</span>}
           </div>
           {bulk && (
             <div className={styles.bulkLine} title={t("bulkTitle")}>
@@ -255,10 +261,10 @@ function fmtName(n: string): string {
 interface GameWithPitcher extends ScheduledGame {
   teams: ScheduledGame["teams"] & {
     away: ScheduledGame["teams"]["away"] & {
-      probablePitcher?: { id: number; fullName: string };
+      probablePitcher?: { id: number; fullName: string; projected?: boolean };
     };
     home: ScheduledGame["teams"]["home"] & {
-      probablePitcher?: { id: number; fullName: string };
+      probablePitcher?: { id: number; fullName: string; projected?: boolean };
     };
   };
 }

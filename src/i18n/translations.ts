@@ -99,6 +99,7 @@ export const translations = {
     streakTitle: '{n} correct picks in a row',
     // Rankings
     rankingsNav: 'Ranking',
+    projectedStarterNote: 'Not announced yet: projected from the rotation',
     share: 'Share',
     shareTitle: 'Share this matchup',
     shareDownload: 'Download',
@@ -303,6 +304,7 @@ export const translations = {
     streakTitle: '{n} aciertos seguidos',
     // Rankings
     rankingsNav: 'Ranking',
+    projectedStarterNote: 'Aún no anunciado: proyectado según la rotación',
     share: 'Compartir',
     shareTitle: 'Compartir este duelo',
     shareDownload: 'Descargar',
