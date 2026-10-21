@@ -100,6 +100,7 @@ export const translations = {
     // Rankings
     rankingsNav: 'Ranking',
     projectedStarterNote: 'Not announced yet: projected from the rotation',
+    projectedShort: 'Proj.',
     share: 'Share',
     shareTitle: 'Share this matchup',
     shareDownload: 'Download',
@@ -305,6 +306,7 @@ export const translations = {
     // Rankings
     rankingsNav: 'Ranking',
     projectedStarterNote: 'Aún no anunciado: proyectado según la rotación',
+    projectedShort: 'Proy.',
     share: 'Compartir',
     shareTitle: 'Compartir este duelo',
     shareDownload: 'Descargar',

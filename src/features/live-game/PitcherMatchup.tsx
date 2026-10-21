@@ -144,14 +144,19 @@ function PitcherHeader({ side, view }: { side: 'away' | 'home'; view: SideView }
   return (
     <div className={`${styles.pitcherSide} ${right ? styles.pitcherSideRight : ''}`}>
       <div className={styles.pitcherInfo}>
-        {rest.length > 0 && <div className={styles.firstName}>{first}</div>}
+        {/* "Projected" rides on the first-name line: three chips don't fit a phone's half */}
+        {(rest.length > 0 || view.projected) && (
+          <div className={styles.firstName}>
+            {rest.length > 0 && first}
+            {view.projected && <span className={styles.projMark} title={t('projectedStarterNote')}>{rest.length > 0 ? ' · ' : ''}{t('projectedShort')}</span>}
+          </div>
+        )}
         <div className={styles.pitcherName} title={view.name}>{last}</div>
         {s && <div className={styles.pitcherRecord}>{s.wins}-{s.losses} · {s.inningsPitched} IP</div>}
-        {(hand || view.opener || view.projected) && (
+        {(hand || view.opener) && (
           <div className={styles.tagRow}>
             {hand && <span className={styles.tag}>{hand}HP</span>}
             {view.opener && <span className={styles.tag} title={t('openerNote')}>{t('opener')}</span>}
-            {view.projected && <span className={styles.tag} title={t('projectedStarterNote')}>{t('projected')}</span>}
           </div>
         )}
       </div>

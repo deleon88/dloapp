@@ -98,13 +98,12 @@ function Pitcher({ p, opener, projected, side, teamId }: { p?: PitcherInfo; open
       {logo}
       <img className={styles.pitcherPhoto} src={cutoutUrl(p.id, 240)} alt="" crossOrigin="anonymous" />
       <div className={styles.pitcherText}>
-        <div className={styles.first}>{first}</div>
+        <div className={styles.first}>{first}{projected && <span className={styles.projMark}>{first ? ' · ' : ''}{t('projectedShort')}</span>}</div>
         <div className={styles.last}>{last}</div>
         <div className={styles.pitcherLine}>{line}</div>
         <div className={styles.chips}>
           {p.pitchHand && <span className={styles.chip}>{p.pitchHand}HP</span>}
           {opener && <span className={styles.chip}>{t('opener')}</span>}
-          {projected && <span className={styles.chip}>{t('projected')}</span>}
         </div>
       </div>
     </div>
