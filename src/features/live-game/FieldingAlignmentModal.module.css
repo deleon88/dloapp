@@ -1,9 +1,20 @@
 /* ── Field: chalk lines (SVG) with the players laid over it ───────── */
-.field {
-  position: relative;
+/* The space under the header; the field fits inside it without stretching (a
+   phone's card is far taller than wide). */
+.fieldArea {
   flex: 1;
   min-height: 0;
   margin: 6px 8px 10px;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+
+/* Same 300 × 340 box as the SVG viewBox, so lines and players line up */
+.field {
+  position: relative;
+  width: min(100cqw, calc(100cqh * 300 / 340));
+  aspect-ratio: 300 / 340;
 }
 
 .lines {

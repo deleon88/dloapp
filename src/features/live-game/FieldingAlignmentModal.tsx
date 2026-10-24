@@ -53,32 +53,35 @@ export default function FieldingAlignmentModal({ isOpen, onClose, lineup, color,
 
   return (
     <CardModal isOpen={isOpen} onClose={onClose} title={label} subtitle={t('fieldingWord')} awayColor={bgColor} homeColor={bgColor} mode={side}>
-      <div className={styles.field}>
-        <svg className={styles.lines} viewBox="0 0 300 340" preserveAspectRatio="none" aria-hidden="true"
-          style={{ ['--chalk' as string]: chalk }}>
-          {/* Foul lines and the outfield wall (behind the outfielders) */}
-          <path d="M150 300 L -30 120 M150 300 L 330 120" className={styles.chalkSoft} />
-          <path d="M-30 120 Q 150 -110 330 120" className={styles.chalk} />
-          {/* Infield: diamond and mound */}
-          <path d="M150 300 L 236 213 L 150 128 L 64 213 Z" className={styles.chalk} />
-          <circle cx="150" cy="214" r="12" className={styles.chalkSoft} />
-          {/* Bases */}
-          <g className={styles.bases}>
-            <rect x="232" y="209" width="8" height="8" transform="rotate(45 236 213)" />
-            <rect x="146" y="124" width="8" height="8" transform="rotate(45 150 128)" />
-            <rect x="60" y="209" width="8" height="8" transform="rotate(45 64 213)" />
-            <path d="M144 296 h12 v4 l-6 5 l-6 -5 z" />
-          </g>
-        </svg>
+      {/* The field keeps its proportions (300 × 340), as big as the space allows, centered */}
+      <div className={styles.fieldArea}>
+        <div className={styles.field}>
+          <svg className={styles.lines} viewBox="0 0 300 340" preserveAspectRatio="none" aria-hidden="true"
+            style={{ ['--chalk' as string]: chalk }}>
+            {/* Foul lines and the outfield wall (behind the outfielders) */}
+            <path d="M150 300 L -30 120 M150 300 L 330 120" className={styles.chalkSoft} />
+            <path d="M-30 120 Q 150 -110 330 120" className={styles.chalk} />
+            {/* Infield: diamond and mound */}
+            <path d="M150 300 L 236 213 L 150 128 L 64 213 Z" className={styles.chalk} />
+            <circle cx="150" cy="214" r="12" className={styles.chalkSoft} />
+            {/* Bases */}
+            <g className={styles.bases}>
+              <rect x="232" y="209" width="8" height="8" transform="rotate(45 236 213)" />
+              <rect x="146" y="124" width="8" height="8" transform="rotate(45 150 128)" />
+              <rect x="60" y="209" width="8" height="8" transform="rotate(45 64 213)" />
+              <path d="M144 296 h12 v4 l-6 5 l-6 -5 z" />
+            </g>
+          </svg>
 
-        {players.map(p => (
-          <div key={p.pos} className={styles.player} style={{ left: `${SPOTS[p.pos].x}%`, top: `${SPOTS[p.pos].y}%` }}>
-            <img className={styles.photo} src={cutoutUrl(p.id, 120)} alt="" loading="lazy"
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
-            <span className={styles.last} title={p.fullName}>{lastName(p.fullName)}</span>
-            <span className={styles.pos}>{p.pos}</span>
-          </div>
-        ))}
+          {players.map(p => (
+            <div key={p.pos} className={styles.player} style={{ left: `${SPOTS[p.pos].x}%`, top: `${SPOTS[p.pos].y}%` }}>
+              <img className={styles.photo} src={cutoutUrl(p.id, 120)} alt="" loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+              <span className={styles.last} title={p.fullName}>{lastName(p.fullName)}</span>
+              <span className={styles.pos}>{p.pos}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </CardModal>
   )
