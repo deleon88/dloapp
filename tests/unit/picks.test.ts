@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { pickResult, summarize } from '../../server/picks.js'
+import { pickResult, summarize, votingOpen } from '../../server/picks.js'
 
 test('pick result by game status', () => {
   assert.equal(pickResult('Final', 'Final', 147, 147), 'won')
@@ -27,4 +27,14 @@ test('summary: losing streak, and no picks', () => {
   assert.equal(empty.pct, null)
   assert.equal(empty.streak, null)
   assert.equal(empty.bestStreak, 0)
+})
+
+test('voting stays open until the first pitch: warmup and a delayed start still count', () => {
+  assert.equal(votingOpen('Preview', 'Scheduled'), true)
+  assert.equal(votingOpen('Preview', 'Pre-Game'), true)
+  assert.equal(votingOpen('Live', 'Warmup'), true)
+  assert.equal(votingOpen('Live', 'Delayed Start: Rain'), true)
+  assert.equal(votingOpen('Live', 'In Progress'), false)
+  assert.equal(votingOpen('Final', 'Final'), false)
+  assert.equal(votingOpen('Final', 'Postponed'), false)
 })

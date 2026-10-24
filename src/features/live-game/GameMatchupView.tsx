@@ -186,6 +186,8 @@ export default function GameMatchupView({
         homePitcherName={teams.home.probablePitcher?.fullName}
         awayOpener={awayOpener}
         homeOpener={homeOpener}
+        awayProjected={(teams.away.probablePitcher as { projected?: boolean } | undefined)?.projected}
+        homeProjected={(teams.home.probablePitcher as { projected?: boolean } | undefined)?.projected}
         awayTeamId={teams.away.team.id}
         homeTeamId={teams.home.team.id}
         mode={mode}

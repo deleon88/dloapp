@@ -7,7 +7,7 @@ import { getJson } from './mlb/pbp.js'
 import { etDate, syncSchedule, upsertGames } from './ingest.js'
 import type { ScheduleGame } from './mlb/pbp.js'
 import { periodRange, type RankingPeriod } from './rankingPeriod.js'
-import { pickResult, summarize, type PickResult, type PickSummary } from './picks.js'
+import { pickResult, summarize, type PickResult, type PickSummary, votingOpen } from './picks.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 
@@ -41,13 +41,12 @@ export async function castVote(userId: string, gamePk: number, teamId: number): 
   const away = g.teams?.away?.team?.id, home = g.teams?.home?.team?.id
   if (teamId !== away && teamId !== home) return 'invalid_team'
   const state = g.status?.abstractGameState
-  const dead = ['Postponed', 'Cancelled', 'Suspended'].some(s => (g.status?.detailedState ?? '').startsWith(s))
-  if (state !== 'Preview' || dead) return 'voting_closed'
+  if (!votingOpen(state, g.status?.detailedState)) return 'voting_closed'
 
   // The game row may not exist yet (the cron syncs a few days at a time).
   const row: ScheduleGame = {
     game_pk: g.gamePk, season: Number(g.season ?? g.officialDate.slice(0, 4)), game_date: g.officialDate,
-    game_type: g.gameType, abstract_state: state, status: g.status?.detailedState ?? 'Scheduled',
+    game_type: g.gameType, abstract_state: state ?? 'Preview', status: g.status?.detailedState ?? 'Scheduled',
     away_team_id: away!, home_team_id: home!, venue_id: g.venue?.id ?? null,
     game_time: g.gameDate ?? null, away_score: null, home_score: null, winner_team_id: null,
   }

@@ -60,3 +60,58 @@ export const shortName = (n: string) => {
   const p = n.split(' ')
   return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : n
 }
+
+// ── Projected starters (server/starters) ─────────────────────────────────────
+
+/** A projected starter; an opener comes with the arm projected for the bulk behind them. */
+export interface ProjectedStarter { id: number; fullName: string; bulk?: BulkArm }
+/** gamePk → the projected starter of each side that has no announced probable. */
+export type GameProjections = Record<string, { away?: ProjectedStarter; home?: ProjectedStarter }>
+
+type Side = { probablePitcher?: { id: number; fullName: string; projected?: boolean; bulk?: BulkArm } }
+interface ProjectableGame {
+  gamePk: number
+  status: { abstractGameState: string }
+  teams: { away: object; home: object }
+}
+
+/**
+ * Projected openers and their bulk arms in these games, by the opener's id:
+ * the roles endpoint may not see a pitcher as an opener yet, the projection does.
+ */
+export function projectedBulks(games: Array<{ teams: { away: object; home: object } }>): Map<number, BulkArm> {
+  const out = new Map<number, BulkArm>()
+  for (const g of games) {
+    for (const side of [g.teams.away, g.teams.home] as Side[]) {
+      const p = side.probablePitcher
+      if (p?.projected && p.bulk) out.set(p.id, p.bulk)
+    }
+  }
+  return out
+}
+
+/** A game still to be played with a side whose starter isn't announced. */
+export function missingProbable(g: ProjectableGame): boolean {
+  const t = g.teams as { away: Side; home: Side }
+  return g.status.abstractGameState === 'Preview' && (!t.away.probablePitcher || !t.home.probablePitcher)
+}
+
+/** Projected starters for the games of a date (YYYY-MM-DD) with none announced. */
+export async function fetchProjectedStarters(date: string): Promise<GameProjections> {
+  const res = await fetch(`/api/pitcher-roles?starters=${date}`)
+  if (!res.ok) throw new Error(`pitcher-roles starters ${res.status}`)
+  return ((await res.json()) as { games: GameProjections }).games
+}
+
+/**
+ * The game with each missing probable filled in by its projection, flagged
+ * `projected: true` so the cards can say so. Announced starters are kept.
+ */
+export function withProjectedStarters<G extends ProjectableGame>(game: G, proj: GameProjections | undefined): G {
+  const p = proj?.[game.gamePk]
+  if (!p) return game
+  const teams = game.teams as { away: Side; home: Side }
+  const fill = (side: Side, s?: ProjectedStarter): Side =>
+    side.probablePitcher || !s ? side : { ...side, probablePitcher: { ...s, projected: true } }
+  return { ...game, teams: { ...game.teams, away: fill(teams.away, p.away), home: fill(teams.home, p.home) } }
+}

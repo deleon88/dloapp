@@ -45,3 +45,14 @@ export function summarize(results: PickResult[]): PickSummary {
     bestStreak,
   }
 }
+
+/**
+ * Voting stays open until the first pitch. MLB moves a game to "Warmup" (its
+ * abstract state already "Live") some 20 minutes before it, and a rain delay
+ * before the start reads "Delayed Start": both still open.
+ */
+export function votingOpen(abstractState?: string, detailedState?: string): boolean {
+  const detail = detailedState ?? ''
+  if (/^(Postponed|Cancelled|Suspended)/.test(detail)) return false
+  return abstractState === 'Preview' || detail === 'Warmup' || detail.startsWith('Delayed Start')
+}

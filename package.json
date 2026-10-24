@@ -19,6 +19,7 @@
     "db:validate": "npm run db:validate-pitching && npm run db:validate-batting -- --team 135 && npm run db:validate-batting -- --team 136",
     "db:seed-park-factors": "tsx --env-file=.env.local scripts/db/seed-park-factors.ts",
     "db:validate-openers": "tsx --env-file=.env.local scripts/db/validate-openers.ts",
+    "db:validate-starters": "tsx --env-file=.env.local scripts/db/validate-starters.ts",
     "db:validate-bulk": "tsx --env-file=.env.local scripts/db/validate-bulk.ts",
     "db:validate-pitching": "tsx --env-file=.env.local scripts/db/validate-pitching.ts",
     "db:seed-teams": "tsx --env-file=.env.local scripts/db/seed-teams.ts"
@@ -30,6 +31,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "html-to-image": "^1.11.13",
     "postgres": "^3.4.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

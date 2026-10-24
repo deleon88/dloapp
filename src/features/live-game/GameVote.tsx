@@ -41,8 +41,11 @@ export default function GameVote({ game, awayColor, homeColor, awayBarColor, hom
   const openAuth = useAuthStore(s => s.openAuth)
 
   const state = game.status.abstractGameState
-  const dead = /^(Postponed|Cancelled|Suspended)/.test(game.status.detailedState ?? '')
-  const open = state === 'Preview' && !dead
+  // Open until the first pitch: "Warmup" (already "Live" for MLB) and a delayed
+  // start still count as before the game (same rule as server/votes.ts votingOpen)
+  const detail = game.status.detailedState ?? ''
+  const dead = /^(Postponed|Cancelled|Suspended)/.test(detail)
+  const open = !dead && (state === 'Preview' || detail === 'Warmup' || detail.startsWith('Delayed Start'))
 
   const key = ['votes', game.gamePk, session?.user.id ?? null]
   const votes = useQuery({
