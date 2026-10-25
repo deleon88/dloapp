@@ -578,20 +578,25 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
   const midAt = onScale(scale.mid, scale, sortCol.low)
 
   return (
-    // Team colors: the card's gradient and tile in its main color, the bar in its bar color
+    // Team colors: the plate (and, open, the card) in its main color, the bar in its bar color
     <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}
       style={{ '--i': order, ...(meta ? { '--team': cardTone(meta.color), '--team-bar': getBarColor(meta) } : {}) } as CSSProperties}>
+      {/* The faded logo: behind the cutout in the plate; open, it grows into the card's watermark */}
+      {meta && !isTeamRow(row) && (
+        <span className={styles.logoLayer} aria-hidden="true">
+          <img className={styles.tileLogo} src={teamLogoUrl(team)} alt="" loading="lazy" />
+        </span>
+      )}
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
-        {/* The team plate: rank, the logo faded, the player's cutout (a team: its logo) */}
+        {/* The team plate: rank and the player's cutout (a team: its logo) */}
         <span className={styles.plate}>
           <span className={styles.rank}>{rank}</span>
           {isTeamRow(row) ? (
             <img className={styles.tileLogoBig} src={teamLogoUrl(team)} alt="" loading="lazy" />
-          ) : <>
-            {meta && <img className={styles.tileLogo} src={teamLogoUrl(team)} alt="" loading="lazy" />}
+          ) : (
             <img className={styles.tilePhoto} src={cutoutUrl(row.id, 120)} alt="" loading="lazy"
               onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
-          </>}
+          )}
         </span>
 
         <span className={styles.body}>

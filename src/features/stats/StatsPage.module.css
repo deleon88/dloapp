@@ -363,16 +363,44 @@
 }
 
 /* the team logo, big and faded, like behind the pitchers on the game page */
+/* The logo's own layer, clipped like the color (::before) so it stays inside the
+   plate's diagonal and opens with it */
+.logoLayer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  clip-path: polygon(0 0, var(--plate) 0, calc(var(--plate) - 14px) 100%, 0 100%);
+  transition: clip-path 0.5s var(--ease-out);
+}
+
+.itemOpen .logoLayer { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+
+/* Closed: faded behind the cutout, on the plate's edge. Open: it slides to the
+   card's top right and grows into a big watermark behind the detail, like the
+   logos behind the pitchers on the game page. */
 .tileLogo {
   position: absolute;
-  right: -14px;
-  top: 50%;
+  left: calc(var(--plate) - 56px);
+  top: 4px;
   width: 70px;
   height: 70px;
-  transform: translateY(-50%);
   object-fit: contain;
   opacity: 0.28;
-  animation: logoIn 0.5s ease var(--delay) both;
+  transform-origin: center;
+  transition:
+    left 0.55s var(--ease-out),
+    top 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out),
+    opacity 0.4s ease;
+  animation: logoIn 0.5s ease var(--delay) backwards;   /* backwards only: a held end state would block the open transition */
+}
+
+.itemOpen .tileLogo {
+  left: calc(100% - 150px);
+  top: 46px;
+  transform: scale(2.9) rotate(-8deg);
+  opacity: 0.1;
 }
 
 .tilePhoto {
@@ -482,10 +510,10 @@
 
 @keyframes barIn { from { width: 0; } }
 @keyframes photoIn { from { opacity: 0; transform: translateY(8px); } }
-@keyframes logoIn { from { opacity: 0; transform: translateY(-50%) scale(0.85); } }
+@keyframes logoIn { from { opacity: 0; transform: scale(0.85); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .tileLogo, .tilePhoto, .tileLogoBig, .barFill, .fold, .item::before { animation: none; transition: none; }
+  .tileLogo, .tilePhoto, .tileLogoBig, .barFill, .fold, .item::before, .logoLayer { animation: none; transition: none; }
 }
 
 /* ── Detail: the line as percentiles, on the Savant scale ─────────── */
