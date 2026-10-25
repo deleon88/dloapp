@@ -1,5 +1,6 @@
 .page {
   --gutter: 12px;   /* the layout's side padding */
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);   /* ease-out cubic: the bars, and the same curve as the numbers counting with them */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -412,13 +413,11 @@
     var(--tone-mid) var(--mid, 50%),
     var(--tone-high) 100%);
   background-repeat: no-repeat;
-  /* the app's bar spring (AnimatedBar, on the game page and schedule): grows in past
-     its length and settles, and slides the same way when the sort changes. Growing
-     in, the longer the bar the quicker (--fill-dur, set inline). A full bar's
-     overshoot stops at the track's end. */
-  max-width: 100%;
-  transition: width var(--bar-spring), background-size var(--bar-spring);
-  animation: barIn var(--fill-dur, 0.85s) var(--bar-spring-ease) calc(var(--delay) + 80ms) backwards;
+  /* grows in without a bounce (the game page's bars spring; a list of near-full bars
+     springing reads as jitter), the longer the bar the quicker (--fill-dur, set
+     inline); slides to the new length when the sort changes */
+  transition: width 0.6s var(--ease-out), background-size 0.6s var(--ease-out);
+  animation: barIn var(--fill-dur, 0.85s) var(--ease-out) calc(var(--delay) + 80ms) backwards;
 }
 
 @keyframes barIn { from { width: 0; } }
@@ -501,12 +500,11 @@
     var(--tone-mid) var(--mid, 50%),
     var(--tone-high) 100%);
   background-repeat: no-repeat;
-  /* each time the detail opens: the same spring as the bars, the knob riding its end */
-  max-width: 100%;
-  animation: barIn var(--fill-dur, 0.85s) var(--bar-spring-ease) 0.12s backwards;
+  /* each time the detail opens: the same fill as the bars, the knob riding its end */
+  animation: barIn var(--fill-dur, 0.85s) var(--ease-out) 0.12s backwards;
 }
 
-/* on the fill's end (so it follows the spring, and stops with a full bar) */
+/* on the fill's end, so it travels with it */
 .knob {
   position: absolute;
   top: 50%;
