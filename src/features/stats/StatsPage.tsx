@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   fetchLeaders, type BatterRow, type LeaderHand, type LeaderRole, type LeadersResponse, type PitcherRow, type TeamRow,
 } from '@/api/leaders'
+import { CountUp } from '@/components/AnimatedBar/AnimatedBar'
 import { getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
@@ -626,8 +627,10 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
                 <span className={styles.prLabel}>{c.label}</span>
                 <span className={styles.track}>
                   {p != null && <>
-                    <span className={styles.fill} style={scaleFill(p, 50)} />
-                    <span className={styles.knob} style={{ left: `${p}%`, background: toneAt(p) }}>{Math.round(p)}</span>
+                    {/* the knob rides the fill's end and counts up with it */}
+                    <span className={styles.fill} style={scaleFill(p, 50)}>
+                      <span className={styles.knob} style={{ background: toneAt(p) }}><CountUp value={Math.round(p)} delay={120} /></span>
+                    </span>
                   </>}
                 </span>
                 <span className={styles.prVal}>{formatStat(v, c.fmt)}</span>

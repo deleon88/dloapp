@@ -500,20 +500,19 @@
     var(--tone-mid) var(--mid, 50%),
     var(--tone-high) 100%);
   background-repeat: no-repeat;
-  /* each time the detail opens: the same spring as the bars, then the knob pops in */
+  /* each time the detail opens: the same spring as the bars, the knob riding its end */
   max-width: 100%;
   animation: barIn var(--bar-spring) 0.12s backwards;
 }
 
-@keyframes knobIn { from { opacity: 0; transform: scale(0.5); } }
-
+/* on the fill's end (so it follows the spring, and stops with a full bar) */
 .knob {
-  animation: knobIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s backwards;
   position: absolute;
   top: 50%;
+  right: -9px;
   width: 18px;
   height: 18px;
-  margin: -9px 0 0 -9px;
+  margin-top: -9px;
   display: grid;
   place-items: center;
   border-radius: 50%;
