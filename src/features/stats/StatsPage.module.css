@@ -412,9 +412,12 @@
     var(--tone-mid) var(--mid, 50%),
     var(--tone-high) 100%);
   background-repeat: no-repeat;
-  /* grows in on load; slides to the new length when the sort changes */
-  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background-size 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: barIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--delay) + 80ms) backwards;
+  /* the app's bar spring (AnimatedBar, on the game page and schedule): grows in past
+     its length and settles, and slides the same way when the sort changes. A full
+     bar's overshoot stops at the track's end. */
+  max-width: 100%;
+  transition: width var(--bar-spring), background-size var(--bar-spring);
+  animation: barIn var(--bar-spring) calc(var(--delay) + 80ms) backwards;
 }
 
 @keyframes barIn { from { width: 0; } }
@@ -457,7 +460,7 @@
 .foldShut { grid-template-rows: 0fr; opacity: 0; }
 
 /* the row bar's mark pokes 2px past it: room for it inside the clip */
-.foldInner { min-height: 0; overflow: hidden; }
+.foldInner { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .body .foldInner { padding-top: 2px; }
 .detail { padding: 4px 14px 12px 14px; border-top: 1px solid var(--border); }
 
@@ -497,9 +500,15 @@
     var(--tone-mid) var(--mid, 50%),
     var(--tone-high) 100%);
   background-repeat: no-repeat;
+  /* each time the detail opens: the same spring as the bars, then the knob pops in */
+  max-width: 100%;
+  animation: barIn var(--bar-spring) 0.12s backwards;
 }
 
+@keyframes knobIn { from { opacity: 0; transform: scale(0.5); } }
+
 .knob {
+  animation: knobIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s backwards;
   position: absolute;
   top: 50%;
   width: 18px;
@@ -513,6 +522,10 @@
   font: 800 0.46rem var(--font-mono);
   color: #fff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill, .knob { animation: none; }
 }
 
 .prVal { font: 700 0.66rem var(--font-mono); color: var(--text-primary); text-align: right; }

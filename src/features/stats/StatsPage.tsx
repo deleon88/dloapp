@@ -556,6 +556,9 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
   const [opened, setOpened] = useState(open)
   if (open && !opened) setOpened(true)
   const [shown, setShown] = useState(open)
+  // Each open replays the percentile bars' spring (the detail's key)
+  const [opens, setOpens] = useState(0)
+  useEffect(() => { if (open) setOpens(n => n + 1) }, [open])
   useEffect(() => {
     let id = requestAnimationFrame(() => { id = requestAnimationFrame(() => setShown(open)) })
     return () => cancelAnimationFrame(id)
@@ -612,7 +615,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
       {opened && (
         <div className={`${styles.fold} ${shown ? '' : styles.foldShut}`} aria-hidden={!open}>
         <div className={styles.foldInner}>
-        <div className={styles.detail}>
+        <div key={opens} className={styles.detail}>
           <div className={styles.sample}>{sampleOf(row).map(([k, val]) => <span key={k}>{k} <b>{val}</b></span>)}</div>
           {cols.map(c => {
             const v = c.get(row)
