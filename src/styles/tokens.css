@@ -66,7 +66,8 @@
   --transition-normal: 250ms ease;
   /* Stat bars: grow a little past their length and settle (AnimatedBar's
      DURATION_MS matches the 0.85s) */
-  --bar-spring: 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bar-spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bar-spring: 0.85s var(--bar-spring-ease);
 
   /* Layout */
   --container-max: 480px;

@@ -629,7 +629,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
                   {p != null && <>
                     {/* the knob rides the fill's end and counts up with it */}
                     <span className={styles.fill} style={scaleFill(p, 50)}>
-                      <span className={styles.knob} style={{ background: toneAt(p) }}><CountUp value={Math.round(p)} delay={120} /></span>
+                      <span className={styles.knob} style={{ background: toneAt(p) }}><CountUp value={Math.round(p)} delay={120} duration={fillMs(p)} /></span>
                     </span>
                   </>}
                 </span>
@@ -659,7 +659,13 @@ function scaleFill(width: number, mid: number): CSSProperties {
     width: `${width}%`,
     backgroundSize: `${width > 0 ? 10000 / width : 100}% 100%`,
     '--mid': `${mid}%`,
+    '--fill-dur': `${fillMs(width)}ms`,
   } as CSSProperties
+}
+
+/** Fill time for a bar of `width`%: the higher, the quicker (100 → 0.5s, 50 → 0.85s, 0 → 1.2s). */
+function fillMs(width: number): number {
+  return Math.round(1200 - 7 * Math.max(0, Math.min(100, width)))
 }
 
 /** The bar's color at percentile `p` (its gradient's tones), for the percentile knob. */

@@ -57,13 +57,15 @@ interface CountUpProps {
   /** Number or formatted text ("144", "4.54"). Anything non-numeric ("—") is shown as is. */
   value: number | string | null | undefined
   delay?: number
+  /** Count length in ms (default: the bars' 850), to keep pace with a bar that fills faster or slower. */
+  duration?: number
 }
 
 /**
  * Number that counts up from 0 in sync with its bar, and from the old value to
  * the new one when it changes. Keeps the decimals of the formatted text.
  */
-export function CountUp({ value, delay = 0 }: CountUpProps) {
+export function CountUp({ value, delay = 0, duration = DURATION_MS }: CountUpProps) {
   const text = value == null ? '—' : String(value)
   const target = /^-?\d+(\.\d+)?$/.test(text) ? Number(text) : null
   const decimals = target == null ? 0 : (text.split('.')[1]?.length ?? 0)
@@ -83,7 +85,7 @@ export function CountUp({ value, delay = 0 }: CountUpProps) {
     let frame = 0
     const start = performance.now() + activeDelay
     const step = (now: number) => {
-      const p = Math.min(1, Math.max(0, (now - start) / DURATION_MS))
+      const p = Math.min(1, Math.max(0, (now - start) / duration))
       const eased = 1 - Math.pow(1 - p, 3)
       const v = from + (target - from) * eased
       setShown(v)
