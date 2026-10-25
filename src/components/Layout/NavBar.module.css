@@ -30,14 +30,6 @@
   color: var(--text-primary);
 }
 
-.brandSub {
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .links {
   display: flex;
   list-style: none;
@@ -67,58 +59,6 @@
 .linkActive {
   color: var(--text-primary);
   background: var(--bg-highlight);
-}
-
-/* League toggle */
-.leagueToggle {
-  display: flex;
-  align-items: center;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 2px;
-  gap: 2px;
-}
-
-.leagueBtn {
-  padding: 3px 8px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  border-radius: calc(var(--radius-sm) - 2px);
-  transition: color var(--transition-fast), background var(--transition-fast);
-  line-height: 1.4;
-}
-
-.leagueBtn:hover {
-  color: var(--text-secondary);
-}
-
-.leagueBtnActive {
-  background: var(--bg-highlight);
-  color: var(--text-primary);
-}
-
-/* Locked league button (e.g. LMB) */
-.leagueBtnLocked {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding-right: 6px;
-  color: var(--text-faint);
-  cursor: default;
-  pointer-events: none;
-}
-
-.navLockBadge {
-  display: inline-flex;
-  align-items: center;
-  color: var(--accent-amber);
-  background: var(--accent-amber-dim);
-  border-radius: var(--radius-full);
-  padding: 2px 5px;
-  flex-shrink: 0;
 }
 
 /* Account: icon-only rounded square (logged out: person icon; logged in: the

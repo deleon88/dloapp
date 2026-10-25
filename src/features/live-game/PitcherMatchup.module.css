@@ -1,4 +1,7 @@
 .card {
+  --photo-size: 140px;      /* hero cutout height */
+  --photo-gutter: 96px;     /* room kept clear for it next to the text */
+  --header-min: 104px;
   position: relative;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -76,12 +79,6 @@
 .pitcherSideRight .pitcherInfo { align-items: flex-end; }
 
 /* ── Hero photos ──────────────────────────────────────────────────── */
-.card {
-  --photo-size: 140px;      /* cutout height */
-  --photo-gutter: 96px;     /* room kept clear for it next to the text */
-  --header-min: 104px;
-}
-
 .hero { overflow: hidden; }
 
 .heroPhoto {
@@ -288,7 +285,7 @@
 }
 
 /* "Proj." after the first name, in the projected-lineup amber */
-.projMark { color: var(--accent-amber, #f59e0b); font-weight: 700; }
+.projMark { color: var(--accent-amber); font-weight: 700; }
 
 @media (max-width: 480px) {
   .card { --photo-size: 124px; --photo-gutter: 84px; --header-min: 96px; }

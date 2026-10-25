@@ -20,13 +20,6 @@ const ROSTER_FIELDS = [
   'pitchHand', 'batSide', 'code',
 ].join(',')
 
-export function getTeams(params: { sportId?: number; season?: number } = {}): Promise<TeamsResponse> {
-  return mlbApi.get<TeamsResponse>('/teams', {
-    sportId: 1,
-    ...params,
-  })
-}
-
 export function getTeam(teamId: number, season?: number): Promise<TeamsResponse> {
   return mlbApi.get<TeamsResponse>(`/teams/${teamId}`, {
     season: season ?? new Date().getFullYear(),

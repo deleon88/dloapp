@@ -26,17 +26,6 @@ export function getPerson(personId: number): Promise<PeopleResponse> {
   })
 }
 
-export function getPersonStats(
-  personId: number,
-  params: { stats: string[]; group: string[]; season?: string },
-): Promise<unknown> {
-  return mlbApi.get(`/people/${personId}/stats`, {
-    stats: params.stats.join(','),
-    group: params.group.join(','),
-    ...(params.season ? { season: params.season } : {}),
-  })
-}
-
 interface BulkPersonRow {
   id: number
   fullName: string

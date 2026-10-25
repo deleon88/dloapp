@@ -39,8 +39,7 @@
   background: rgba(255, 255, 255, 0.07);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-active);
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.22s ease;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 
@@ -116,17 +115,6 @@
   transform: translateX(-50%);
 }
 
-
-/* ── Legend ──────────────────────────────────────────────────── */
-.legend {
-  padding: 6px 14px 8px;
-  font-size: 0.52rem;
-  color: var(--text-muted);
-  text-align: center;
-  border-top: 1px solid var(--border);
-  letter-spacing: 0.03em;
-}
-
 .loading {
   padding: 20px 14px;
   font-size: 0.72rem;
@@ -155,73 +143,86 @@
   right: 10px;
 }
 
-.fieldingChip {
-  justify-self: center;
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.57rem;
-  font-weight: 700;
-  font-family: var(--font-body);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 5px 8px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  white-space: nowrap;
-  line-height: 1;
-  cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.fieldingChip:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: var(--border-active);
-  color: var(--text-secondary);
-}
-
+/* Fielding / vs pitcher open something: filled, with an arrow, brighter on
+   hover. Confirmed / projected is a state: no box, just a colored dot. */
+.fieldingChip,
 .rivalChip {
   display: inline-flex;
   align-items: center;
-  font-size: 0.57rem;
-  font-weight: 700;
+  gap: 5px;
+  padding: 6px 8px 6px 9px;
+  border-radius: 10px;
+  border: 1px solid var(--border-active);
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
   font-family: var(--font-body);
+  font-size: 0.52rem;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 5px 8px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
   white-space: nowrap;
   line-height: 1;
   cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
-.rivalChip:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--border-active);
+.fieldingChip::after,
+.rivalChip::after {
+  content: '›';
+  margin-left: 1px;
+  font-size: 0.8rem;
+  line-height: 0;
   color: var(--text-secondary);
 }
 
+.fieldingChip:hover,
+.rivalChip:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.actionIcon { width: 11px; height: 11px; flex-shrink: 0; }
+
 .statusConfirmed,
 .statusProjected {
-  display: inline-block;
-  font-size: 0.62rem;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--text-secondary);
   font-family: var(--font-body);
-  letter-spacing: 0.05em;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 5px 8px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid var(--border-active);
-  color: var(--text-primary);
   white-space: nowrap;
   line-height: 1;
-  text-align: center;
+}
+
+/* The dot on the capitals' center: it sits on the text baseline and rises half a
+   cap height (minus its own half), whatever the font metrics or line height. */
+.statusConfirmed::before,
+.statusProjected::before {
+  content: '';
+  flex-shrink: 0;
+  align-self: baseline;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transform: translateY(calc(3px - 0.5cap));
+}
+
+.statusConfirmed::before { background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15); }
+.statusProjected::before { background: var(--accent-amber); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
+
+/* Narrow phones: tighter buttons so the three items keep some air */
+@media (max-width: 360px) {
+  .fieldingChip,
+  .rivalChip { gap: 3px; padding: 5px 6px; }
+  .actionIcon { width: 9px; height: 9px; }
+  .statusRow .statusConfirmed,
+  .statusRow .statusProjected { gap: 4px; font-size: 0.46rem; letter-spacing: 0.03em; }
+  .tvStatus .statusConfirmed,
+  .tvStatus .statusProjected { font-size: 0.44rem; }
 }
 
 /* ── Comparison, TV style ───────────────────────────────────────── */
@@ -237,23 +238,6 @@
 
 /* The home chip stays in the last column */
 .tvStatus > :last-child { grid-column: 3; }
-
-/* Status chips: same as the pitcher card's chips (hand / opener) */
-.tvStatus .statusConfirmed,
-.tvStatus .statusProjected {
-  padding: 4px 7px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-active);
-  background: rgba(0, 0, 0, 0.18);
-  color: var(--text-primary);
-  font-size: 0.52rem;
-  font-weight: 700;
-  font-family: var(--font-body);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  line-height: 1;
-}
 
 /* "wRC+" in the middle, like the pitcher card's FIP / ERA labels */
 .tvColLabel {
@@ -374,9 +358,8 @@
   margin-top: 3px;
 }
 
-.tvBatterHome .tvLine { flex-direction: row-reverse; }
 .tvBatter:not(.tvBatterHome) .tvLine { padding-right: 2px; }
-.tvBatterHome .tvLine { padding-left: 2px; }
+.tvBatterHome .tvLine { flex-direction: row-reverse; padding-left: 2px; }
 .tvLine .barTrack { flex: 1; }
 
 .tvPos {
@@ -463,18 +446,6 @@
   font-family: var(--font-mono);
 }
 
-@media (max-width: 360px) {
-  .tvStatus .statusConfirmed,
-  .tvStatus .statusProjected { padding: 3px 4px; font-size: 0.44rem; letter-spacing: 0.02em; }
-  .tvRow { padding: 5px 8px; gap: 4px; }
-  .tvBatter { grid-template-columns: 26px minmax(0, 1fr); gap: 4px; }
-  .tvBatterHome { grid-template-columns: minmax(0, 1fr) 26px; }
-  .tvPhotoBox,
-  .tvPhoto { width: 26px; height: 26px; }
-  .tvLast { font-size: 0.68rem; }
-  .tvChipView { gap: 6px; padding: 8px 8px 10px; }
-}
-
 /* ── Selector: team cap logos instead of names ─────────────────── */
 /* Only on the selected team (the others show their name) */
 .segmentLogo {
@@ -482,33 +453,6 @@
   height: 24px;
   width: auto;
   margin: -6px auto;
-}
-
-/* ── Single-team view, TV style ────────────────────────────────── */
-/* Status row chips: same as the pitcher card's chips */
-.statusRow .statusConfirmed,
-.statusRow .statusProjected,
-.fieldingChip,
-.rivalChip {
-  padding: 4px 7px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-active);
-  background: rgba(0, 0, 0, 0.18);
-  color: var(--text-primary);
-  font-size: 0.52rem;
-  font-weight: 700;
-  font-family: var(--font-body);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.fieldingChip:hover,
-.rivalChip:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: var(--border-active);
-  color: var(--text-primary);
 }
 
 /* Phones: comparison halves are too narrow for "First LAST" on one line, so the
@@ -660,79 +604,5 @@
   .tvBat { padding: 1px 3px; font-size: 0.4rem; }
   .tvVal { font-size: 0.62rem; }
   .tvTotalVal { font-size: 0.8rem; }
-}
-
-/* ── Buttons vs. status ────────────────────────────────────────────
-   Fielding / vs pitcher open something: filled, with an arrow, brighter on
-   hover. Confirmed / projected is a state: no box, just a colored dot. Last in
-   the file so it wins over the chip rules above. */
-.fieldingChip,
-.rivalChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 8px 6px 9px;
-  border-radius: 10px;
-  border: 1px solid var(--border-active);
-  background: rgba(255, 255, 255, 0.09);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: background var(--transition-fast), border-color var(--transition-fast);
-}
-
-.fieldingChip::after,
-.rivalChip::after {
-  content: '›';
-  margin-left: 1px;
-  font-size: 0.8rem;
-  line-height: 0;
-  color: var(--text-secondary);
-}
-
-.fieldingChip:hover,
-.rivalChip:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: var(--text-primary);
-}
-
-.actionIcon { width: 11px; height: 11px; flex-shrink: 0; }
-
-.statusRow .statusConfirmed,
-.statusRow .statusProjected,
-.tvStatus .statusConfirmed,
-.tvStatus .statusProjected {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  letter-spacing: 0.06em;
-}
-
-/* The dot on the capitals' center: it sits on the text baseline and rises half a
-   cap height (minus its own half), whatever the font metrics or line height. */
-.statusConfirmed::before,
-.statusProjected::before {
-  content: '';
-  flex-shrink: 0;
-  align-self: baseline;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  transform: translateY(calc(3px - 0.5cap));
-}
-
-.statusConfirmed::before { background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15); }
-.statusProjected::before { background: var(--accent-amber, #e0a52c); box-shadow: 0 0 0 3px rgba(224, 165, 44, 0.15); }
-
-/* Narrow phones: tighter buttons so the three items keep some air */
-@media (max-width: 360px) {
-  .fieldingChip,
-  .rivalChip { gap: 3px; padding: 5px 6px; }
-  .actionIcon { width: 9px; height: 9px; }
-  .statusRow .statusConfirmed,
-  .statusRow .statusProjected { gap: 4px; font-size: 0.46rem; letter-spacing: 0.03em; }
+  .tvChipView { gap: 6px; padding: 8px 8px 10px; }
 }

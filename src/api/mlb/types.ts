@@ -9,11 +9,6 @@ export interface NamedRef extends MlbRef {
   name: string
 }
 
-export interface CodedRef extends MlbRef {
-  code: string
-  description?: string
-}
-
 // ─── Venue ───────────────────────────────────────────────────────────────────
 
 export interface Venue extends NamedRef {

@@ -114,7 +114,7 @@
   background: var(--bg-card);
   border: 1px solid var(--border-active);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-float);
   animation: dropIn 0.12s ease both;
 }
 

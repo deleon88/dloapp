@@ -1,4 +1,3 @@
-import { etDate } from '@/utils/etDate'
 import { mlbApi } from '../client'
 import type { ScheduleResponse } from '../types'
 
@@ -58,9 +57,4 @@ export async function getGame(gamePk: number): Promise<ScheduleResponse['dates']
   const allGames = (res.dates ?? []).flatMap(d => d.games)
   const activeGame = allGames.find(g => g.status?.detailedState !== 'Postponed')
   return activeGame ?? allGames[allGames.length - 1] ?? null
-}
-
-export function getTodaySchedule(): Promise<ScheduleResponse> {
-  const today = etDate()
-  return getSchedule({ date: today, hydrate: ['probablePitcher', 'linescore'] })
 }

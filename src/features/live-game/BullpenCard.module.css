@@ -37,8 +37,7 @@
   background: rgba(255, 255, 255, 0.07);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-active);
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.22s ease;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 

@@ -6,10 +6,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/mlb-v11/:path*",
-      "destination": "https://statsapi.mlb.com/api/v1.1/:path*"
-    },
-    {
       "source": "/api/mlb/:path*",
       "destination": "https://statsapi.mlb.com/api/v1/:path*"
     },

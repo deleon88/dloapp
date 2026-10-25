@@ -171,47 +171,6 @@
   background: #111;
 }
 
-.divider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border-active);
-}
-
-.footer {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.link {
-  color: var(--accent-blue);
-  font-weight: 600;
-}
-
-.link:hover {
-  text-decoration: underline;
-}
-
-.inlineLink {
-  align-self: flex-end;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.inlineLink:hover {
-  color: var(--text-primary);
-}
-
 /* ── Modal ─────────────────────────────────────────────────────────── */
 .backdrop {
   position: fixed;
@@ -275,25 +234,6 @@
 
 .closeBtn:hover {
   color: var(--text-primary);
-}
-
-/* Links rendered as buttons inside the modal */
-button.link,
-button.inlineLink,
-button.footer {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  cursor: pointer;
-}
-
-button.inlineLink {
-  font-size: 0.75rem;
-}
-
-button.footer {
-  font-size: 0.8rem;
 }
 
 @keyframes fadeIn {

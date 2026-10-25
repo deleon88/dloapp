@@ -16,7 +16,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 18px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-modal);
 }
 
 /* while the image is being made */
@@ -31,7 +31,7 @@
   background: linear-gradient(transparent, rgba(4, 10, 24, 0.9));
 }
 
-.error { margin: 0; font-size: 0.72rem; color: var(--accent-red, #f87171); }
+.error { margin: 0; font-size: 0.72rem; color: var(--accent-red); }
 
 .actions { display: flex; gap: 8px; }
 

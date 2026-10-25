@@ -147,14 +147,6 @@
   gap: 4px;
 }
 
-.statbarsPeriod {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 2px;
-}
-
-/* MatchupBar handles its own styles — no local bar CSS needed */
-
 /* ── Lineup status badge ─────────────────────────────────────── */
 .statusConfirmed,
 .statusProjected {

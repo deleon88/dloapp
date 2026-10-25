@@ -58,11 +58,6 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/mlb/, '/api/v1'),
         },
-        '/api/mlb-v11': {
-          target: 'https://statsapi.mlb.com',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/mlb-v11/, '/api/v1.1'),
-        },
         '/api/lmb': {
           target: 'https://lmb.com.mx',
           changeOrigin: true,

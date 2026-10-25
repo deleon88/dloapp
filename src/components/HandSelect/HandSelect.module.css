@@ -36,8 +36,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent-amber, #e0a52c);
-  border: 1.5px solid var(--bg-page, #0b0d10);
+  background: var(--accent-amber);
+  border: 1.5px solid var(--bg-deep);
 }
 
 /* Not signed in: dimmed, with a small lock in the corner */
