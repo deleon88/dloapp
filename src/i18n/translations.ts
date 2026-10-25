@@ -223,15 +223,16 @@ export const translations = {
     tierBelow: 'Below average',
     tierPoor: 'Poor',
     tierAwful: 'Awful',
-    // Pitcher matchup glossary
-    statGlossary: 'Stat Glossary',
-    glossaryEraDesc: 'Earned runs allowed per 9 innings. Affected by defense and luck.',
-    glossaryFipDesc: 'Like ERA but built only from strikeouts, walks, and home runs — strips out defense.',
-    glossaryWhipDesc: 'Walks plus hits per inning pitched. Measures baserunners allowed.',
-    glossaryOpsMinusDesc: 'OPS allowed compared with the league against the same batter hand. 100 is average, higher is better. Shown instead of ERA with a batter-hand filter, since ERA isn\'t split by hand.',
-    glossaryKbbDesc: 'Strikeout rate minus walk rate. Net command and swing-and-miss ability.',
-    glossaryXfipDesc: 'FIP with home run rate normalized to league average. Best predictor of future ERA.',
-    glossaryWobaAgainstDesc: 'Weighted on-base average allowed. Values every way a batter reaches base by its run value. Follows the selected period and batter hand.',
+    // Pitcher matchup guide (the card's "?")
+    pitcherGuideTitle: 'Reading the pitchers',
+    pitcherGuideFip: 'What the pitcher controls on his own: strikeouts, walks and home runs, with the defense taken out. The number is FIP; the bar is FIP+, park-adjusted, where 100 is average.',
+    pitcherGuideEra: 'Earned runs allowed per 9 innings. It includes the defense behind him and some luck, so it swings more than FIP.',
+    pitcherGuideOpsMinus: 'OPS allowed against the chosen batter hand, compared with the league (100 = average). It stands in for ERA with a hand filter, since ERA isn\'t split by hand.',
+    pitcherGuideWhip: 'Baserunners per inning: walks plus hits. Less traffic, fewer runs.',
+    pitcherGuideKbb: 'Strikeout rate minus walk rate, per batter faced. The simple stat that best predicts how a pitcher will do.',
+    pitcherGuideXfip: 'FIP with home runs set to the league rate, which takes the luck out of fly balls leaving the park. A good guide to future ERA.',
+    pitcherGuideWoba: 'wOBA allowed: every way a batter reached base, weighted by what it\'s worth in runs. Follows the chosen period and batter hand.',
+    guideLowerBetter: 'Lower is better.',
   },
   es: {
     // Nav
@@ -457,15 +458,16 @@ export const translations = {
     tierBelow: 'Inferior al promedio',
     tierPoor: 'Malo',
     tierAwful: 'Pésimo',
-    // Pitcher matchup glossary
-    statGlossary: 'Glosario',
-    glossaryEraDesc: 'Carreras ganadas permitidas por 9 entradas. Depende de la defensa y la suerte.',
-    glossaryFipDesc: 'Como el ERA pero solo con ponches, bases por bola y jonrones — elimina la defensa.',
-    glossaryWhipDesc: 'Bases por bola más hits por entrada. Mide los corredores permitidos.',
-    glossaryOpsMinusDesc: 'OPS permitido comparado con la liga contra la misma mano de bateador. 100 es el promedio, mayor es mejor. Reemplaza al ERA con filtro de mano, porque el ERA no se separa por mano.',
-    glossaryKbbDesc: 'Tasa de ponches menos tasa de bases por bola. Mide el control neto del lanzador.',
-    glossaryXfipDesc: 'FIP con la tasa de jonrones normalizada al promedio de la liga. Mejor predictor del ERA futuro.',
-    glossaryWobaAgainstDesc: 'wOBA permitido. Pondera cada forma de llegar a base según su valor en carreras. Sigue el periodo y la mano de bateador elegidos.',
+    // Pitcher matchup guide (the card's "?")
+    pitcherGuideTitle: 'Cómo leer a los pitchers',
+    pitcherGuideFip: 'Lo que el pitcher controla por sí solo: ponches, bases por bola y jonrones, sin la defensa. El número es el FIP; la barra, el FIP+ ajustado por parque, donde 100 es el promedio.',
+    pitcherGuideEra: 'Carreras limpias permitidas por 9 entradas. Incluye la defensa detrás de él y algo de suerte, por eso varía más que el FIP.',
+    pitcherGuideOpsMinus: 'OPS permitido contra la mano de bateador elegida, comparado con la liga (100 = promedio). Sustituye al ERA cuando filtras por mano, porque el ERA no se separa por mano.',
+    pitcherGuideWhip: 'Corredores por entrada: bases por bola más hits. Menos tráfico, menos carreras.',
+    pitcherGuideKbb: 'Porcentaje de ponches menos porcentaje de bases por bola, por bateador enfrentado. La estadística simple que mejor anticipa el rendimiento de un pitcher.',
+    pitcherGuideXfip: 'FIP con los jonrones llevados a la tasa de la liga, para quitar la suerte de los elevados que se van. Buena guía del ERA que viene.',
+    pitcherGuideWoba: 'wOBA permitido: cada forma de llegar a base, pesada por su valor en carreras. Sigue el periodo y la mano de bateador elegidos.',
+    guideLowerBetter: 'Más bajo es mejor.',
   },
 } as const
 

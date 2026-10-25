@@ -231,59 +231,6 @@
   font-family: var(--font-mono);
 }
 
-/* ── Glossary content (rendered inside CardModal) ────────────────── */
-.glossaryList {
-  display: flex;
-  flex-direction: column;
-  padding: 4px 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
-}
-
-.glossaryList::-webkit-scrollbar {
-  width: 3px;
-}
-
-.glossaryList::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.glossaryList::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
-  border-radius: 9999px;
-}
-
-.glossaryList::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.22);
-}
-
-.glossaryItem {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 7px 14px;
-}
-
-.glossaryItem:not(:last-child) {
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-
-.glossaryStat {
-  font-size: 0.62rem;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  color: var(--text-primary);
-  min-width: 42px;
-  flex-shrink: 0;
-}
-
-.glossaryDesc {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-  line-height: 1.45;
-}
-
 /* "Proj." after the first name, in the projected-lineup amber */
 .projMark { color: var(--accent-amber); font-weight: 700; }
 

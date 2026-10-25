@@ -5,8 +5,8 @@ import type { ViewMode } from './LineupComparison'
 import { useT } from '@/i18n/useT'
 import type { TKey } from '@/i18n/useT'
 import CardBgLayers from './CardBgLayers'
-import CardModal from './CardModal'
 import MatchupBar from '@/components/MatchupBar/MatchupBar'
+import StatGuide, { type GuideTab } from '@/components/StatGuide/StatGuide'
 import styles from './PitcherMatchup.module.css'
 import { cutoutUrl, teamLogoUrl } from './mlbImages'
 
@@ -66,7 +66,7 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
       <div className={styles.pitcherRow}>
         <div className={styles.sidesRow}>
           <PitcherHeader side="away" view={away} />
-          <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)}>?</button>
+          <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label={t('pitcherGuideTitle')}>?</button>
           <PitcherHeader side="home" view={home} />
         </div>
       </div>
@@ -89,21 +89,11 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
         <PitchBar label="WHIP" aVal={stat(as?.whip)} hVal={stat(hs?.whip)} lowerIsBetter ac={ac} hc={hc} delay={220} />
       </div>
 
-      {/* ── Stat glossary overlay ─────────────────────────────────── */}
-      <CardModal
-        isOpen={glossaryOpen} onClose={() => setGlossaryOpen(false)}
-        title={t('statGlossary')}
-        awayColor={awayColor} homeColor={homeColor} mode="comparison"
-      >
-        <div className={styles.glossaryList}>
-          {GLOSSARY.map(({ stat, descKey }) => (
-            <div key={stat} className={styles.glossaryItem}>
-              <span className={styles.glossaryStat}>{stat}</span>
-              <span className={styles.glossaryDesc}>{t(descKey)}</span>
-            </div>
-          ))}
-        </div>
-      </CardModal>
+      {/* ── How to read the card (same sheet as the schedule's "?") ── */}
+      {glossaryOpen && (
+        <StatGuide title={t('pitcherGuideTitle')} tabs={pitcherGuideTabs(t, !!(as?.vsHand || hs?.vsHand))}
+          onClose={() => setGlossaryOpen(false)} />
+      )}
 
       {/* ── Always-visible chips ───────────────────────────────────── */}
       <PitcherChips
@@ -194,17 +184,30 @@ function PitcherChips({
   )
 }
 
-/* ── Glossary data ───────────────────────────────────────────────── */
+/* ── Guide content ───────────────────────────────────────────────── */
 
-const GLOSSARY: Array<{ stat: string; descKey: TKey }> = [
-  { stat: 'ERA',   descKey: 'glossaryEraDesc' },
-  { stat: 'FIP',   descKey: 'glossaryFipDesc' },
-  { stat: 'OPS-',  descKey: 'glossaryOpsMinusDesc' },
-  { stat: 'WHIP',  descKey: 'glossaryWhipDesc' },
-  { stat: 'K-BB%', descKey: 'glossaryKbbDesc' },
-  { stat: 'xFIP',  descKey: 'glossaryXfipDesc' },
-  { stat: 'wOBA',  descKey: 'glossaryWobaAgainstDesc' },
-]
+/**
+ * The card's stats in its order: the bars (FIP, ERA or OPS- with a hand filter,
+ * WHIP), then the chips. Averages and tiers are rules of thumb for starters
+ * (FanGraphs' for ERA / FIP), not this season's exact league line.
+ */
+function pitcherGuideTabs(t: (k: TKey) => string, vsHand: boolean): GuideTab[] {
+  const runs: GuideTab['tiers'] = ['≤ 2.90', '≤ 3.25', '≤ 3.75', '4.00', '≥ 4.20', '≥ 4.50', '≥ 5.00']
+  return [
+    { id: 'fip', label: 'FIP', desc: t('pitcherGuideFip'), average: '4.00', lowerIsBetter: true, tiers: runs },
+    vsHand
+      ? { id: 'ops', label: 'OPS-', desc: t('pitcherGuideOpsMinus'), average: '100',
+          tiers: ['≥ 130', '≥ 120', '≥ 110', '100', '≤ 90', '≤ 85', '≤ 75'] }
+      : { id: 'era', label: 'ERA', desc: t('pitcherGuideEra'), average: '4.00', lowerIsBetter: true, tiers: runs },
+    { id: 'whip', label: 'WHIP', desc: t('pitcherGuideWhip'), average: '1.30', lowerIsBetter: true,
+      tiers: ['≤ 1.00', '≤ 1.10', '≤ 1.20', '1.30', '≥ 1.40', '≥ 1.50', '≥ 1.60'] },
+    { id: 'kbb', label: 'K-BB%', desc: t('pitcherGuideKbb'), average: '14%',
+      tiers: ['≥ 22%', '≥ 19%', '≥ 16%', '14%', '≤ 11%', '≤ 9%', '≤ 6%'] },
+    { id: 'xfip', label: 'xFIP', desc: t('pitcherGuideXfip'), average: '4.00', lowerIsBetter: true, tiers: runs },
+    { id: 'woba', label: 'wOBA', desc: t('pitcherGuideWoba'), average: '.315', lowerIsBetter: true,
+      tiers: ['≤ .270', '≤ .285', '≤ .300', '.315', '≥ .330', '≥ .345', '≥ .360'] },
+  ]
+}
 
 /** MLB uses '-.--' for "no value" (and ERA can't be split by batter hand): show nothing. */
 function stat(v: string | undefined): string | undefined {
