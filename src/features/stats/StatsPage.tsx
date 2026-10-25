@@ -123,13 +123,33 @@ export default function StatsPage() {
   })
   const starters = startersOnly && sec !== 'team' ? startersQuery.data : undefined
 
-  // Filter (min sample, team / position, league), then sort; nulls always last.
+  // The comparison pool: the whole league that meets the minimum sample, whatever the
+  // team / position / league / today's-starters filters show. Bars and percentiles
+  // measure against it, so a player's numbers don't change with what's on screen.
+  const pool = useMemo(() => {
+    if (!data) return []
+    if (data.type === 'team') return data.teams as AnyRow[]
+    const games = data.teamGames
+    // With a hand filter, "qualified" scales by the league's share of PAs vs that hand.
+    const share = data.qualShare
+    return (data.players as (BatterRow | PitcherRow)[]).filter(r => {
+      if ('pa' in r) {
+        if (min === 'q') return r.pa >= 3.1 * share * (games[r.team] ?? 0)
+        if (typeof min === 'number') return r.pa >= min
+      } else {
+        // Relievers don't reach 1 IP per team game: a third of it.
+        if (min === 'q') return r.ip >= (role === 'rp' ? 1 / 3 : 1) * share * (games[r.team] ?? 0)
+        if (typeof min === 'number') return r.ip >= min
+      }
+      return true
+    }) as AnyRow[]
+  }, [data, min, role])
+
+  // What's shown: the pool narrowed by team / position / league, or today's starters
+  // whatever their sample. Sorted, nulls always last.
   const rows = useMemo(() => {
     if (!data) return []
-    const games = 'teamGames' in data ? data.teamGames : {}
-    // With a hand filter, "qualified" scales by the league's share of PAs vs that hand.
-    const share = 'qualShare' in data ? data.qualShare : 1
-    const list: AnyRow[] = data.type === 'team' ? data.teams : data.players
+    const list: AnyRow[] = starters ? (data.type === 'team' ? data.teams : data.players) : pool
     const filtered = list.filter(r => {
       const team = isTeamRow(r) ? r.id : r.team
       if (teamF && team !== teamF) return false
@@ -137,22 +157,8 @@ export default function StatsPage() {
         const meta = getTeamMeta(team)
         if (!meta || teamLeague(meta) !== league) return false
       }
-      // Today's starters: just them, whatever their sample (the minimum doesn't apply)
-      if (starters) return (data.type === 'bat' ? starters.batters : starters.pitchers).has((r as BatterRow | PitcherRow).id)
-        && (data.type !== 'bat' || !posF || matchesPos(r as BatterRow, posF))
-      if (data.type === 'bat') {
-        const b = r as BatterRow
-        if (posF && !matchesPos(b, posF)) return false
-        if (min === 'q') return b.pa >= 3.1 * share * (games[b.team] ?? 0)
-        if (typeof min === 'number') return b.pa >= min
-      }
-      if (data.type === 'pit') {
-        const p = r as PitcherRow
-        // Relievers don't reach 1 IP per team game: a third of it.
-        if (min === 'q') return p.ip >= (role === 'rp' ? 1 / 3 : 1) * share * (games[p.team] ?? 0)
-        if (typeof min === 'number') return p.ip >= min
-      }
-      return true
+      if (starters && !(data.type === 'bat' ? starters.batters : starters.pitchers).has((r as BatterRow | PitcherRow).id)) return false
+      return data.type !== 'bat' || !posF || matchesPos(r as BatterRow, posF)
     })
     const dir = asc ? 1 : -1
     return filtered.sort((a, b) => {
@@ -161,16 +167,16 @@ export default function StatsPage() {
       if (y == null) return -1
       return (x - y) * dir
     })
-  }, [data, posF, teamF, league, min, role, sortCol, asc, starters])
+  }, [data, pool, posF, teamF, league, sortCol, asc, starters])
 
-  // The bar scale of the sort stat: its fixed one (wRC+ 0–100–200), else the rows shown
+  // The bar scale of the sort stat: its fixed one (wRC+ 0–100–200), else the league pool's
   // (lowest – median – highest). Lower-is-better stats run the other way: longer = better.
   const scale = useMemo<BarScale>(() => {
     if (sortCol.scale) return { lo: sortCol.scale[0], mid: sortCol.scale[1], hi: sortCol.scale[2] }
-    const vals = rows.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b)
+    const vals = pool.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b)
     if (!vals.length) return { lo: 0, mid: 0, hi: 0 }
     return { lo: vals[0], mid: vals[Math.floor(vals.length / 2)], hi: vals[vals.length - 1] }
-  }, [rows, sortCol])
+  }, [pool, sortCol])
 
   function changeSection(s: Section) {
     setSec(s)
@@ -202,6 +208,10 @@ export default function StatsPage() {
     posF || (sec === 'bat' ? t('allPos') : ''),
   ].filter(Boolean).join(' · ')
   const notes = noteFor(data, sec, hand, role, period, t)
+  // "Percentile vs the whole league · Qualified" (teams: all 30, no minimum)
+  const poolSample = sec === 'team' ? ''
+    : min === 'q' ? t('minQualified') : min === 'all' ? t('minAll') : `≥ ${min} ${sec === 'bat' ? 'PA' : 'IP'}`
+  const poolNote = [t('percentileNote'), poolSample].filter(Boolean).join(' · ')
 
   return (
     <div className={styles.page}>
@@ -250,7 +260,7 @@ export default function StatsPage() {
             sections={[{ options: [['all', t('roleAll')], ['sp', t('roleSp')], ['rp', t('roleRp')]] }]} />
         )}
         {sec !== 'team' && (
-          <Dropdown value={String(min)} set={min !== 'q'} locked={!!starters} lockedTitle={t('todaysStarters')} onChange={v => setMin(v === 'q' || v === 'all' ? v : Number(v))}
+          <Dropdown value={String(min)} set={min !== 'q'} onChange={v => setMin(v === 'q' || v === 'all' ? v : Number(v))}
             sections={[{ options: [['q', t('minQualified')], ['all', t('minAll')],
               ...(sec === 'bat' ? MIN_PA.map(n => [String(n), `≥ ${n} PA`]) : MIN_IP.map(n => [String(n), `≥ ${n} IP`]))] as [string, string][] }]} />
         )}
@@ -315,7 +325,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={rows}
+          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={pool} poolNote={poolNote}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -514,10 +524,12 @@ function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
 
 // ── Row ───────────────────────────────────────────────────────────────
 
-function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle }: {
+function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open, onToggle }: {
   /** Place in the batch just shown, to stagger the entrance. */
   order: number
-  row: AnyRow; rank: number; sortCol: Column; scale: BarScale; cols: Column[]; pool: AnyRow[]; open: boolean; onToggle: () => void
+  /** The league-wide sample the percentiles compare against, and how to say it. */
+  pool: AnyRow[]; poolNote: string
+  row: AnyRow; rank: number; sortCol: Column; scale: BarScale; cols: Column[]; open: boolean; onToggle: () => void
 }) {
   const t = useT()
   const team = isTeamRow(row) ? row.id : row.team
@@ -562,7 +574,8 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
           </span>
           <span className={styles.axis}>
             <span>{formatStat(left, sortCol.fmt)}</span>
-            <span className={styles.axisMid} style={{ left: `${midAt}%` }}>{formatStat(scale.mid, sortCol.fmt)}</span>
+            {/* the median's label only where it clears the ends' */}
+            {midAt > 18 && midAt < 82 && <span className={styles.axisMid} style={{ left: `${midAt}%` }}>{formatStat(scale.mid, sortCol.fmt)}</span>}
             <span>{formatStat(right, sortCol.fmt)}</span>
           </span>
         </span>
@@ -589,7 +602,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, open, onToggle 
             )
           })}
           <div className={styles.detailFoot}>
-            <span>{t('percentileNote')}</span>
+            <span>{poolNote}</span>
             <Link to={href} className={styles.profile}>{t('viewProfile')} ›</Link>
           </div>
         </div>
