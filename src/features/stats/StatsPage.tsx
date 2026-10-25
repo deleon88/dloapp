@@ -184,12 +184,16 @@ export default function StatsPage() {
 
   // The bar scale of the sort stat: its fixed one (wRC+ 0–100–200), else the league pool's
   // (lowest – median – highest). Lower-is-better stats run the other way: longer = better.
+  // The sort stat over the pool, sorted: the scale's ends and median, and each row's percentile
+  const sortVals = useMemo(
+    () => pool.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b),
+    [pool, sortCol],
+  )
   const scale = useMemo<BarScale>(() => {
     if (sortCol.scale) return { lo: sortCol.scale[0], mid: sortCol.scale[1], hi: sortCol.scale[2] }
-    const vals = pool.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b)
-    if (!vals.length) return { lo: 0, mid: 0, hi: 0 }
-    return { lo: vals[0], mid: vals[Math.floor(vals.length / 2)], hi: vals[vals.length - 1] }
-  }, [pool, sortCol])
+    if (!sortVals.length) return { lo: 0, mid: 0, hi: 0 }
+    return { lo: sortVals[0], mid: sortVals[Math.floor(sortVals.length / 2)], hi: sortVals[sortVals.length - 1] }
+  }, [sortVals, sortCol])
 
   function changeSection(s: Section) {
     setSec(s)
@@ -338,7 +342,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={pool} poolNote={poolNote}
+          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} sortVals={sortVals} cols={cols} pool={pool} poolNote={poolNote}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -537,19 +541,29 @@ function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
 
 // ── Row ───────────────────────────────────────────────────────────────
 
-function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open, onToggle }: {
+function StatRow({ row, order, rank, sortCol, scale, sortVals, cols, pool, poolNote, open, onToggle }: {
   /** Place in the batch just shown, to stagger the entrance. */
   order: number
   /** The league-wide sample the percentiles compare against, and how to say it. */
   pool: AnyRow[]; poolNote: string
+  /** The sort stat over that pool, sorted (its percentile on the row). */
+  sortVals: number[]
   row: AnyRow; rank: number; sortCol: Column; scale: BarScale; cols: Column[]; open: boolean; onToggle: () => void
 }) {
   const t = useT()
   const team = isTeamRow(row) ? row.id : row.team
   const meta = getTeamMeta(team)
   const name = isTeamRow(row) ? (meta ? `${meta.name} ${meta.brief}` : String(row.id)) : row.name
-  const sub = isTeamRow(row) ? (meta ? teamLeague(meta) : '')
-    : [meta?.abbr, 'pos' in row ? row.pos : row.throws ? `${row.throws}HP` : ''].filter(Boolean).join(' · ')
+  // TV style: first name (a team's city) small on top, last name (nickname) big
+  const [first, last] = isTeamRow(row)
+    ? (meta ? [meta.name, meta.brief] : ['', name])
+    : (() => { const [f, ...r] = row.name.split(' '); return r.length ? [f, r.join(' ')] : ['', f] })()
+  // team · position / hand · the sample
+  const sub = [
+    isTeamRow(row) ? (meta ? teamLeague(meta) : '') : meta?.abbr,
+    isTeamRow(row) ? '' : 'pos' in row ? row.pos : row.throws ? `${row.throws}HP` : '',
+    sampleOf(row).slice(0, 1).map(([k, s]) => `${s} ${k}`)[0],
+  ].filter(Boolean).join(' · ')
   const href = isTeamRow(row) ? `/team/${row.id}` : `/player/${row.id}`
 
   // The detail mounts shut on the first open and unfolds a frame later (a transition
@@ -568,17 +582,17 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
   const v = sortCol.get(row)
   const fill = v != null && Number.isFinite(v) ? onScale(v, scale, sortCol.low) : 0
   const midAt = onScale(scale.mid, scale, sortCol.low)
-  const [left, right] = sortCol.low ? [scale.hi, scale.lo] : [scale.lo, scale.hi]
+  // The sort stat's percentile in the league pool (sortVals: that pool's values, sorted)
+  const pctl = v != null && Number.isFinite(v) && sortVals.length ? percentile(sortVals, v, sortCol.low) : null
 
   return (
     // Team colors: the card's gradient and tile in its main color, the bar in its bar color
     <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}
       style={{ '--i': order, ...(meta ? { '--team': cardTone(meta.color), '--team-bar': getBarColor(meta) } : {}) } as CSSProperties}>
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
-        <span className={styles.rank}>{rank}</span>
-
-        {/* Team corner: its logo, faint, and the player's cutout */}
-        <span className={styles.tile}>
+        {/* The team plate: rank, the logo faded, the player's cutout (a team: its logo) */}
+        <span className={styles.plate}>
+          <span className={styles.rank}>{rank}</span>
           {isTeamRow(row) ? (
             <img className={styles.tileLogoBig} src={teamLogoUrl(team)} alt="" loading="lazy" />
           ) : <>
@@ -589,23 +603,23 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
         </span>
 
         <span className={styles.body}>
-          <span className={styles.topLine}>
-            <span className={styles.name}>{name}</span>
-            <span className={styles.val}><AnimatedStat value={v} col={sortCol} delay={Math.min(order, 12) * 35 + 80} /></span>
+          <span className={styles.head}>
+            <span className={styles.who}>
+              {first && <span className={styles.first}>{first}</span>}
+              <span className={styles.last} title={name}>{last}</span>
+              <span className={styles.meta}>{sub}</span>
+            </span>
+            <span className={styles.stat}>
+              <span className={styles.val}><AnimatedStat value={v} col={sortCol} delay={Math.min(order, 12) * 35 + 80} /></span>
+              {pctl != null && <span className={styles.pctl} style={{ color: savant(pctl) }}>{t('pctlShort')} {Math.round(pctl)}</span>}
+            </span>
           </span>
-          <span className={styles.meta}>{sub}</span>
           {/* Open, the detail shows this stat's bar too: this one folds away */}
           <span className={`${styles.fold} ${open ? styles.foldShut : ''}`} aria-hidden={open}>
             <span className={styles.foldInner}>
               <span className={styles.bar}>
-                <span className={styles.barFill} style={scaleFill(fill, midAt)} />
+                <span className={styles.barFill} style={fillStyle(fill)} />
                 <span className={styles.barMark} style={{ left: `${midAt}%` }} />
-              </span>
-              <span className={styles.axis}>
-                <span>{formatStat(left, sortCol.fmt)}</span>
-                {/* the median's label only where it clears the ends' */}
-                {midAt > 18 && midAt < 82 && <span className={styles.axisMid} style={{ left: `${midAt}%` }}>{formatStat(scale.mid, sortCol.fmt)}</span>}
-                <span>{formatStat(right, sortCol.fmt)}</span>
               </span>
             </span>
           </span>
@@ -623,16 +637,14 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
             const vals = pool.map(c.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b)
             const p = v != null && vals.length ? percentile(vals, v, c.low) : null
             return (
-              <div key={c.id} className={`${styles.pr} ${c.id === sortCol.id ? styles.prOn : ''}`}>
+              <div key={c.id} className={`${styles.pr} ${c.id === sortCol.id ? styles.prOn : ''}`}
+                style={p != null ? { '--p': savant(p) } as CSSProperties : undefined}>
                 <span className={styles.prLabel}>{c.label}</span>
                 <span className={styles.track}>
-                  {p != null && <>
-                    {/* the knob rides the fill's end and counts up with it */}
-                    <span className={styles.fill} style={scaleFill(p, 50)}>
-                      <span className={styles.knob} style={{ background: toneAt(p) }}><CountUp value={Math.round(p)} delay={120} duration={fillMs(p)} /></span>
-                    </span>
-                  </>}
+                  {p != null && <span className={styles.fill} style={fillStyle(p)} />}
                 </span>
+                {/* the percentile counts up in step with its bar */}
+                {p != null ? <span className={styles.knob}><CountUp value={Math.round(p)} delay={120} duration={fillMs(p)} /></span> : <span />}
                 <span className={styles.prVal}>{formatStat(v, c.fmt)}</span>
               </div>
             )
@@ -649,18 +661,9 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
   )
 }
 
-/**
- * A bar filled to `width`% whose gradient is laid over the whole scale, not just
- * the fill: neutral at the low end, the team color faint at the average mark
- * (`mid`%) and stronger at the top — an average player ends faint, a good one strong.
- */
-function scaleFill(width: number, mid: number): CSSProperties {
-  return {
-    width: `${width}%`,
-    backgroundSize: `${width > 0 ? 10000 / width : 100}% 100%`,
-    '--mid': `${mid}%`,
-    '--fill-dur': `${fillMs(width)}ms`,
-  } as CSSProperties
+/** A bar filled to `width`%, growing in at its pace (see fillMs). */
+function fillStyle(width: number): CSSProperties {
+  return { width: `${width}%`, '--fill-dur': `${fillMs(width)}ms` } as CSSProperties
 }
 
 /** Fill time for a bar of `width`%: the higher, the quicker (100 → 0.5s, 50 → 0.85s, 0 → 1.2s). */
@@ -668,7 +671,6 @@ function fillMs(width: number): number {
   return Math.round(1200 - 7 * Math.max(0, Math.min(100, width)))
 }
 
-/** The bar's color at percentile `p` (its gradient's tones), for the percentile knob. */
 /**
  * The team color for a card's background, its lightness capped so white text
  * reads on it: navy and red stay as they are, gold and orange come down to a
@@ -688,10 +690,11 @@ function cardTone(hex: string): string {
   return `hsl(${Math.round(h * 60 + 360) % 360} ${Math.round(s * 100)}% ${Math.round(Math.min(l, cap) * 100)}%)`
 }
 
-function toneAt(p: number): string {
+/** Baseball Savant's percentile scale, on dark: blue (poor) → grey (average) → red (elite). */
+function savant(p: number): string {
   return p <= 50
-    ? `color-mix(in srgb, var(--tone-mid) ${p * 2}%, var(--tone-low))`
-    : `color-mix(in srgb, var(--tone-high) ${(p - 50) * 2}%, var(--tone-mid))`
+    ? `color-mix(in srgb, #8a92a3 ${p * 2}%, #3d74d9)`
+    : `color-mix(in srgb, #e5484d ${(p - 50) * 2}%, #8a92a3)`
 }
 
 /** The sample behind a line: PA (batters), IP and BF (pitchers), games (teams). */

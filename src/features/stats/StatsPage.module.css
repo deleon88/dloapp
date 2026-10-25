@@ -286,42 +286,29 @@
   color: var(--text-muted);
 }
 
-/* The whole card in the team color, rich across its width: a glow behind the
-   logo (on the top row, also when open), the color itself, a little deeper to the right, a soft light along the
-   top edge and a border in a lighter shade. Darkened just enough that white
-   text reads on light colors (gold, orange) too. */
+/* ── Row: the app's TV-graphic line ──────────────────────────────────
+   The team color lives on a plate cut on a diagonal (rank, faded logo, the
+   player's cutout); the rest of the card is the app's neutral card. Names,
+   chips, numbers and the bar are the pitcher / lineup cards' own. */
 .item {
-  /* bars: light tints of the team's bar color, so they stand out on its own background */
-  --tone-low: color-mix(in srgb, var(--team-bar, #4aa3ff) 20%, #8a93a6);
-  --tone-mid: color-mix(in srgb, var(--team-bar, #4aa3ff) 50%, #c9d0dc);
-  --tone-high: color-mix(in srgb, var(--team-bar, #4aa3ff) 55%, #fff);
-  --team-c: var(--team, var(--bg-card));
-  /* on the team color the page's dim greys wash out: brighter ones inside the card */
-  --text-secondary: rgba(255, 255, 255, 0.8);
-  --text-muted: rgba(255, 255, 255, 0.58);
   /* entrance: rows come in one after another (capped, so long lists don't wait) */
   --delay: calc(min(var(--i, 0), 12) * 35ms);
+  --team-c: var(--team, #2a3347);
   border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--team-c) 70%, #fff 18%);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 45%),
-    radial-gradient(circle at 56px 38px, color-mix(in srgb, var(--team-c) 75%, #fff 25%) 0, transparent 70px),
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--team-c) 78%, #000) 0%,
-      color-mix(in srgb, var(--team-c) 62%, #000) 100%);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
   overflow: hidden;
+  transition: border-color var(--transition-fast);
 }
 
-.itemOpen { border-color: color-mix(in srgb, var(--team-c) 50%, #fff 50%); }
+.itemOpen { border-color: var(--border-active); }
 
-/* rank · team tile · name / value / bar */
 .row {
   display: grid;
-  grid-template-columns: 18px 76px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
+  grid-template-columns: 92px minmax(0, 1fr);
   width: 100%;
-  padding: 8px 12px 8px 8px;
+  min-height: 76px;
+  padding: 0;
   border: none;
   background: none;
   color: inherit;
@@ -330,85 +317,125 @@
   cursor: pointer;
 }
 
-.rank { font: 700 0.7rem var(--font-mono); color: var(--text-secondary); text-align: center; }
-
-/* Team corner: no box — the logo as a big faint watermark and the player's
-   cutout standing on the card's bottom edge, both on the card's team gradient */
-.tile {
+.plate {
   position: relative;
-  align-self: stretch;
-  width: 76px;
-  margin: -8px 0;   /* the full card height: the cutout reaches the bottom edge */
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 55%, rgba(0, 0, 0, 0.22)),
+    var(--team-c);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
 }
 
-.tileLogo {
-  animation: logoIn 0.5s ease var(--delay) both;
+.rank {
   position: absolute;
-  left: -6px;
+  left: 8px;
+  top: 6px;
+  z-index: 2;
+  font: 800 0.72rem var(--font-mono);
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* the team logo, big and faded, like behind the pitchers on the game page */
+.tileLogo {
+  position: absolute;
+  right: -14px;
   top: 50%;
-  width: 54px;
-  height: 54px;
+  width: 70px;
+  height: 70px;
   transform: translateY(-50%);
   object-fit: contain;
-  opacity: 0.35;
+  opacity: 0.28;
+  animation: logoIn 0.5s ease var(--delay) both;
 }
 
 .tilePhoto {
   position: absolute;
-  right: -6px;
+  left: 12px;
   bottom: 0;
-  width: 66px;
-  height: calc(100% - 4px);
+  z-index: 1;
+  width: 70px;
+  height: 70px;
   object-fit: contain;
   object-position: bottom;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
-  /* fades softly into the card toward the bottom */
-  -webkit-mask-image: linear-gradient(to bottom, #000 62%, rgba(0, 0, 0, 0.35) 100%);
-          mask-image: linear-gradient(to bottom, #000 62%, rgba(0, 0, 0, 0.35) 100%);
   animation: photoIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--delay) + 60ms) both;
 }
 
+/* teams: their logo is the plate */
 .tileLogoBig {
-  animation: photoIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) var(--delay) both;
   position: absolute;
-  inset: 12px 6px;
-  width: calc(100% - 12px);
+  inset: 14px 22px 10px 14px;
+  width: calc(100% - 36px);
   height: calc(100% - 24px);
   object-fit: contain;
+  animation: photoIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) var(--delay) both;
 }
 
-.body { display: flex; flex-direction: column; min-width: 0; }
-
-.topLine { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-
-/* line-height leaves room for accents (Álvarez) */
-.name {
+.body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-width: 0;
+  padding: 9px 12px 9px 6px;
+}
+
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+
+.who { min-width: 0; }
+
+/* FIRST small over LAST big: the pitcher card's names */
+.first {
+  display: block;
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.last {
+  display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.86rem;
-  font-weight: 700;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
   color: var(--text-primary);
-  line-height: 1.3;
+  line-height: 1.3;   /* room for capital accents: overflow would clip them */
 }
-
-.val { flex-shrink: 0; font: 800 1.05rem var(--font-mono); color: var(--text-primary); }
 
 .meta {
-  font: 600 0.58rem var(--font-mono);
-  letter-spacing: 0.04em;
+  display: block;
+  margin-top: 1px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 600 0.56rem var(--font-mono);
   color: var(--text-secondary);
-  margin-top: -1px;
 }
 
-/* The sort stat on its scale, the average marked */
+.stat { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+
+.val { font: 800 1.2rem var(--font-mono); color: var(--text-primary); line-height: 1.1; }
+
+/* its percentile in the Savant color (blue poor · grey average · red elite) */
+.pctl {
+  margin-top: 3px;
+  font: 700 0.52rem var(--font-mono);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* The sort stat on its scale, the average marked: the cards' bar */
 .bar {
   position: relative;
-  height: 7px;
-  margin-top: 4px;   /* + the fold's 2px */
+  height: 6px;
+  margin-top: 5px;   /* + the fold's 2px */
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .barFill {
@@ -417,18 +444,21 @@
   top: 0;
   bottom: 0;
   border-radius: 4px;
-  /* neutral → team color faint at the average → stronger at the top, over the whole scale
-     (the size is set inline so the fill only reveals its part) */
-  background-image: linear-gradient(90deg,
-    var(--tone-low) 0%,
-    var(--tone-mid) var(--mid, 50%),
-    var(--tone-high) 100%);
-  background-repeat: no-repeat;
-  /* grows in without a bounce (the game page's bars spring; a list of near-full bars
-     springing reads as jitter), the longer the bar the quicker (--fill-dur, set
-     inline); slides to the new length when the sort changes */
-  transition: width 0.6s var(--ease-out), background-size 0.6s var(--ease-out);
+  background: var(--team-bar, #4aa3ff);
+  opacity: 0.9;
+  /* grows in, the longer the bar the quicker (--fill-dur, set inline); slides to
+     the new length when the sort changes */
+  transition: width 0.6s var(--ease-out);
   animation: barIn var(--fill-dur, 0.85s) var(--ease-out) calc(var(--delay) + 80ms) backwards;
+}
+
+.barMark {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 @keyframes barIn { from { width: 0; } }
@@ -439,27 +469,7 @@
   .tileLogo, .tilePhoto, .tileLogoBig, .barFill, .fold { animation: none; transition: none; }
 }
 
-.barMark {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 1.5px;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.axis {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  margin-top: 3px;
-  font: 500 0.5rem var(--font-mono);
-  color: var(--text-muted);
-}
-
-.axisMid { position: absolute; transform: translateX(-50%); }
-
-/* ── Detail: the group's line as percentile bars ─────────────────── */
+/* ── Detail: the line as percentiles, on the Savant scale ─────────── */
 /* Folding: the row's bar shuts as the detail (which repeats it) opens, both by
    their real height (grid rows 1fr ↔ 0fr) */
 .fold {
@@ -473,22 +483,23 @@
 /* the row bar's mark pokes 2px past it: room for it inside the clip */
 .foldInner { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .body .foldInner { padding-top: 2px; }
-.detail { padding: 4px 14px 12px 14px; border-top: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.18); }
+.detail { padding: 8px 14px 12px; border-top: 1px solid var(--border); }
 
 /* Sample size on top of the detail */
 .sample {
   display: flex;
   gap: 14px;
-  padding: 2px 0 6px;
+  padding: 0 0 6px;
   font: 600 0.56rem var(--font-mono);
   color: var(--text-muted);
 }
 
 .sample b { color: var(--text-primary); font-weight: 800; }
 
+/* label · bar · percentile · value */
 .pr {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 50px;
+  grid-template-columns: 44px minmax(0, 1fr) 28px 46px;
   align-items: center;
   gap: 10px;
   padding: 4px 0;
@@ -497,43 +508,35 @@
 .prLabel { font: 700 0.56rem var(--font-mono); color: var(--text-secondary); }
 .prOn .prLabel { color: var(--text-primary); }
 
-.track { position: relative; height: 6px; border-radius: 3px; background: rgba(0, 0, 0, 0.3); }
+.track { position: relative; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.06); }
+
 .fill {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  border-radius: 3px;
-  /* neutral → team color faint at the average → stronger at the top, over the whole scale
-     (the size is set inline so the fill only reveals its part) */
-  background-image: linear-gradient(90deg,
-    var(--tone-low) 0%,
-    var(--tone-mid) var(--mid, 50%),
-    var(--tone-high) 100%);
-  background-repeat: no-repeat;
-  /* each time the detail opens: the same fill as the bars, the knob riding its end */
+  border-radius: 2px;
+  background: var(--p);
+  /* each time the detail opens: the same fill as the bars */
   animation: barIn var(--fill-dur, 0.85s) var(--ease-out) 0.12s backwards;
 }
 
-/* on the fill's end, so it travels with it */
+/* the percentile as a small block in its color, counting up with its bar */
 .knob {
-  position: absolute;
-  top: 50%;
-  right: -9px;
-  width: 18px;
+  justify-self: center;
+  min-width: 26px;
   height: 18px;
-  margin-top: -9px;
+  padding: 0 4px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.85);
-  background: var(--team-bar, #4aa3ff);
-  font: 800 0.46rem var(--font-mono);
-  color: #0b1020;   /* dark on the light tones */
+  border-radius: 5px;
+  background: var(--p);
+  font: 800 0.56rem var(--font-mono);
+  color: #fff;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fill, .knob { animation: none; }
+  .fill { animation: none; }
 }
 
 .prVal { font: 700 0.66rem var(--font-mono); color: var(--text-primary); text-align: right; }
@@ -669,10 +672,11 @@
 .resetBtn { border: 1px solid var(--border-active); background: transparent; color: var(--text-secondary); }
 .doneBtn { border: none; background: var(--text-primary); color: var(--bg-deep); }
 
+/* Narrow phones: a slimmer plate, so the last name keeps its room */
 @media (max-width: 360px) {
-  .row { grid-template-columns: 16px 64px minmax(0, 1fr); gap: 8px; padding: 8px 10px 8px 6px; }
-  .tile { width: 64px; }
-  .tileLogo { width: 46px; height: 46px; }
-  .tilePhoto { width: 56px; }
-  .name { font-size: 0.8rem; }
+  .row { grid-template-columns: 78px minmax(0, 1fr); }
+  .tileLogo { width: 58px; height: 58px; }
+  .tilePhoto { left: 8px; width: 62px; height: 62px; }
+  .last { font-size: 0.85rem; }
+  .val { font-size: 1.05rem; }
 }
