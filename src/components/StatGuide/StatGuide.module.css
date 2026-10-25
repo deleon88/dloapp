@@ -210,6 +210,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.note {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 /* ── Primary button ───────────────────────────────────────────────── */
 .gotIt {
   width: 100%;

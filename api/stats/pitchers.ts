@@ -1,9 +1,11 @@
 // GET /api/stats/pitchers?ids=1,2,3[&season=2026][&period=season|60days|30days|14days|7days][&role=all|rp]
 // FIP, FIP-, xFIP, WHIP, K-BB% and wOBA against (overall, vs LHB, vs RHB) from
 // the play-by-play, plus ERA / W-L / QS from MLB for the same period.
+// GET /api/stats/pitchers?guide=1[&season=2026]: league averages + tiers for the pitcher card guide
 import { PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting.js'
 import { getPitcherLines, type PitcherRole } from '../../server/stats/pitching.js'
 import { getPitcherRecords } from '../../server/mlb/pitcherRecord.js'
+import { getPitchingGuide } from '../../server/stats/pitchingGuide.js'
 
 const MAX_IDS = 200
 const PERIODS = new Set<string>(['season', ...Object.keys(PERIOD_DAYS)])
@@ -15,6 +17,19 @@ function bad(message: string): Response {
 
 export async function GET(request: Request): Promise<Response> {
   const q = new URL(request.url).searchParams
+
+  // ?guide=1[&season=]: league averages and tier cut-offs for the pitcher card's guide
+  if (q.has('guide')) {
+    const season = Number(q.get('season') ?? new Date().getFullYear())
+    if (!Number.isInteger(season) || season < 2000 || season > 2100) return bad('season inválida')
+    try {
+      return Response.json(await getPitchingGuide(season),
+        { headers: { 'Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=86400' } })
+    } catch (e) {
+      console.error('[api/stats/pitchers guide]', e)
+      return Response.json({ error: 'Error al consultar la base' }, { status: 500 })
+    }
+  }
 
   const ids = (q.get('ids') ?? '').split(',').filter(Boolean).map(Number)
   if (!ids.length) return bad('ids es obligatorio')

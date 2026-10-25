@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useT, type TKey } from '@/i18n/useT'
 import styles from './StatGuide.module.css'
 
@@ -22,8 +23,16 @@ const TIER_COLORS = ['#34b27b', '#5cbf93', '#8ccdb0', 'rgba(255, 255, 255, 0.45)
  * the league average, a below → above scale and the tiers. A bottom sheet on
  * phones, a centered card on wider screens. Used by the schedule's bars guide
  * and the pitcher matchup card.
+ *
+ * Rendered into <body>: inside a card, the card's own rules (position, overflow,
+ * stacking) would trap a fixed overlay in it.
  */
-export default function StatGuide({ title, tabs, onClose }: { title: string; tabs: GuideTab[]; onClose: () => void }) {
+export default function StatGuide({ title, tabs, note, onClose }: {
+  title: string; tabs: GuideTab[]
+  /** Small print under the tiers: where the numbers come from. */
+  note?: string
+  onClose: () => void
+}) {
   const t = useT()
   const [tab, setTab] = useState(tabs[0].id)
   const current = tabs.find(x => x.id === tab) ?? tabs[0]
@@ -39,7 +48,7 @@ export default function StatGuide({ title, tabs, onClose }: { title: string; tab
     }
   }, [onClose])
 
-  return (
+  return createPortal(
     <div className={styles.backdrop} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="stat-guide-title">
         <span className={styles.grabber} aria-hidden="true" />
@@ -99,10 +108,12 @@ export default function StatGuide({ title, tabs, onClose }: { title: string; tab
               </li>
             ))}
           </ul>
+          {note && <p className={styles.note}>{note}</p>}
         </div>
 
         <button type="button" className={styles.gotIt} onClick={onClose}>{t('guideGotIt')}</button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

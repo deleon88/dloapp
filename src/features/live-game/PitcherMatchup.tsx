@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { PitcherInfo, PitcherSeasonStats } from '@/api/mlb/endpoints/pitcherStats'
 import { fipPlus } from '@/api/mlb/endpoints/pitcherStats'
+import { fetchPitchingGuide, type GuideStat, type PitchingGuide } from '@/api/stats/pitchers'
+import { currentSeason } from '@/utils/period'
 import type { ViewMode } from './LineupComparison'
 import { useT } from '@/i18n/useT'
 import type { TKey } from '@/i18n/useT'
@@ -37,6 +40,13 @@ const TEAM_LOGO = teamLogoUrl
 export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayProjected, homeProjected, awayTeamId, homeTeamId, mode }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
+  // The guide's league averages and tiers: fetched the first time it opens
+  const guideQuery = useQuery({
+    queryKey: ['pitching-guide', currentSeason()],
+    queryFn: () => fetchPitchingGuide(currentSeason()),
+    enabled: glossaryOpen,
+    staleTime: 6 * 3_600_000,
+  })
   const ac = awayBarColor ?? awayColor
   const hc = homeBarColor ?? homeColor
 
@@ -91,7 +101,10 @@ export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, ho
 
       {/* ── How to read the card (same sheet as the schedule's "?") ── */}
       {glossaryOpen && (
-        <StatGuide title={t('pitcherGuideTitle')} tabs={pitcherGuideTabs(t, !!(as?.vsHand || hs?.vsHand))}
+        <StatGuide title={t('pitcherGuideTitle')} tabs={pitcherGuideTabs(t, !!(as?.vsHand || hs?.vsHand), guideQuery.data)}
+          note={guideQuery.data
+            ? t('pitcherGuideNote').replace('{season}', String(guideQuery.data.season)).replace('{n}', String(guideQuery.data.pitchers))
+            : guideQuery.isError ? t('pitcherGuideError') : undefined}
           onClose={() => setGlossaryOpen(false)} />
       )}
 
@@ -186,26 +199,39 @@ function PitcherChips({
 
 /* ── Guide content ───────────────────────────────────────────────── */
 
+const GUIDE_FMT: Record<GuideStat, (v: number) => string> = {
+  era: v => v.toFixed(2), fip: v => v.toFixed(2), xfip: v => v.toFixed(2), whip: v => v.toFixed(2),
+  kbb: v => `${v.toFixed(1)}%`,
+  woba: v => v.toFixed(3).replace(/^0/, ''),
+}
+
 /**
  * The card's stats in its order: the bars (FIP, ERA or OPS- with a hand filter,
- * WHIP), then the chips. Averages and tiers are rules of thumb for starters
- * (FanGraphs' for ERA / FIP), not this season's exact league line.
+ * WHIP), then the chips. Averages and tiers are this season's, from the server
+ * ("…" while they load). OPS- is an index: 100 is the average by definition,
+ * its tiers the same steps as FIP+ on the schedule.
  */
-function pitcherGuideTabs(t: (k: TKey) => string, vsHand: boolean): GuideTab[] {
-  const runs: GuideTab['tiers'] = ['≤ 2.90', '≤ 3.25', '≤ 3.75', '4.00', '≥ 4.20', '≥ 4.50', '≥ 5.00']
+function pitcherGuideTabs(t: (k: TKey) => string, vsHand: boolean, g: PitchingGuide | undefined): GuideTab[] {
+  const tab = (id: GuideStat, label: string, desc: TKey, lowerIsBetter: boolean): GuideTab => {
+    if (!g) return { id, label, desc: t(desc), average: '…', lowerIsBetter, tiers: ['…', '…', '…', '…', '…', '…', '…'] }
+    const f = GUIDE_FMT[id]
+    const [good, bad] = lowerIsBetter ? ['≤', '≥'] : ['≥', '≤']
+    const c = g.tiers[id]
+    return {
+      id, label, desc: t(desc), average: f(g.avg[id]), lowerIsBetter,
+      tiers: [`${good} ${f(c[0])}`, `${good} ${f(c[1])}`, `${good} ${f(c[2])}`, f(g.avg[id]), `${bad} ${f(c[3])}`, `${bad} ${f(c[4])}`, `${bad} ${f(c[5])}`],
+    }
+  }
   return [
-    { id: 'fip', label: 'FIP', desc: t('pitcherGuideFip'), average: '4.00', lowerIsBetter: true, tiers: runs },
+    tab('fip', 'FIP', 'pitcherGuideFip', true),
     vsHand
       ? { id: 'ops', label: 'OPS-', desc: t('pitcherGuideOpsMinus'), average: '100',
           tiers: ['≥ 130', '≥ 120', '≥ 110', '100', '≤ 90', '≤ 85', '≤ 75'] }
-      : { id: 'era', label: 'ERA', desc: t('pitcherGuideEra'), average: '4.00', lowerIsBetter: true, tiers: runs },
-    { id: 'whip', label: 'WHIP', desc: t('pitcherGuideWhip'), average: '1.30', lowerIsBetter: true,
-      tiers: ['≤ 1.00', '≤ 1.10', '≤ 1.20', '1.30', '≥ 1.40', '≥ 1.50', '≥ 1.60'] },
-    { id: 'kbb', label: 'K-BB%', desc: t('pitcherGuideKbb'), average: '14%',
-      tiers: ['≥ 22%', '≥ 19%', '≥ 16%', '14%', '≤ 11%', '≤ 9%', '≤ 6%'] },
-    { id: 'xfip', label: 'xFIP', desc: t('pitcherGuideXfip'), average: '4.00', lowerIsBetter: true, tiers: runs },
-    { id: 'woba', label: 'wOBA', desc: t('pitcherGuideWoba'), average: '.315', lowerIsBetter: true,
-      tiers: ['≤ .270', '≤ .285', '≤ .300', '.315', '≥ .330', '≥ .345', '≥ .360'] },
+      : tab('era', 'ERA', 'pitcherGuideEra', true),
+    tab('whip', 'WHIP', 'pitcherGuideWhip', true),
+    tab('kbb', 'K-BB%', 'pitcherGuideKbb', false),
+    tab('xfip', 'xFIP', 'pitcherGuideXfip', true),
+    tab('woba', 'wOBA', 'pitcherGuideWoba', true),
   ]
 }
 

@@ -233,6 +233,8 @@ export const translations = {
     pitcherGuideXfip: 'FIP with home runs set to the league rate, which takes the luck out of fly balls leaving the park. A good guide to future ERA.',
     pitcherGuideWoba: 'wOBA allowed: every way a batter reached base, weighted by what it\'s worth in runs. Follows the chosen period and batter hand.',
     guideLowerBetter: 'Lower is better.',
+    pitcherGuideNote: '{season} season, all of MLB. Tiers: where the {n} pitchers with at least 100 batters faced land, weighted by batters faced.',
+    pitcherGuideError: "Couldn't load this season's numbers.",
   },
   es: {
     // Nav
@@ -468,6 +470,8 @@ export const translations = {
     pitcherGuideXfip: 'FIP con los jonrones llevados a la tasa de la liga, para quitar la suerte de los elevados que se van. Buena guía del ERA que viene.',
     pitcherGuideWoba: 'wOBA permitido: cada forma de llegar a base, pesada por su valor en carreras. Sigue el periodo y la mano de bateador elegidos.',
     guideLowerBetter: 'Más bajo es mejor.',
+    pitcherGuideNote: 'Temporada {season}, toda MLB. Niveles: dónde quedan los {n} pitchers con al menos 100 bateadores enfrentados, ponderados por bateadores enfrentados.',
+    pitcherGuideError: 'No se pudieron cargar los números de la temporada.',
   },
 } as const
 

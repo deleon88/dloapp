@@ -66,6 +66,22 @@ export async function fetchPitcherLines(
   return out
 }
 
+export type GuideStat = 'era' | 'fip' | 'xfip' | 'whip' | 'kbb' | 'woba'
+
+/** The pitcher card guide: league averages and six tier cut-offs (best first) per stat. */
+export interface PitchingGuide {
+  season: number
+  pitchers: number
+  avg: Record<GuideStat, number>
+  tiers: Record<GuideStat, [number, number, number, number, number, number]>
+}
+
+export async function fetchPitchingGuide(season: number): Promise<PitchingGuide> {
+  const res = await fetch(`/api/stats/pitchers?guide=1&season=${season}`)
+  if (!res.ok) throw new Error(`stats/pitchers guide ${res.status}`)
+  return res.json() as Promise<PitchingGuide>
+}
+
 /** Decimal innings → baseball notation ("150.2"). */
 export function formatIp(ip: number): string {
   const outs = Math.round(ip * 3)
