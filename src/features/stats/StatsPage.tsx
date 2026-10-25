@@ -104,6 +104,18 @@ export default function StatsPage() {
     return () => window.removeEventListener('resize', checkPills)
   }, [cols])
   const sortCol = cols.find(c => c.id === sort.id) ?? cols[0]
+
+  // The chosen stat's pill always in sight: scroll the row to it when it's under the
+  // buttons or the fade (e.g. wRC+, last of many). Only the row scrolls, never the page.
+  useEffect(() => {
+    const el = pillsRef.current
+    const pill = el?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (!el || !pill) return
+    const fade = 24
+    const start = pill.offsetLeft - el.offsetLeft, end = start + pill.offsetWidth
+    if (end > el.scrollLeft + el.clientWidth - fade) el.scrollTo({ left: end - el.clientWidth + fade, behavior: 'smooth' })
+    else if (start < el.scrollLeft) el.scrollTo({ left: start - 8, behavior: 'smooth' })
+  }, [sortCol.id, cols])
   const asc = sortCol.id === sort.id ? sort.asc : !!sortCol.low
 
   const query = useQuery({
@@ -303,7 +315,7 @@ export default function StatsPage() {
       <div className={styles.toolbar}>
         <div ref={pillsRef} className={`${styles.pills} ${pillsMore ? styles.pillsFade : ''}`} onScroll={checkPills}>
           {cols.map(c => (
-            <button key={c.id} className={`${styles.pill} ${c.id === sortCol.id ? styles.pillOn : ''}`} onClick={() => sortBy(c)}>{c.label}</button>
+            <button key={c.id} className={`${styles.pill} ${c.id === sortCol.id ? styles.pillOn : ''}`} aria-pressed={c.id === sortCol.id} onClick={() => sortBy(c)}>{c.label}</button>
           ))}
         </div>
         <button className={styles.dirBtn} onClick={() => setSort({ id: sortCol.id, asc: !asc })}
@@ -539,6 +551,16 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
     : [meta?.abbr, 'pos' in row ? row.pos : row.throws ? `${row.throws}HP` : ''].filter(Boolean).join(' · ')
   const href = isTeamRow(row) ? `/team/${row.id}` : `/player/${row.id}`
 
+  // The detail mounts shut on the first open and unfolds a frame later (a transition
+  // needs a "before"); after that it stays mounted and just folds.
+  const [opened, setOpened] = useState(open)
+  if (open && !opened) setOpened(true)
+  const [shown, setShown] = useState(open)
+  useEffect(() => {
+    let id = requestAnimationFrame(() => { id = requestAnimationFrame(() => setShown(open)) })
+    return () => cancelAnimationFrame(id)
+  }, [open])
+
   const v = sortCol.get(row)
   const fill = v != null && Number.isFinite(v) ? onScale(v, scale, sortCol.low) : 0
   const midAt = onScale(scale.mid, scale, sortCol.low)
@@ -568,20 +590,28 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
             <span className={styles.val}><AnimatedStat value={v} col={sortCol} delay={Math.min(order, 12) * 35 + 80} /></span>
           </span>
           <span className={styles.meta}>{sub}</span>
-          <span className={styles.bar}>
-            <span className={styles.barFill} style={scaleFill(fill, midAt)} />
-            <span className={styles.barMark} style={{ left: `${midAt}%` }} />
-          </span>
-          <span className={styles.axis}>
-            <span>{formatStat(left, sortCol.fmt)}</span>
-            {/* the median's label only where it clears the ends' */}
-            {midAt > 18 && midAt < 82 && <span className={styles.axisMid} style={{ left: `${midAt}%` }}>{formatStat(scale.mid, sortCol.fmt)}</span>}
-            <span>{formatStat(right, sortCol.fmt)}</span>
+          {/* Open, the detail shows this stat's bar too: this one folds away */}
+          <span className={`${styles.fold} ${open ? styles.foldShut : ''}`} aria-hidden={open}>
+            <span className={styles.foldInner}>
+              <span className={styles.bar}>
+                <span className={styles.barFill} style={scaleFill(fill, midAt)} />
+                <span className={styles.barMark} style={{ left: `${midAt}%` }} />
+              </span>
+              <span className={styles.axis}>
+                <span>{formatStat(left, sortCol.fmt)}</span>
+                {/* the median's label only where it clears the ends' */}
+                {midAt > 18 && midAt < 82 && <span className={styles.axisMid} style={{ left: `${midAt}%` }}>{formatStat(scale.mid, sortCol.fmt)}</span>}
+                <span>{formatStat(right, sortCol.fmt)}</span>
+              </span>
+            </span>
           </span>
         </span>
       </button>
 
-      {open && (
+      {/* Mounted on the first open and kept, so it folds shut as smoothly as it opens */}
+      {opened && (
+        <div className={`${styles.fold} ${shown ? '' : styles.foldShut}`} aria-hidden={!open}>
+        <div className={styles.foldInner}>
         <div className={styles.detail}>
           <div className={styles.sample}>{sampleOf(row).map(([k, val]) => <span key={k}>{k} <b>{val}</b></span>)}</div>
           {cols.map(c => {
@@ -603,8 +633,10 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
           })}
           <div className={styles.detailFoot}>
             <span>{poolNote}</span>
-            <Link to={href} className={styles.profile}>{t('viewProfile')} ›</Link>
+            <Link to={href} className={styles.profile} tabIndex={open ? undefined : -1}>{t('viewProfile')} ›</Link>
           </div>
+        </div>
+        </div>
         </div>
       )}
     </div>

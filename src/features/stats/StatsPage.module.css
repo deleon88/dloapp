@@ -394,7 +394,7 @@
 .bar {
   position: relative;
   height: 7px;
-  margin-top: 6px;
+  margin-top: 4px;   /* + the fold's 2px */
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -422,7 +422,7 @@
 @keyframes logoIn { from { opacity: 0; transform: translateY(-50%) scale(0.85); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .tileLogo, .tilePhoto, .tileLogoBig, .barFill { animation: none; transition: none; }
+  .tileLogo, .tilePhoto, .tileLogoBig, .barFill, .fold { animation: none; transition: none; }
 }
 
 .barMark {
@@ -446,6 +446,19 @@
 .axisMid { position: absolute; transform: translateX(-50%); }
 
 /* ── Detail: the group's line as percentile bars ─────────────────── */
+/* Folding: the row's bar shuts as the detail (which repeats it) opens, both by
+   their real height (grid rows 1fr ↔ 0fr) */
+.fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+}
+
+.foldShut { grid-template-rows: 0fr; opacity: 0; }
+
+/* the row bar's mark pokes 2px past it: room for it inside the clip */
+.foldInner { min-height: 0; overflow: hidden; }
+.body .foldInner { padding-top: 2px; }
 .detail { padding: 4px 14px 12px 14px; border-top: 1px solid var(--border); }
 
 /* Sample size on top of the detail */
