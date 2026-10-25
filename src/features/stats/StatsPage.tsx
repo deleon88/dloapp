@@ -573,7 +573,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
   return (
     // Team colors: the card's gradient and tile in its main color, the bar in its bar color
     <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}
-      style={{ '--i': order, ...(meta ? { '--team': meta.color, '--team-bar': getBarColor(meta) } : {}) } as CSSProperties}>
+      style={{ '--i': order, ...(meta ? { '--team': cardTone(meta.color), '--team-bar': getBarColor(meta) } : {}) } as CSSProperties}>
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
         <span className={styles.rank}>{rank}</span>
 
@@ -669,6 +669,25 @@ function fillMs(width: number): number {
 }
 
 /** The bar's color at percentile `p` (its gradient's tones), for the percentile knob. */
+/**
+ * The team color for a card's background, its lightness capped so white text
+ * reads on it: navy and red stay as they are, gold and orange come down to a
+ * deeper shade of themselves (hue and saturation kept).
+ */
+function cardTone(hex: string): string {
+  const n = parseInt(hex.replace('#', ''), 16)
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => v / 255)
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2
+  const d = max - min
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
+  let h = 0
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
+  // Perceived brightness decides: yellow is light at a lightness that leaves blue dark
+  const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  const cap = luma > 0.45 ? 0.38 : luma > 0.3 ? 0.44 : 1
+  return `hsl(${Math.round(h * 60 + 360) % 360} ${Math.round(s * 100)}% ${Math.round(Math.min(l, cap) * 100)}%)`
+}
+
 function toneAt(p: number): string {
   return p <= 50
     ? `color-mix(in srgb, var(--tone-mid) ${p * 2}%, var(--tone-low))`
