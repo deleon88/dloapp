@@ -399,7 +399,7 @@
 .itemOpen .tileLogo {
   left: calc(100% - 150px);
   top: 46px;
-  transform: scale(2.9) rotate(-8deg);
+  transform: scale(2.9);
   opacity: 0.1;
 }
 

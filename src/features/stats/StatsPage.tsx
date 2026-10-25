@@ -5,7 +5,7 @@ import {
   fetchLeaders, type BatterRow, type LeaderHand, type LeaderRole, type LeadersResponse, type PitcherRow, type TeamRow,
 } from '@/api/leaders'
 import { CountUp } from '@/components/AnimatedBar/AnimatedBar'
-import { getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
+import { capLogoUrl, getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
 import { cutoutUrl, teamLogoUrl } from '@/features/live-game/mlbImages'
@@ -584,7 +584,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
       {/* The faded logo: behind the cutout in the plate; open, it grows into the card's watermark */}
       {meta && !isTeamRow(row) && (
         <span className={styles.logoLayer} aria-hidden="true">
-          <img className={styles.tileLogo} src={teamLogoUrl(team)} alt="" loading="lazy" />
+          <img className={styles.tileLogo} src={capLogoUrl(team)} alt="" loading="lazy" />
         </span>
       )}
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
