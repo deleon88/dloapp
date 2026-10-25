@@ -184,16 +184,12 @@ export default function StatsPage() {
 
   // The bar scale of the sort stat: its fixed one (wRC+ 0–100–200), else the league pool's
   // (lowest – median – highest). Lower-is-better stats run the other way: longer = better.
-  // The sort stat over the pool, sorted: the scale's ends and median, and each row's percentile
-  const sortVals = useMemo(
-    () => pool.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b),
-    [pool, sortCol],
-  )
   const scale = useMemo<BarScale>(() => {
     if (sortCol.scale) return { lo: sortCol.scale[0], mid: sortCol.scale[1], hi: sortCol.scale[2] }
-    if (!sortVals.length) return { lo: 0, mid: 0, hi: 0 }
-    return { lo: sortVals[0], mid: sortVals[Math.floor(sortVals.length / 2)], hi: sortVals[sortVals.length - 1] }
-  }, [sortVals, sortCol])
+    const vals = pool.map(sortCol.get).filter((x): x is number => x != null && Number.isFinite(x)).sort((a, b) => a - b)
+    if (!vals.length) return { lo: 0, mid: 0, hi: 0 }
+    return { lo: vals[0], mid: vals[Math.floor(vals.length / 2)], hi: vals[vals.length - 1] }
+  }, [pool, sortCol])
 
   function changeSection(s: Section) {
     setSec(s)
@@ -342,7 +338,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} sortVals={sortVals} cols={cols} pool={pool} poolNote={poolNote}
+          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={pool} poolNote={poolNote}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -541,13 +537,11 @@ function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
 
 // ── Row ───────────────────────────────────────────────────────────────
 
-function StatRow({ row, order, rank, sortCol, scale, sortVals, cols, pool, poolNote, open, onToggle }: {
+function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open, onToggle }: {
   /** Place in the batch just shown, to stagger the entrance. */
   order: number
   /** The league-wide sample the percentiles compare against, and how to say it. */
   pool: AnyRow[]; poolNote: string
-  /** The sort stat over that pool, sorted (its percentile on the row). */
-  sortVals: number[]
   row: AnyRow; rank: number; sortCol: Column; scale: BarScale; cols: Column[]; open: boolean; onToggle: () => void
 }) {
   const t = useT()
@@ -582,8 +576,6 @@ function StatRow({ row, order, rank, sortCol, scale, sortVals, cols, pool, poolN
   const v = sortCol.get(row)
   const fill = v != null && Number.isFinite(v) ? onScale(v, scale, sortCol.low) : 0
   const midAt = onScale(scale.mid, scale, sortCol.low)
-  // The sort stat's percentile in the league pool (sortVals: that pool's values, sorted)
-  const pctl = v != null && Number.isFinite(v) && sortVals.length ? percentile(sortVals, v, sortCol.low) : null
 
   return (
     // Team colors: the card's gradient and tile in its main color, the bar in its bar color
@@ -611,7 +603,6 @@ function StatRow({ row, order, rank, sortCol, scale, sortVals, cols, pool, poolN
             </span>
             <span className={styles.stat}>
               <span className={styles.val}><AnimatedStat value={v} col={sortCol} delay={Math.min(order, 12) * 35 + 80} /></span>
-              {pctl != null && <span className={styles.pctl} style={{ color: savant(pctl) }}>{t('pctlShort')} {Math.round(pctl)}</span>}
             </span>
           </span>
           {/* Open, the detail shows this stat's bar too: this one folds away */}

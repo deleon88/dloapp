@@ -294,18 +294,46 @@
   /* entrance: rows come in one after another (capped, so long lists don't wait) */
   --delay: calc(min(var(--i, 0), 12) * 35ms);
   --team-c: var(--team, #2a3347);
+  --plate: 92px;
+  position: relative;
+  isolation: isolate;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-card);
   overflow: hidden;
-  transition: border-color var(--transition-fast);
+  transition: border-color 0.3s ease;
 }
 
-.itemOpen { border-color: var(--border-active); }
+/* The team color: the plate in the corner, cut on a diagonal. Opening the card,
+   it sweeps across the whole card (clip-path from the corner's shape to the full
+   rectangle). Past the plate it darkens, so white text and the detail read on any
+   team color; closed, that part is clipped away and the plate looks as before. */
+.item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent calc(var(--plate) - 14px), rgba(0, 0, 0, 0.32) calc(var(--plate) + 70px), rgba(0, 0, 0, 0.45)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 55%, rgba(0, 0, 0, 0.22)),
+    var(--team-c);
+  clip-path: polygon(0 0, var(--plate) 0, calc(var(--plate) - 14px) 100%, 0 100%);
+  transition: clip-path 0.5s var(--ease-out);
+}
+
+.itemOpen::before { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+
+/* open, on the team color: a lighter team-color border and brighter greys */
+.itemOpen {
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  border-color: color-mix(in srgb, var(--team-c) 55%, #fff 25%);
+}
 
 .row {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: var(--plate) minmax(0, 1fr);
   width: 100%;
   min-height: 76px;
   padding: 0;
@@ -317,12 +345,10 @@
   cursor: pointer;
 }
 
+/* its color is the card's ::before; the plate keeps the diagonal for the logo */
 .plate {
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 55%, rgba(0, 0, 0, 0.22)),
-    var(--team-c);
   clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
 }
 
@@ -422,13 +448,6 @@
 .val { font: 800 1.2rem var(--font-mono); color: var(--text-primary); line-height: 1.1; }
 
 /* its percentile in the Savant color (blue poor · grey average · red elite) */
-.pctl {
-  margin-top: 3px;
-  font: 700 0.52rem var(--font-mono);
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-}
-
 /* The sort stat on its scale, the average marked: the cards' bar */
 .bar {
   position: relative;
@@ -466,7 +485,7 @@
 @keyframes logoIn { from { opacity: 0; transform: translateY(-50%) scale(0.85); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .tileLogo, .tilePhoto, .tileLogoBig, .barFill, .fold { animation: none; transition: none; }
+  .tileLogo, .tilePhoto, .tileLogoBig, .barFill, .fold, .item::before { animation: none; transition: none; }
 }
 
 /* ── Detail: the line as percentiles, on the Savant scale ─────────── */
@@ -483,7 +502,8 @@
 /* the row bar's mark pokes 2px past it: room for it inside the clip */
 .foldInner { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .body .foldInner { padding-top: 2px; }
-.detail { padding: 8px 14px 12px; border-top: 1px solid var(--border); }
+/* on the team color: a dark panel under the percentiles */
+.detail { padding: 8px 14px 12px; border-top: 1px solid rgba(255, 255, 255, 0.12); background: rgba(0, 0, 0, 0.3); }
 
 /* Sample size on top of the detail */
 .sample {
@@ -508,7 +528,7 @@
 .prLabel { font: 700 0.56rem var(--font-mono); color: var(--text-secondary); }
 .prOn .prLabel { color: var(--text-primary); }
 
-.track { position: relative; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.06); }
+.track { position: relative; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); }
 
 .fill {
   position: absolute;
@@ -674,7 +694,7 @@
 
 /* Narrow phones: a slimmer plate, so the last name keeps its room */
 @media (max-width: 360px) {
-  .row { grid-template-columns: 78px minmax(0, 1fr); }
+  .item { --plate: 78px; }
   .tileLogo { width: 58px; height: 58px; }
   .tilePhoto { left: 8px; width: 62px; height: 62px; }
   .last { font-size: 0.85rem; }
