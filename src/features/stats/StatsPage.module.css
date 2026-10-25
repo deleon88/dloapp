@@ -386,7 +386,6 @@
   width: 70px;
   height: 70px;
   object-fit: contain;
-  opacity: 0.28;
   transform-origin: center;
   transition:
     left 0.55s var(--ease-out),
@@ -400,8 +399,14 @@
   left: calc(100% - 150px);
   top: 46px;
   transform: scale(2.9);
-  opacity: 0.1;
 }
+
+/* The primary logo on the list, the cap logo as the watermark: they cross-fade
+   while it moves */
+.logoPrimary { opacity: 0.28; }
+.logoCap { opacity: 0; }
+.itemOpen .logoPrimary { opacity: 0; }
+.itemOpen .logoCap { opacity: 0.1; }
 
 .tilePhoto {
   position: absolute;

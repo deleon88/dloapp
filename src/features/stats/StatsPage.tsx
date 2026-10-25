@@ -581,10 +581,13 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
     // Team colors: the plate (and, open, the card) in its main color, the bar in its bar color
     <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}
       style={{ '--i': order, ...(meta ? { '--team': cardTone(meta.color), '--team-bar': getBarColor(meta) } : {}) } as CSSProperties}>
-      {/* The faded logo: behind the cutout in the plate; open, it grows into the card's watermark */}
-      {meta && !isTeamRow(row) && (
+      {/* The faded logo: the primary one behind the cutout in the plate; open, it grows
+          into the card's watermark, turning into the cap logo on the way. Teams have
+          their primary logo as the plate, so only the cap one shows, open. */}
+      {meta && (
         <span className={styles.logoLayer} aria-hidden="true">
-          <img className={styles.tileLogo} src={capLogoUrl(team)} alt="" loading="lazy" />
+          {!isTeamRow(row) && <img className={`${styles.tileLogo} ${styles.logoPrimary}`} src={teamLogoUrl(team)} alt="" loading="lazy" />}
+          <img className={`${styles.tileLogo} ${styles.logoCap}`} src={capLogoUrl(team)} alt="" loading="lazy" />
         </span>
       )}
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
