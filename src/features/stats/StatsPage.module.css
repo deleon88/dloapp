@@ -401,12 +401,11 @@
   transform: scale(2.9);
 }
 
-/* The primary logo on the list, the cap logo as the watermark: they cross-fade
-   while it moves */
-.logoPrimary { opacity: 0.28; }
-.logoCap { opacity: 0; }
-.itemOpen .logoPrimary { opacity: 0; }
-.itemOpen .logoCap { opacity: 0.1; }
+/* faded on the plate, fainter as the big watermark; a team's only shows open
+   (its plate already is the logo) */
+.tileLogo { opacity: 0.28; }
+.itemOpen .tileLogo { opacity: 0.1; }
+.logoOpenOnly { opacity: 0; }
 
 .tilePhoto {
   position: absolute;

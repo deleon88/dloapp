@@ -8,7 +8,7 @@ import { CountUp } from '@/components/AnimatedBar/AnimatedBar'
 import { capLogoUrl, getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
 import { useT } from '@/i18n/useT'
 import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
-import { cutoutUrl, teamLogoUrl } from '@/features/live-game/mlbImages'
+import { cutoutUrl } from '@/features/live-game/mlbImages'
 import {
   CATALOG, columnsFor, DEFAULT_SORT, DEFAULT_STATS, formatStat, type AnyRow, type Column, type Section,
 } from './columns'
@@ -581,13 +581,11 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
     // Team colors: the plate (and, open, the card) in its main color, the bar in its bar color
     <div className={`${styles.item} ${open ? styles.itemOpen : ''}`}
       style={{ '--i': order, ...(meta ? { '--team': cardTone(meta.color), '--team-bar': getBarColor(meta) } : {}) } as CSSProperties}>
-      {/* The faded logo: the primary one behind the cutout in the plate; open, it grows
-          into the card's watermark, turning into the cap logo on the way. Teams have
-          their primary logo as the plate, so only the cap one shows, open. */}
+      {/* The cap logo, faded: behind the cutout in the plate; open, it grows into the
+          card's watermark. Teams have it as their plate, so theirs only shows open. */}
       {meta && (
         <span className={styles.logoLayer} aria-hidden="true">
-          {!isTeamRow(row) && <img className={`${styles.tileLogo} ${styles.logoPrimary}`} src={teamLogoUrl(team)} alt="" loading="lazy" />}
-          <img className={`${styles.tileLogo} ${styles.logoCap}`} src={capLogoUrl(team)} alt="" loading="lazy" />
+          <img className={`${styles.tileLogo} ${isTeamRow(row) ? styles.logoOpenOnly : ''}`} src={capLogoUrl(team)} alt="" loading="lazy" />
         </span>
       )}
       <button className={styles.row} onClick={onToggle} aria-expanded={open}>
@@ -595,7 +593,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
         <span className={styles.plate}>
           <span className={styles.rank}>{rank}</span>
           {isTeamRow(row) ? (
-            <img className={styles.tileLogoBig} src={teamLogoUrl(team)} alt="" loading="lazy" />
+            <img className={styles.tileLogoBig} src={capLogoUrl(team)} alt="" loading="lazy" />
           ) : (
             <img className={styles.tilePhoto} src={cutoutUrl(row.id, 120)} alt="" loading="lazy"
               onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
