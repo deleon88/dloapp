@@ -53,6 +53,8 @@ interface Props {
   homeLast5?: GameResult[]
   awayOpener?: boolean
   homeOpener?: boolean
+  /** Votes, starters and bullpen; off for leagues we have no numbers for (LIDOM). */
+  showStats?: boolean
 }
 
 export default function GameMatchupView({
@@ -70,6 +72,7 @@ export default function GameMatchupView({
   homeLast5,
   awayOpener,
   homeOpener,
+  showStats = true,
 }: Props) {
   const [mode, setMode] = useState<ViewMode>('comparison')
   const t = useT()
@@ -109,7 +112,7 @@ export default function GameMatchupView({
 
       {/* ── Game header ──────────────────────────────────────── */}
       {/* With votes on, the vote drawer slides out from under the header. */}
-      <div className={`${styles.header} ${votingEnabled ? styles.headerOverVote : ''}`}>
+      <div className={`${styles.header} ${votingEnabled && showStats ? styles.headerOverVote : ''}`}>
         <CardBgLayers awayColor={ac} homeColor={hc} mode={mode} />
         <div className={styles.teamBlock}>
           <div className={styles.teamBlockInner}>
@@ -172,10 +175,10 @@ export default function GameMatchupView({
       </div>
 
       {/* ── Who wins? (votes) ─────────────────────────────── */}
-      <GameVote game={game} awayColor={ac} homeColor={hc} awayBarColor={acBar} homeBarColor={hcBar} mode={mode} />
+      {showStats && <GameVote game={game} awayColor={ac} homeColor={hc} awayBarColor={acBar} homeBarColor={hcBar} mode={mode} />}
 
       {/* ── Pitcher matchup ────────────────────────────────── */}
-      <PitcherMatchup
+      {showStats && <PitcherMatchup
         awayPitcher={awayPitcher}
         homePitcher={homePitcher}
         awayColor={ac}
@@ -191,10 +194,11 @@ export default function GameMatchupView({
         awayTeamId={teams.away.team.id}
         homeTeamId={teams.home.team.id}
         mode={mode}
-      />
+      />}
 
       {/* ── Lineup comparison ──────────────────────────────── */}
-      <LineupComparison
+      {/* Without stats there's nothing to project: only lineups already posted. */}
+      {(showStats || lineupLoading || !!lineup?.away.length || !!lineup?.home.length) && <LineupComparison
         awayTeamId={teams.away.team.id}
         homeTeamId={teams.home.team.id}
         awayLineup={lineup?.away ?? []}
@@ -207,10 +211,10 @@ export default function GameMatchupView({
         homeLineupStatus={homeLineupStatus}
         awayProbablePitcher={teams.away.probablePitcher}
         homeProbablePitcher={teams.home.probablePitcher}
-      />
+      />}
 
       {/* ── Bullpen ────────────────────────────────────────── */}
-      <BullpenCard
+      {showStats && <BullpenCard
         away={awayBullpen}
         home={homeBullpen}
         awayColor={ac}
@@ -224,7 +228,7 @@ export default function GameMatchupView({
         isLoading={bullpenLoading}
         mode={mode}
         onModeChange={setMode}
-      />
+      />}
 
       {/* ── Weather ────────────────────────────────────────── */}
       {g.weather?.condition && <WeatherCard weather={g.weather} awayColor={ac} homeColor={hc} mode={mode} />}

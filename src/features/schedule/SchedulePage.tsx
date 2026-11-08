@@ -1,5 +1,6 @@
 import { mlbToday } from '@/utils/etDate'
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
@@ -17,6 +18,7 @@ import HandSelect from '@/components/HandSelect/HandSelect'
 import GameCard from './GameCard'
 import DateNav from './DateNav'
 import { useT } from '@/i18n/useT'
+import { LEAGUE_KEYS, LEAGUE_PARAMS, parseLeague, type LeagueKey } from '@/data/leagues'
 import StatBarsGuide from './StatBarsGuide'
 import styles from './SchedulePage.module.css'
 
@@ -25,10 +27,17 @@ export default function SchedulePage() {
   // Saved across pages; signed-in users only (see useStatFilters).
   const { period, setPeriod, handFilters, setHandFilters, locked: filtersLocked } = useStatFilters()
   const [glossaryOpen, setGlossaryOpen] = useState(false)
+  // In the URL, so coming back from a game keeps the league.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const league = parseLeague(searchParams.get('league'))
+  const setLeague = (next: LeagueKey) => setSearchParams(next === 'MLB' ? {} : { league: next.toLowerCase() }, { replace: true })
+  // The stat bars, projections and lineups come from our MLB data; LIDOM
+  // games show the matchup only.
+  const isMlb = league === 'MLB'
 
   const scheduleQuery = useQuery({
-    queryKey: ['schedule', date],
-    queryFn: () => getSchedule({ date, hydrate: ['probablePitcher', 'linescore'] }),
+    queryKey: ['schedule', league, date],
+    queryFn: () => getSchedule({ date, ...LEAGUE_PARAMS[league], hydrate: ['probablePitcher', 'linescore'] }),
     staleTime: 30_000,
   })
 
@@ -40,7 +49,7 @@ export default function SchedulePage() {
   const projectedQuery = useQuery({
     queryKey: ['projected-starters', date],
     queryFn: () => fetchProjectedStarters(date),
-    enabled: rawGames.some(missingProbable),
+    enabled: isMlb && rawGames.some(missingProbable),
     staleTime: 30 * 60_000,
   })
   const games = useMemo(() => rawGames.map(g => withProjectedStarters(g, projectedQuery.data)), [rawGames, projectedQuery.data])
@@ -79,7 +88,7 @@ export default function SchedulePage() {
   const pitcherStatsQuery = useQuery({
     queryKey: ['pitcher-stats', period, ...pitcherIds],
     queryFn: () => fetchPitcherStats(pitcherIds, period),
-    enabled: pitcherIds.length > 0,
+    enabled: isMlb && pitcherIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -95,7 +104,7 @@ export default function SchedulePage() {
   const rolesQuery = useQuery({
     queryKey: ['pitcher-roles', date, ...probables.map(p => `${p.id}-${p.teamId}`).sort()],
     queryFn: () => fetchPitcherRoles(probables, date),
-    enabled: probables.length > 0,
+    enabled: isMlb && probables.length > 0,
     staleTime: 3_600_000,
   })
   // A projected opener (the projection knows it opens ahead of a bulk arm) counts too
@@ -119,7 +128,7 @@ export default function SchedulePage() {
   const bullpenFipQuery = useQuery({
     queryKey: ['bullpen-fip', uniqueTeamIds.slice().sort((a, b) => a - b).join(','), period, handFilters.pitcher],
     queryFn: () => fetchBullpenFipPlusMap(uniqueTeamIds, period, handFilters.pitcher),
-    enabled: uniqueTeamIds.length > 0,
+    enabled: isMlb && uniqueTeamIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -128,7 +137,7 @@ export default function SchedulePage() {
   const goToQuery = useQuery({
     queryKey: ['go-to-lineups', ...uniqueTeamIds.slice().sort((a, b) => a - b)],
     queryFn: () => fetchGoToLineups(uniqueTeamIds),
-    enabled: uniqueTeamIds.length > 0,
+    enabled: isMlb && uniqueTeamIds.length > 0,
     staleTime: 15 * 60_000,
   })
   const goTo = goToQuery.data
@@ -144,7 +153,7 @@ export default function SchedulePage() {
   const lineupOffenseQuery = useQuery({
     queryKey: ['lineup-offense', date, allGamePks, period],
     queryFn: () => fetchLineupOffenseMap(allGamesForLineup, period),
-    enabled: allGamesForLineup.length > 0,
+    enabled: isMlb && allGamesForLineup.length > 0,
     staleTime: 120_000,
     placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
   })
@@ -218,12 +227,25 @@ export default function SchedulePage() {
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.heading}>{t('mlbGames')}</h1>
+          <h1 className={styles.heading}>{t(isMlb ? 'mlbGames' : 'lidomGames')}</h1>
         </div>
         <div className={styles.headerRight}>
-          <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
-          <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
-          <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
+          <div className={styles.leagueToggle} role="group" aria-label={t('leagueSelect')}>
+            {LEAGUE_KEYS.map(l => (
+              <button key={l} type="button" aria-pressed={league === l}
+                className={`${styles.leagueBtn} ${league === l ? styles.leagueActive : ''}`}
+                onClick={() => setLeague(l)}>
+                {l}
+              </button>
+            ))}
+          </div>
+          {isMlb && (
+            <>
+              <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
+              <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
+              <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -301,6 +323,7 @@ export default function SchedulePage() {
               homePitchHand={homePitcherId ? pitchHands?.get(homePitcherId) : undefined}
               awayLineupStatus={awayLineupStatus}
               homeLineupStatus={homeLineupStatus}
+              showStats={isMlb}
               animDelay={i * 60}
             />
           )

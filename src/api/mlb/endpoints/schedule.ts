@@ -6,6 +6,7 @@ export interface GetScheduleParams {
   startDate?: string
   endDate?: string
   sportId?: number
+  leagueId?: number
   teamId?: number
   gameType?: string
   hydrate?: string[]

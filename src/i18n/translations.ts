@@ -11,6 +11,8 @@ export const translations = {
     projected: 'Projected',
     // Schedule
     mlbGames: 'MLB Games',
+    lidomGames: 'LIDOM Games',
+    leagueSelect: 'League',
     mlbData: 'Data from MLB Stats API · Dlo',
     // LMB
     lmbGames: 'LMB Games',
@@ -248,6 +250,8 @@ export const translations = {
     projected: 'Proyectado',
     // Schedule
     mlbGames: 'Juegos MLB',
+    lidomGames: 'Juegos LIDOM',
+    leagueSelect: 'Liga',
     mlbData: 'Datos de MLB Stats API · Dlo',
     // LMB
     lmbGames: 'Juegos LMB',

@@ -9,6 +9,7 @@ import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupSta
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
 import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
+import { isLidomTeam } from '@/data/teams'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
 import { batterLabelKey, batterSplitFor, pitcherLabelKey } from '@/utils/handFilter'
@@ -43,10 +44,13 @@ export default function LiveGamePage() {
   const projectedQuery = useQuery({
     queryKey: ['projected-starters', rawGame?.officialDate],
     queryFn: () => fetchProjectedStarters(rawGame!.officialDate),
-    enabled: !!rawGame && missingProbable(rawGame),
+    enabled: !!rawGame && !isLidomTeam(rawGame.teams.home.team.id) && missingProbable(rawGame),
     staleTime: 30 * 60_000,
   })
   const game = useMemo(() => (rawGame ? withProjectedStarters(rawGame, projectedQuery.data) : rawGame), [rawGame, projectedQuery.data])
+  // Every number on this page comes from our MLB data. A LIDOM game shows the
+  // matchup, lineups and weather; nothing is fetched until we know the league.
+  const isMlb = !!rawGame && !isLidomTeam(rawGame.teams.home.team.id)
 
   // 2. Pitcher season stats
   const awayPitcherId = (game as GameWithPitcher)?.teams?.away?.probablePitcher?.id
@@ -56,7 +60,7 @@ export default function LiveGamePage() {
   const pitcherQuery = useQuery({
     queryKey: ['pitcher-stats', period, ...pitcherIds],
     queryFn: () => fetchPitcherStats(pitcherIds, period),
-    enabled: pitcherIds.length > 0,
+    enabled: isMlb && pitcherIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -74,7 +78,7 @@ export default function LiveGamePage() {
       ...(awayPitcherId ? [{ id: awayPitcherId, teamId: game!.teams.away.team.id }] : []),
       ...(homePitcherId ? [{ id: homePitcherId, teamId: game!.teams.home.team.id }] : []),
     ]),
-    enabled: pitcherIds.length > 0 && !!game,
+    enabled: isMlb && pitcherIds.length > 0,
     staleTime: 3_600_000,
   })
   // A projected opener (the projection knows it opens ahead of a bulk arm) counts too
@@ -102,7 +106,7 @@ export default function LiveGamePage() {
   const goToQuery = useQuery({
     queryKey: ['go-to-lineups', awayTeamId, homeTeamId],
     queryFn: () => fetchGoToLineups([awayTeamId!, homeTeamId!]),
-    enabled: isPreview && !!awayTeamId && !!homeTeamId,
+    enabled: isMlb && isPreview && !!awayTeamId && !!homeTeamId,
     staleTime: 15 * 60_000,
   })
   const awayPredicted = goToFor(goToQuery.data?.get(awayTeamId!), homePitcherHand)
@@ -123,7 +127,7 @@ export default function LiveGamePage() {
   const recentResultsQuery = useQuery({
     queryKey: ['recent-results', gameDate],
     queryFn: () => fetchTeamRecentResults(gameDate!),
-    enabled: !!gameDate,
+    enabled: isMlb && !!gameDate,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -131,14 +135,14 @@ export default function LiveGamePage() {
   const awayBullpenQuery = useQuery({
     queryKey: ['bullpen', awayTeamId, period, handFilters.pitcher],
     queryFn: () => fetchBullpenStats(awayTeamId!, period, handFilters.pitcher),
-    enabled: !!awayTeamId,
+    enabled: isMlb && !!awayTeamId,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
   const homeBullpenQuery = useQuery({
     queryKey: ['bullpen', homeTeamId, period, handFilters.pitcher],
     queryFn: () => fetchBullpenStats(homeTeamId!, period, handFilters.pitcher),
-    enabled: !!homeTeamId,
+    enabled: isMlb && !!homeTeamId,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -151,7 +155,7 @@ export default function LiveGamePage() {
   const saberQuery = useQuery({
     queryKey: ['lineup-saber', period, ...allBatterIds],
     queryFn: () => fetchLineupStats(allBatterIds, period),
-    enabled: allBatterIds.length > 0,
+    enabled: isMlb && allBatterIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
   })
@@ -185,7 +189,7 @@ export default function LiveGamePage() {
   // ── Share image: what the page shows, with the filters it follows ──
   const t = useT()
   const [sharing, setSharing] = useState(false)
-  const shareData: ShareData | undefined = game ? {
+  const shareData: ShareData | undefined = game && isMlb ? {
     game,
     awayPitcher: awayPitcherId ? pitcherStats?.get(awayPitcherId) : undefined,
     homePitcher: homePitcherId ? pitcherStats?.get(homePitcherId) : undefined,
@@ -213,15 +217,17 @@ export default function LiveGamePage() {
       <div ref={headerSentinel} className={styles.headerSentinel} aria-hidden="true" />
       <div className={`${styles.pageHeader} ${filtersFloating ? styles.pageHeaderFloating : ''}`}>
         <button className={styles.backBtn} onClick={() => navigate(-1)} tabIndex={filtersFloating ? -1 : 0}>← Back</button>
-        <div className={styles.headerRight}>
-          <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
-          <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
-          {/* Share: a phone-sized image of the matchup, with the filters above */}
-          <button className={styles.shareBtn} onClick={() => setSharing(true)} disabled={!shareData}
-            aria-label={t('share')} title={t('share')}>
-            <ShareIcon />
-          </button>
-        </div>
+        {(isMlb || !game) && (
+          <div className={styles.headerRight}>
+            <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
+            <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
+            {/* Share: a phone-sized image of the matchup, with the filters above */}
+            <button className={styles.shareBtn} onClick={() => setSharing(true)} disabled={!shareData}
+              aria-label={t('share')} title={t('share')}>
+              <ShareIcon />
+            </button>
+          </div>
+        )}
       </div>
 
       {sharing && shareData && <ShareSheet data={shareData} onClose={() => setSharing(false)} />}
@@ -235,6 +241,7 @@ export default function LiveGamePage() {
           pitcherStats={pitcherStats}
           lineup={{ away: awayLineup, home: homeLineup }}
           wrcMap={wrcMap}
+          showStats={isMlb}
           lineupLoading={
             lineupQuery.isLoading || saberQuery.isLoading ||
             (isPreview && goToQuery.isLoading)

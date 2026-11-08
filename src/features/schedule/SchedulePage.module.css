@@ -66,6 +66,39 @@
   gap: 8px;
 }
 
+/* MLB / LIDOM pill, same look as the language toggle */
+.leagueToggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.leagueBtn {
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  color: var(--text-muted);
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.leagueBtn:hover { color: var(--text-secondary); }
+
+.leagueActive {
+  background: var(--bg-highlight);
+  color: var(--text-primary);
+}
+
 .glossaryBtn {
   width: 22px;
   height: 27px;

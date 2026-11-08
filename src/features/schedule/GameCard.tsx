@@ -26,6 +26,8 @@ interface Props {
   homeOpener?: boolean;
   awayBulk?: BulkArm;         // probable bulk arm behind the opener, when confident
   homeBulk?: BulkArm;
+  /** The three stat bars; off for leagues we have no numbers for (LIDOM). */
+  showStats?: boolean;
   animDelay?: number;
 }
 
@@ -45,6 +47,7 @@ export default function GameCard({
   homeOpener,
   awayBulk,
   homeBulk,
+  showStats = true,
   animDelay = 0,
 }: Props) {
   const { teams, gamePk, gameDate, venue } = game;
@@ -110,7 +113,7 @@ export default function GameCard({
         />
       </div>
 
-      <StatBars
+      {showStats && <StatBars
         awayFipPlus={awayFipPlus}
         homeFipPlus={homeFipPlus}
         awayWrc={awayWrc}
@@ -120,7 +123,7 @@ export default function GameCard({
         acBar={acBar}
         hcBar={hcBar}
         delay={animDelay}
-      />
+      />}
     </Link>
   );
 }

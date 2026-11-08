@@ -63,8 +63,25 @@ export const TEAMS: MlbTeamMeta[] = [
 
 let byId = new Map(TEAMS.map((t) => [t.id, t]))
 
+// LIDOM clubs. Kept apart from byId so the MLB club lists (team picker,
+// leaderboards) never include them. Colors taken from the clubs' logos; the
+// Stats API has none for these teams, and only the base logo exists.
+const LIDOM_TEAMS: MlbTeamMeta[] = [
+  { id: 667, abbr: 'AGU', name: 'Santiago',                 brief: 'Águilas',   color: '#F8CB17', color2: '#12100B' },
+  { id: 668, abbr: 'TOR', name: 'La Romana',                brief: 'Toros',     color: '#E53712', color2: '#13110C' },
+  { id: 669, abbr: 'EST', name: 'San Pedro de Macorís',     brief: 'Estrellas', color: '#00754A', color2: '#FFCF00' },
+  { id: 670, abbr: 'GIG', name: 'San Francisco de Macorís', brief: 'Gigantes',  color: '#B41A49', color2: '#FFFFFF' },
+  { id: 671, abbr: 'ESC', name: 'Santo Domingo',            brief: 'Escogido',  color: '#EA0029', color2: '#231F20' },
+  { id: 672, abbr: 'LIC', name: 'Santo Domingo',            brief: 'Licey',     color: '#243B76', color2: '#B2B7BB' },
+]
+const lidomById = new Map(LIDOM_TEAMS.map((t) => [t.id, t]))
+
+export function isLidomTeam(id: number): boolean {
+  return lidomById.has(id)
+}
+
 export function getTeamMeta(id: number): MlbTeamMeta | undefined {
-  return byId.get(id)
+  return byId.get(id) ?? lidomById.get(id)
 }
 
 const ALL_STAR_IDS = new Set([159, 160])
@@ -120,6 +137,8 @@ export function getBarColor(meta: MlbTeamMeta): string {
 }
 
 export function capLogoUrl(teamId: number): string {
+  // LIDOM clubs only have the base logo; the cap variants are 404s.
+  if (lidomById.has(teamId)) return `https://www.mlbstatic.com/team-logos/${teamId}.svg`
   // Some caps (Mets) only look right on the light variant.
   const variant = byId.get(teamId)?.capLogoVariant === 'light' ? 'team-cap-on-light' : 'team-cap-on-dark'
   return `https://www.mlbstatic.com/team-logos/${variant}/${teamId}.svg`
