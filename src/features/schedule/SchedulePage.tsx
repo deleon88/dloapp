@@ -1,7 +1,7 @@
 import { mlbToday } from '@/utils/etDate'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { format, addDays, subDays, parseISO } from 'date-fns'
+import { format, addDays, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
 import { fetchBullpenFipPlusMap, fetchTeamReliefFipPlusMap } from '@/api/mlb/endpoints/bullpenStats'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
@@ -12,10 +12,8 @@ import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBu
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { batterSplitFor } from '@/utils/handFilter'
 import { useStatFilters } from '@/utils/useStatFilters'
-import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
-import HandSelect from '@/components/HandSelect/HandSelect'
 import GameCard from './GameCard'
-import DateNav from './DateNav'
+import GamesToolbar from './GamesToolbar'
 import { useT } from '@/i18n/useT'
 import { leagueParams, leagueSeason } from '@/data/leagues'
 import { useLeague } from '@/utils/useLeague'
@@ -232,21 +230,19 @@ export default function SchedulePage() {
       {/* The league is in the header: the title stays for screen readers only */}
       <h1 className={styles.srOnly}>{t('leagueGames').replace('{league}', leagueName)}</h1>
 
-      {/* Date and filters share one row */}
-      <div className={styles.toolbar}>
-        <DateNav
-          compact
-          date={date}
-          today={today}
-          onPrev={() => setDate(format(subDays(parseISO(date), 1), 'yyyy-MM-dd'))}
-          onNext={() => setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))}
-        />
-        <div className={styles.headerRight}>
-          <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
-          <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
-          <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
-        </div>
-      </div>
+      {/* The day and the filters, on one line */}
+      <GamesToolbar
+        league={league}
+        date={date}
+        today={today}
+        onDate={setDate}
+        period={period}
+        onPeriod={setPeriod}
+        hands={handFilters}
+        onHands={setHandFilters}
+        locked={filtersLocked}
+        onGuide={() => setGlossaryOpen(true)}
+      />
 
       {glossaryOpen && <StatBarsGuide onClose={() => setGlossaryOpen(false)} />}
 
