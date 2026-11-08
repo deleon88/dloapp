@@ -31,6 +31,12 @@
   border-color: var(--border);
 }
 
+/* sharing a row: slimmer, no margin of its own */
+.compact { margin-bottom: 0; padding: 4px 5px; }
+.compact .arrow { width: 30px; height: 30px; font-size: 1.15rem; }
+.compact .label { font-size: 0.8rem; }
+.compact .todayBadge { font-size: 0.55rem; }
+
 .center {
   display: flex;
   flex-direction: column;

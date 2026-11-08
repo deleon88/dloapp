@@ -229,10 +229,18 @@ export default function SchedulePage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div>
-          <h1 className={styles.heading}>{t('leagueGames').replace('{league}', leagueName)}</h1>
-        </div>
+      {/* The league is in the header: the title stays for screen readers only */}
+      <h1 className={styles.srOnly}>{t('leagueGames').replace('{league}', leagueName)}</h1>
+
+      {/* Date and filters share one row */}
+      <div className={styles.toolbar}>
+        <DateNav
+          compact
+          date={date}
+          today={today}
+          onPrev={() => setDate(format(subDays(parseISO(date), 1), 'yyyy-MM-dd'))}
+          onNext={() => setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))}
+        />
         <div className={styles.headerRight}>
           <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
           <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
@@ -241,13 +249,6 @@ export default function SchedulePage() {
       </div>
 
       {glossaryOpen && <StatBarsGuide onClose={() => setGlossaryOpen(false)} />}
-
-      <DateNav
-        date={date}
-        today={today}
-        onPrev={() => setDate(format(subDays(parseISO(date), 1), 'yyyy-MM-dd'))}
-        onNext={() => setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))}
-      />
 
       {scheduleQuery.isLoading && <SkeletonList />}
 

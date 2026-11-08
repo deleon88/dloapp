@@ -54,6 +54,11 @@ export const LEAGUES: LeagueInfo[] = [
   },
 ]
 
+/** Leagues on the way: listed in the league picker, locked (no date promised). */
+export const LOCKED_LEAGUES: Array<Pick<LeagueInfo, 'name' | 'fullName' | 'sport' | 'logo'>> = [
+  { name: 'LMB', fullName: 'Liga Mexicana de Béisbol', sport: 'baseball', logo: 'https://www.mlbstatic.com/team-logos/league-on-dark/125.svg' },
+]
+
 const byKey = new Map(LEAGUES.map(l => [l.key, l]))
 const bySlug = new Map(LEAGUES.map(l => [l.slug, l]))
 

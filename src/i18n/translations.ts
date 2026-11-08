@@ -12,7 +12,10 @@ export const translations = {
     // Schedule
     leagueGames: '{league} Games',
     leagueSelect: 'League',
-    leagueGamesToday: '{n} today',
+    leagueGamesToday: '{n} games today',
+    leagueGameToday: '1 game today',
+    leaguesTitle: 'Leagues',
+    leagueLocked: 'Coming soon',
     leagueNoGamesToday: 'No games today',
     leagueOffseason: 'Offseason',
     sport_baseball: 'Baseball',
@@ -259,7 +262,10 @@ export const translations = {
     // Schedule
     leagueGames: 'Juegos {league}',
     leagueSelect: 'Liga',
-    leagueGamesToday: '{n} hoy',
+    leagueGamesToday: '{n} juegos hoy',
+    leagueGameToday: '1 juego hoy',
+    leaguesTitle: 'Ligas',
+    leagueLocked: 'Próximamente',
     leagueNoGamesToday: 'Sin juegos hoy',
     leagueOffseason: 'Fuera de temporada',
     sport_baseball: 'Béisbol',

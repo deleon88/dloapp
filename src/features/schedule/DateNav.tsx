@@ -8,15 +8,17 @@ interface Props {
   onNext: () => void
   /** The page's "today" (YYYY-MM-DD). MLB pages use ET, the default. */
   today?: string
+  /** Shares a row with other controls: no bottom margin, slimmer. */
+  compact?: boolean
 }
 
-export default function DateNav({ date, onPrev, onNext, today = etDate() }: Props) {
+export default function DateNav({ date, onPrev, onNext, today = etDate(), compact = false }: Props) {
   const parsed = parseISO(date)
   const isToday = date === today
   const label = format(parsed, 'EEE, MMM d')
 
   return (
-    <div className={styles.nav}>
+    <div className={`${styles.nav} ${compact ? styles.compact : ""}`}>
       <button className={styles.arrow} onClick={onPrev} aria-label="Previous day">
         ‹
       </button>
