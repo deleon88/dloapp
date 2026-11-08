@@ -80,8 +80,6 @@ export const translations = {
     filtersPeriod: 'Stats period',
     filtersDone: 'Done',
     gamesN: '{n} g',
-    handShortBat: 'Bat',
-    handShortPit: 'Pit',
     // Openers
     opener: 'Opener',
     openerNote: '~1–2 IP, then the bullpen',
@@ -343,8 +341,6 @@ export const translations = {
     filtersPeriod: 'Periodo de las stats',
     filtersDone: 'Listo',
     gamesN: '{n} j',
-    handShortBat: 'Bateo',
-    handShortPit: 'Pitcheo',
     // Openers
     opener: 'Opener',
     openerNote: '~1–2 entradas, luego el bullpen',

@@ -31,6 +31,11 @@ interface Props {
 
 const shift = (d: string, n: number) => format(addDays(parseISO(d), n), 'yyyy-MM-dd')
 
+// The filters button's shorthand, the same in every language (L-30 = last 30 days, SH = starter's hand)
+const SHORT_PERIOD: Record<StatPeriod, string> = { season: '', '60days': 'L-60', '30days': 'L-30', '14days': 'L-14', '7days': 'L-7' }
+const SHORT_BAT: Record<HandFilters['batter'], string> = { all: '', L: 'BAT vs LHP', R: 'BAT vs RHP', starter: 'BAT vs SH' }
+const SHORT_PIT: Record<HandFilters['pitcher'], string> = { all: '', L: 'PIT vs LHB', R: 'PIT vs RHB' }
+
 /**
  * The Games page's one line: the day (‹ arrows on both sides ›; the center opens
  * a carousel of days with their game counts, for the odd jump) and a Filters
@@ -48,18 +53,20 @@ export default function GamesToolbar({ league, date, today, onDate, period, onPe
     new Intl.DateTimeFormat(locale, { ...o, timeZone: 'UTC' }).formatToParts(new Date(`${d}T12:00:00Z`))
   const part = (parts: Intl.DateTimeFormatPart[], type: string) => parts.find(p => p.type === type)?.value.replace('.', '') ?? ''
 
-  // "Hoy" / "Ayer" / "Mañana", else the weekday; the date beside it ("dom 8 nov")
+  // "Hoy" / "Ayer" / "Mañana", else the weekday; the date beside it ("8 nov")
   const p = fmt(date, { weekday: 'short', day: 'numeric', month: 'short' })
   const wd = part(p, 'weekday'), day = part(p, 'day'), mon = part(p, 'month')
   const rel = date === today ? t('dayToday') : date === shift(today, -1) ? t('dayYesterday') : date === shift(today, 1) ? t('dayTomorrow') : null
   const title = rel ?? wd.charAt(0).toUpperCase() + wd.slice(1)
-  const sub = lang === 'es' ? `${rel ? wd + ' ' : ''}${day} ${mon}` : `${rel ? wd + ' ' : ''}${mon} ${day}`
+  // with Today / Yesterday / Tomorrow the weekday would repeat it: just the date
+  const sub = lang === 'es' ? `${day} ${mon}` : `${mon} ${day}`
 
-  // What the filters button says: the active ones, and how many
+  // What the filters button says: the active ones in baseball shorthand (the
+  // sheet spells them out), and how many
   const active = [
-    period !== 'season' ? periodLabel(period, t) : null,
-    hands.batter !== 'all' ? `${t('handShortBat')} ${t(batterLabelKey(hands.batter))}` : null,
-    hands.pitcher !== 'all' ? `${t('handShortPit')} ${t(pitcherLabelKey(hands.pitcher))}` : null,
+    period !== 'season' ? SHORT_PERIOD[period] : null,
+    hands.batter !== 'all' ? SHORT_BAT[hands.batter] : null,
+    hands.pitcher !== 'all' ? SHORT_PIT[hands.pitcher] : null,
   ].filter((x): x is string => !!x)
 
   return (
@@ -83,7 +90,8 @@ export default function GamesToolbar({ league, date, today, onDate, period, onPe
         <button type="button" className={`${styles.filters} ${active.length ? styles.filtersOn : ''}`}
           onClick={() => (locked ? openAuth('login') : setFiltersOpen(true))}
           aria-haspopup="dialog" title={locked ? t('filtersNeedAccount') : undefined}>
-          <SlidersIcon />
+          {/* with filters on, the count says it: the icon gives its room to the text */}
+          {(locked || !active.length) && <SlidersIcon />}
           <span className={styles.filtersText}>{active.length ? active.join(' · ') : t('filtersTitle')}</span>
           {locked ? <LockIcon /> : active.length > 0 && <span className={styles.count}>{active.length}</span>}
         </button>

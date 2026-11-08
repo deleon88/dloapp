@@ -8,7 +8,7 @@
 .day { display: flex; align-items: center; flex-shrink: 0; }
 
 .arrow {
-  width: 30px;
+  width: 28px;
   height: 32px;
   display: grid;
   place-items: center;
@@ -54,7 +54,7 @@
 .filters {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   min-width: 0;
   margin-left: auto;
   height: 32px;
