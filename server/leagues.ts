@@ -10,6 +10,14 @@ export const LEAGUES: Record<League, { sportId: number; leagueId?: number }> = {
   LMB:   { sportId: 23, leagueId: 125 },
 }
 
+/** Leagues whose calendar and play-by-play we keep (daily cron, picks results). */
+export const SYNCED_LEAGUES: League[] = ['MLB', 'LIDOM']
+
+/** League of a team from its Stats API league id (team(league) hydrate): AL / NL are MLB. */
+export function leagueOfLeagueId(leagueId: number | undefined): League {
+  return (Object.keys(LEAGUES) as League[]).find(l => LEAGUES[l].leagueId === leagueId) ?? 'MLB'
+}
+
 export function isLeague(x: string): x is League {
   return Object.keys(LEAGUES).includes(x)
 }
@@ -32,6 +40,12 @@ export function leagueTeamStatsParams(league: League): string {
  */
 export function constantsSource(league: League): string {
   return league === 'MLB' ? 're24' : `re24-${league.toLowerCase()}`
+}
+
+/** Temporada en curso en esa fecha: la de invierno lleva el año en que empieza (enero de 2027 = 2026). */
+export function leagueSeasonOf(league: League, date: string): number {
+  const year = Number(date.slice(0, 4))
+  return league === 'LIDOM' && Number(date.slice(5, 7)) < 7 ? year - 1 : year
 }
 
 /**

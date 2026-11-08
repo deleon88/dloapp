@@ -4,11 +4,14 @@ import { supabase } from '@/lib/supabase'
 import { votingEnabled } from '@/lib/features'
 import { useT } from '@/i18n/useT'
 import UserAvatar from '@/components/UserAvatar/UserAvatar'
+import { leaguePath, useLeague } from '@/utils/useLeague'
+import LeagueSwitcher from './LeagueSwitcher'
 import styles from './NavBar.module.css'
 
 export default function NavBar() {
   const { loading, session, profile, openAuth } = useAuthStore()
   const t = useT()
+  const league = useLeague()
 
   return (
     <header className={styles.header}>
@@ -17,10 +20,12 @@ export default function NavBar() {
           <span className={styles.brandName}>Dloapp</span>
         </NavLink>
 
+        <LeagueSwitcher />
+
         <ul className={styles.links}>
           <li>
             <NavLink
-              to="/schedule"
+              to={leaguePath(league.key, 'games')}
               className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
             >
               {t('games')}
@@ -28,7 +33,7 @@ export default function NavBar() {
           </li>
           <li>
             <NavLink
-              to="/stats"
+              to={leaguePath(league.key, 'stats')}
               className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
             >
               {t('statsNav')}
@@ -37,7 +42,7 @@ export default function NavBar() {
           {votingEnabled && (
             <li>
               <NavLink
-                to="/rankings"
+                to={leaguePath(league.key, 'ranking')}
                 className={({ isActive }) => [styles.link, isActive ? styles.linkActive : ''].join(' ')}
               >
                 {t('rankingsNav')}

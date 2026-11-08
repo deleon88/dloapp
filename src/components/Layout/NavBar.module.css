@@ -90,3 +90,15 @@
   display: grid;
   border-radius: var(--radius-sm);
 }
+
+/* Phones: the league chip shares the row, so the links give up their fixed width */
+@media (max-width: 480px) {
+  .nav {
+    gap: 4px;
+  }
+
+  .link {
+    min-width: 0;
+    padding: 6px 7px;
+  }
+}

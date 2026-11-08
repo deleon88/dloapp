@@ -99,8 +99,8 @@ export interface PitchingGuide {
   tiers: Record<GuideStat, [number, number, number, number, number, number]>
 }
 
-export async function fetchPitchingGuide(season: number): Promise<PitchingGuide> {
-  const res = await fetch(`/api/stats/pitchers?guide=1&season=${season}`)
+export async function fetchPitchingGuide(season: number, league: LeagueKey = 'MLB'): Promise<PitchingGuide> {
+  const res = await fetch(`/api/stats/pitchers?guide=1&season=${season}${league !== 'MLB' ? `&league=${league}` : ''}`)
   if (!res.ok) throw new Error(`stats/pitchers guide ${res.status}`)
   return res.json() as Promise<PitchingGuide>
 }

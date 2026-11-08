@@ -2,6 +2,7 @@
 // shows, and tier cut-offs from how the season's pitchers are spread around it.
 import { getPitchingLeaders, type PitcherRow } from '../leaders/leaders.js'
 import { getConstants } from './batting.js'
+import { constantsSource, type League } from '../leagues.js'
 import type { PitchingConstants } from './formulas.js'
 
 export type GuideStat = 'era' | 'fip' | 'xfip' | 'whip' | 'kbb' | 'woba'
@@ -28,10 +29,10 @@ const get: Record<GuideStat, (r: PitcherRow) => number | null | undefined> = {
   era: r => r.era, fip: r => r.fip, xfip: r => r.xfip, whip: r => r.whip, kbb: r => r.kbbPct, woba: r => r.wobaAgainst,
 }
 
-export async function getPitchingGuide(season: number): Promise<PitchingGuide> {
+export async function getPitchingGuide(season: number, league: League = 'MLB'): Promise<PitchingGuide> {
   const [all, k] = await Promise.all([
-    getPitchingLeaders({ season }),
-    getConstants(season) as Promise<PitchingConstants>,
+    getPitchingLeaders({ league, season }),
+    getConstants(season, constantsSource(league)) as Promise<PitchingConstants>,
   ])
 
   // League line: each rate stat weighted by innings over every pitcher (= the

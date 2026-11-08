@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import type { ScheduledGame } from "@/api/mlb/types";
 import { getTeamMeta, getBarColor, capLogoUrl, teamBg } from "@/data/teams";
+import { leagueOfGame } from "@/data/leagues";
+import { leaguePath } from "@/utils/useLeague";
 import MatchupBar from "@/components/MatchupBar/MatchupBar";
 import { useT } from "@/i18n/useT";
 import { shortName, type BulkArm } from "@/api/pitcherRoles";
@@ -68,7 +70,7 @@ export default function GameCard({
 
   return (
     <Link
-      to={`/game/${gamePk}`}
+      to={leaguePath(leagueOfGame(game), `game/${gamePk}`)}
       className={`${styles.card} fade-up`}
       style={{ animationDelay: `${animDelay}ms` }}
     >

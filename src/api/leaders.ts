@@ -1,6 +1,7 @@
 // Client of /api/leaders (server/leaders/leaders.ts): every batter, pitcher or
 // team of a season with its whole line, for the sortable Stats page.
 import type { StatPeriod } from '@/utils/period'
+import type { LeagueKey } from '@/data/leagues'
 
 export type LeaderType = 'bat' | 'pit' | 'team'
 export type LeaderHand = 'all' | 'L' | 'R'
@@ -43,6 +44,7 @@ export interface TeamRow {
 }
 
 export interface LeadersQuery {
+  league: LeagueKey
   type: LeaderType
   season: number
   period: StatPeriod
@@ -61,6 +63,7 @@ export async function fetchLeaders(q: LeadersQuery): Promise<LeadersResponse> {
   if (q.period !== 'season') params.set('period', q.period)
   if (q.hand !== 'all') params.set('hand', q.hand)
   if (q.role !== 'all' && q.type !== 'bat') params.set('role', q.role)
+  if (q.league !== 'MLB') params.set('league', q.league)
   const res = await fetch(`/api/leaders?${params}`)
   if (!res.ok) throw new Error(`leaders ${res.status}`)
   return res.json() as Promise<LeadersResponse>

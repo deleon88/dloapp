@@ -5,9 +5,12 @@ import {
   fetchLeaders, type BatterRow, type LeaderHand, type LeaderRole, type LeadersResponse, type PitcherRow, type TeamRow,
 } from '@/api/leaders'
 import { CountUp } from '@/components/AnimatedBar/AnimatedBar'
-import { capLogoUrl, getBarColor, getMlbClubs, getTeamMeta, teamLeague } from '@/data/teams'
+import { capLogoUrl, getBarColor, getLeagueClubs, getTeamMeta, teamLeague } from '@/data/teams'
+import { leagueSeason } from '@/data/leagues'
+import { useLeague } from '@/utils/useLeague'
+import { mlbToday } from '@/utils/etDate'
 import { useT } from '@/i18n/useT'
-import { currentSeason, PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
+import { PERIOD_OPTIONS, type StatPeriod } from '@/utils/period'
 import { cutoutUrl } from '@/features/live-game/mlbImages'
 import {
   CATALOG, columnsFor, DEFAULT_SORT, DEFAULT_STATS, formatStat, type AnyRow, type Column, type Section,
@@ -72,15 +75,18 @@ function saveStats(v: Record<Section, string[]>) {
 
 export default function StatsPage() {
   const t = useT()
+  // The page's league (/lidom/stats). Switching leagues remounts the page (see LeagueScope).
+  const { key: leagueKey, name: leagueName, caps } = useLeague()
+  const currentSeason = () => leagueSeason(leagueKey, mlbToday())
   const [sec, setSec] = useState<Section>('bat')
-  const [season, setSeason] = useState(currentSeason())
+  const [season, setSeason] = useState(currentSeason)
   const [period, setPeriod] = useState<StatPeriod>('season')
   const [hand, setHand] = useState<LeaderHand>('all')
   const [role, setRole] = useState<LeaderRole>('all')
   const [min, setMin] = useState<Min>('q')
   /** Only today's starters (probable pitchers / starting nine), on or off. */
   const [startersOnly, setStartersOnly] = useState(false)
-  /** Position and team: one chip, combinable (e.g. NYY · SS). '' / 0 = any. */
+  /** Position and team: one chip, combinable (e.g. NYY · SS). '' / 0 = any. AL / NL only where the league has them. */
   const [posF, setPosF] = useState('')
   const [teamF, setTeamF] = useState(0)
   const [league, setLeague] = useState<'all' | 'AL' | 'NL'>('all')
@@ -120,8 +126,8 @@ export default function StatsPage() {
   const asc = sortCol.id === sort.id ? sort.asc : !!sortCol.low
 
   const query = useQuery({
-    queryKey: ['leaders', sec, season, period, hand, sec === 'bat' ? 'all' : role],
-    queryFn: () => fetchLeaders({ type: sec, season, period, hand, role }),
+    queryKey: ['leaders', leagueKey, sec, season, period, hand, sec === 'bat' ? 'all' : role],
+    queryFn: () => fetchLeaders({ league: leagueKey, type: sec, season, period, hand, role }),
     staleTime: 30 * 60_000,
     // Keep the old list while the next one loads, only within the same section.
     placeholderData: prev => (prev?.type === sec ? prev : undefined),
@@ -129,8 +135,8 @@ export default function StatsPage() {
   const data = query.data
 
   const startersQuery = useQuery({
-    queryKey: ['todays-starters'],
-    queryFn: fetchTodaysStarters,
+    queryKey: ['todays-starters', leagueKey],
+    queryFn: () => fetchTodaysStarters(leagueKey),
     enabled: startersOnly && sec !== 'team',
     staleTime: 10 * 60_000,
   })
@@ -214,10 +220,10 @@ export default function StatsPage() {
   const handLabels = sec === 'pit' ? [t('statsVsLhb'), t('statsVsRhb')]
     : sec === 'team' ? [t('statsVsLefties'), t('statsVsRighties')]
     : [t('statsVsLhp'), t('statsVsRhp')]
-  const clubs = useMemo(() => getMlbClubs().sort((a, b) => a.abbr.localeCompare(b.abbr)), [])
+  const clubs = useMemo(() => getLeagueClubs(leagueKey).sort((a, b) => a.abbr.localeCompare(b.abbr)), [leagueKey])
   // "MLB · All pos" by default; "NYY · SS", "AL · SS"… (batters always show the position part)
   const scopeLabel = [
-    teamF ? getTeamMeta(teamF)?.abbr : league !== 'all' ? league : t('allLeagues'),
+    teamF ? getTeamMeta(teamF)?.abbr : league !== 'all' ? league : leagueName,
     posF || (sec === 'bat' ? t('allPos') : ''),
   ].filter(Boolean).join(' · ')
   const notes = noteFor(data, sec, hand, role, period, t)
@@ -300,15 +306,17 @@ export default function StatsPage() {
                 title: t('positionsLabel'), header: ['p:', t('allPos')] as [string, string], grid: 5,
                 options: BAT_POSITIONS.map(p => [`p:${p}`, p] as [string, string]),
               }] : []),
-              { options: [['L:all', t('allLeagues')]], full: true },
-              ...(['AL', 'NL'] as const).map(lg => ({
-                header: [`L:${lg}`, lg] as [string, string], grid: 3,
-                options: clubs.filter(c => teamLeague(c) === lg).map(c => [`t:${c.id}`, c.abbr] as [string, string]),
-              })),
+              { options: [['L:all', leagueName]], full: true },
+              ...(caps.subLeagues
+                ? (['AL', 'NL'] as const).map(lg => ({
+                    header: [`L:${lg}`, lg] as [string, string], grid: 3,
+                    options: clubs.filter(c => teamLeague(c) === lg).map(c => [`t:${c.id}`, c.abbr] as [string, string]),
+                  }))
+                : [{ grid: 3, options: clubs.map(c => [`t:${c.id}`, c.abbr] as [string, string]) }]),
             ]} />
-        ) : (
+        ) : caps.subLeagues && (
           <Dropdown value={league} set={league !== 'all'} onChange={v => setLeague(v as 'all' | 'AL' | 'NL')}
-            sections={[{ options: [['all', t('allLeagues')], ['AL', 'AL'], ['NL', 'NL']] }]} />
+            sections={[{ options: [['all', leagueName], ['AL', 'AL'], ['NL', 'NL']] }]} />
         )}
       </div>
 
@@ -338,7 +346,7 @@ export default function StatsPage() {
         {data && rows.length === 0 && <p className={styles.state}>{t('statsEmpty')}</p>}
 
         {rows.slice(0, limit).map((r, i) => (
-          <StatRow key={r.id} row={r} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={pool} poolNote={poolNote}
+          <StatRow key={r.id} row={r} subLeagues={caps.subLeagues} order={i % PAGE} rank={asc === !!sortCol.low ? i + 1 : rows.length - i} sortCol={sortCol} scale={scale} cols={cols} pool={pool} poolNote={poolNote}
             open={open === r.id} onToggle={() => setOpen(o => (o === r.id ? null : r.id))} />
         ))}
 
@@ -537,7 +545,9 @@ function StatPicker({ sec, chosen, onChange, onReset, onClose }: {
 
 // ── Row ───────────────────────────────────────────────────────────────
 
-function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open, onToggle }: {
+function StatRow({ row, subLeagues, order, rank, sortCol, scale, cols, pool, poolNote, open, onToggle }: {
+  /** The league has AL / NL: a team row says which. */
+  subLeagues: boolean
   /** Place in the batch just shown, to stagger the entrance. */
   order: number
   /** The league-wide sample the percentiles compare against, and how to say it. */
@@ -554,7 +564,7 @@ function StatRow({ row, order, rank, sortCol, scale, cols, pool, poolNote, open,
     : (() => { const [f, ...r] = row.name.split(' '); return r.length ? [f, r.join(' ')] : ['', f] })()
   // team · position / hand · the sample
   const sub = [
-    isTeamRow(row) ? (meta ? teamLeague(meta) : '') : meta?.abbr,
+    isTeamRow(row) ? (meta && subLeagues ? teamLeague(meta) : '') : meta?.abbr,
     isTeamRow(row) ? '' : 'pos' in row ? row.pos : row.throws ? `${row.throws}HP` : '',
     sampleOf(row).slice(0, 1).map(([k, s]) => `${s} ${k}`)[0],
   ].filter(Boolean).join(' · ')

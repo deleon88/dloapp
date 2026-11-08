@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import Layout from '@/components/Layout/Layout'
+import { LeagueRedirect, LeagueScope } from '@/components/LeagueRoutes'
 import SchedulePage from '@/features/schedule/SchedulePage'
 import LiveGamePage from '@/features/live-game/LiveGamePage'
 import PlayerPage from '@/features/player/PlayerPage'
@@ -22,9 +23,18 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Navigate to="/schedule" replace />} />
-          <Route path="schedule" element={<SchedulePage />} />
-          <Route path="stats" element={<StatsPage />} />
+          <Route index element={<LeagueRedirect page="games" />} />
+          {/* Every league page lives under its league: /lidom/games, /mlb/stats... */}
+          <Route path=":league" element={<LeagueScope />}>
+            <Route index element={<Navigate to="games" replace />} />
+            <Route path="games" element={<SchedulePage />} />
+            <Route path="stats" element={<StatsPage />} />
+            <Route path="game/:gamePk" element={<LiveGamePage />} />
+            {supabase && votingEnabled && <Route path="ranking" element={<RankingsPage />} />}
+          </Route>
+          {/* Old paths: to the same page of the default league (a game finds its own) */}
+          <Route path="schedule" element={<LeagueRedirect page="games" />} />
+          <Route path="stats" element={<LeagueRedirect page="stats" />} />
           <Route path="game/:gamePk" element={<LiveGamePage />} />
           <Route path="player/:playerId" element={<PlayerPage />} />
           <Route path="team/:teamId" element={<TeamPage />} />
@@ -37,9 +47,9 @@ export default function App() {
             <Route path="forgot-password" element={<OpenAuthRoute view="forgot" />} />
             <Route path="auth/callback" element={<AuthCallbackPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            {votingEnabled && <Route path="rankings" element={<RankingsPage />} />}
+            {votingEnabled && <Route path="rankings" element={<LeagueRedirect page="ranking" />} />}
           </>}
-          <Route path="*" element={<Navigate to="/schedule" replace />} />
+          <Route path="*" element={<LeagueRedirect page="games" />} />
         </Route>
       </Routes>
       <Analytics />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchRankings, type RankingPeriod, type RankingRow } from '@/api/votes'
+import { useLeague } from '@/utils/useLeague'
 import UserAvatar from '@/components/UserAvatar/UserAvatar'
 import { useAuthStore } from '@/stores/authStore'
 import { useLangStore } from '@/stores/langStore'
@@ -20,13 +21,15 @@ export default function RankingsPage() {
   const t = useT()
   const lang = useLangStore(s => s.lang)
   const me = useAuthStore(s => s.profile?.username ?? null)
+  // The league's leaderboard: picks on its games only (/lidom/ranking)
+  const { key: league } = useLeague()
   const [period, setPeriod] = useState<RankingPeriod>('week')
   const [expanded, setExpanded] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
 
   const query = useQuery({
-    queryKey: ['rankings', period],
-    queryFn: () => fetchRankings(period),
+    queryKey: ['rankings', league, period],
+    queryFn: () => fetchRankings(period, league),
     staleTime: 60_000,
     placeholderData: prev => prev,
   })

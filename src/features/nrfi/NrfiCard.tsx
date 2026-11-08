@@ -51,7 +51,7 @@ export default function NrfiCard({ ranking: r, rank, bet, game }: Props) {
   const venueName  = game?.venue.name ?? r.parkName
 
   return (
-    <Link to={`/game/${r.gamePk}`} className={`${styles.card} fade-up`}>
+    <Link to={`/mlb/game/${r.gamePk}`} className={`${styles.card} fade-up`}>
       <div className={styles.hoverBg} style={{ background: teamBg(ac, hc) }} />
 
       {/* Header */}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getGame } from '@/api/mlb/endpoints/schedule'
 import { fetchTeamRecentResults } from '@/api/mlb/endpoints/teamRecentResults'
@@ -9,7 +9,8 @@ import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupSta
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
 import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, withActualStarters, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
-import { leagueOfGame, leagueSeason } from '@/data/leagues'
+import { leagueInfo, leagueOfGame, leagueSeason } from '@/data/leagues'
+import { leaguePath } from '@/utils/useLeague'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
 import { batterLabelKey, batterSplitFor, pitcherLabelKey } from '@/utils/handFilter'
@@ -45,12 +46,21 @@ export default function LiveGamePage() {
   // LIDOM numbers come from its own play-by-play; it has no probables (the
   // starters show once the game is on), depth charts or bullpen card.
   const league = rawGame ? leagueOfGame(rawGame) : undefined
-  const isMlb = league === 'MLB'
+  const caps = league ? leagueInfo(league).caps : undefined
+  // Projected starters, opener roles, go-to lineups and the bullpen card stand on depth charts
+  const deep = !!caps?.depthCharts
   const season = rawGame && league ? leagueSeason(league, rawGame.officialDate) : undefined
+  // An old /game/:pk link, or one under the wrong league: to the game's own league path
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (league && pathname.split('/')[1] !== leagueInfo(league).slug) {
+      navigate(leaguePath(league, `game/${pk}`), { replace: true })
+    }
+  }, [league, pathname, pk, navigate])
   const projectedQuery = useQuery({
     queryKey: ['projected-starters', rawGame?.officialDate],
     queryFn: () => fetchProjectedStarters(rawGame!.officialDate),
-    enabled: isMlb && missingProbable(rawGame!),
+    enabled: deep && missingProbable(rawGame!),
     staleTime: 30 * 60_000,
   })
 
@@ -91,7 +101,7 @@ export default function LiveGamePage() {
       ...(awayPitcherId ? [{ id: awayPitcherId, teamId: game!.teams.away.team.id }] : []),
       ...(homePitcherId ? [{ id: homePitcherId, teamId: game!.teams.home.team.id }] : []),
     ]),
-    enabled: isMlb && pitcherIds.length > 0,
+    enabled: deep && pitcherIds.length > 0,
     staleTime: 3_600_000,
   })
   // A projected opener (the projection knows it opens ahead of a bulk arm) counts too
@@ -112,7 +122,7 @@ export default function LiveGamePage() {
   const goToQuery = useQuery({
     queryKey: ['go-to-lineups', awayTeamId, homeTeamId],
     queryFn: () => fetchGoToLineups([awayTeamId!, homeTeamId!]),
-    enabled: isMlb && isPreview && !!awayTeamId && !!homeTeamId,
+    enabled: deep && isPreview && !!awayTeamId && !!homeTeamId,
     staleTime: 15 * 60_000,
   })
   const awayPredicted = goToFor(goToQuery.data?.get(awayTeamId!), homePitcherHand)
@@ -131,9 +141,9 @@ export default function LiveGamePage() {
   // MLB's official (ET) date: the UTC gameDate of a night game is the next day.
   const gameDate = game?.officialDate ?? undefined
   const recentResultsQuery = useQuery({
-    queryKey: ['recent-results', gameDate],
-    queryFn: () => fetchTeamRecentResults(gameDate!),
-    enabled: isMlb && !!gameDate,
+    queryKey: ['recent-results', league, gameDate],
+    queryFn: () => fetchTeamRecentResults(gameDate!, league),
+    enabled: !!league && !!gameDate,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -141,14 +151,14 @@ export default function LiveGamePage() {
   const awayBullpenQuery = useQuery({
     queryKey: ['bullpen', awayTeamId, period, handFilters.pitcher],
     queryFn: () => fetchBullpenStats(awayTeamId!, period, handFilters.pitcher),
-    enabled: isMlb && !!awayTeamId,
+    enabled: deep && !!awayTeamId,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
   const homeBullpenQuery = useQuery({
     queryKey: ['bullpen', homeTeamId, period, handFilters.pitcher],
     queryFn: () => fetchBullpenStats(homeTeamId!, period, handFilters.pitcher),
-    enabled: isMlb && !!homeTeamId,
+    enabled: deep && !!homeTeamId,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -195,7 +205,8 @@ export default function LiveGamePage() {
   // ── Share image: what the page shows, with the filters it follows ──
   const t = useT()
   const [sharing, setSharing] = useState(false)
-  const shareData: ShareData | undefined = game && isMlb ? {
+  // The share image carries the bullpen card: only where there is one
+  const shareData: ShareData | undefined = game && deep ? {
     game,
     awayPitcher: awayPitcherId ? pitcherStats?.get(awayPitcherId) : undefined,
     homePitcher: homePitcherId ? pitcherStats?.get(homePitcherId) : undefined,
@@ -226,8 +237,8 @@ export default function LiveGamePage() {
         <div className={styles.headerRight}>
           <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
           <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
-          {/* Share: a phone-sized image of the matchup, with the filters above (MLB only) */}
-          {(isMlb || !game) && (
+          {/* Share: a phone-sized image of the matchup, with the filters above */}
+          {(deep || !game) && (
             <button className={styles.shareBtn} onClick={() => setSharing(true)} disabled={!shareData}
               aria-label={t('share')} title={t('share')}>
               <ShareIcon />

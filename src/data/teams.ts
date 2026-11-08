@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { LeagueKey } from './leagues'
 
 // Source of truth: the teams / venues / park_factors tables (db/seeds/teams.csv,
 // npm run db:seed-teams), served by /api/teams. TEAMS below is a bundled copy so
@@ -78,6 +79,11 @@ const lidomById = new Map(LIDOM_TEAMS.map((t) => [t.id, t]))
 
 export function isLidomTeam(id: number): boolean {
   return lidomById.has(id)
+}
+
+/** The clubs of a league (MLB: the 30, no All-Star teams). */
+export function getLeagueClubs(league: LeagueKey): MlbTeamMeta[] {
+  return league === 'LIDOM' ? [...LIDOM_TEAMS] : getMlbClubs()
 }
 
 export function getTeamMeta(id: number): MlbTeamMeta | undefined {

@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import type { PitcherInfo, PitcherSeasonStats } from '@/api/mlb/endpoints/pitcherStats'
 import { fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { fetchPitchingGuide, type GuideStat, type PitchingGuide } from '@/api/stats/pitchers'
-import { currentSeason } from '@/utils/period'
+import { leagueSeason, type LeagueKey } from '@/data/leagues'
+import { mlbToday } from '@/utils/etDate'
 import type { ViewMode } from './LineupComparison'
 import { useT } from '@/i18n/useT'
 import type { TKey } from '@/i18n/useT'
@@ -32,18 +33,20 @@ interface Props {
   awayTeamId?: number
   homeTeamId?: number
   mode: ViewMode
+  /** League whose averages and tiers the guide shows. */
+  league?: LeagueKey
 }
 
 const CUTOUT = (id: number) => cutoutUrl(id)
 const TEAM_LOGO = teamLogoUrl
 
-export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayProjected, homeProjected, awayTeamId, homeTeamId, mode }: Props) {
+export default function PitcherMatchup({ awayPitcher, homePitcher, awayColor, homeColor, awayBarColor, homeBarColor, awayPitcherName, homePitcherName, awayOpener, homeOpener, awayProjected, homeProjected, awayTeamId, homeTeamId, mode, league = 'MLB' }: Props) {
   const [glossaryOpen, setGlossaryOpen] = useState(false)
   const t = useT()
   // The guide's league averages and tiers: fetched the first time it opens
   const guideQuery = useQuery({
-    queryKey: ['pitching-guide', currentSeason()],
-    queryFn: () => fetchPitchingGuide(currentSeason()),
+    queryKey: ['pitching-guide', league, leagueSeason(league, mlbToday())],
+    queryFn: () => fetchPitchingGuide(leagueSeason(league, mlbToday()), league),
     enabled: glossaryOpen,
     staleTime: 6 * 3_600_000,
   })

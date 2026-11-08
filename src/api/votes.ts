@@ -1,6 +1,7 @@
 // Client for game votes, pick history and the picks leaderboard
 // (api/votes.ts, api/votes/history.ts, api/rankings.ts).
 import { supabase } from '@/lib/supabase'
+import type { LeagueKey } from '@/data/leagues'
 
 export interface GameVotes {
   counts: Record<string, number>   // teamId → votes
@@ -85,6 +86,6 @@ export async function castVote(gamePk: number, teamId: number): Promise<GameVote
 export async function fetchPickHistory(): Promise<PickHistory> {
   return json(await fetch('/api/votes/history', { headers: await authHeaders() }))
 }
-export async function fetchRankings(period: RankingPeriod): Promise<Rankings> {
-  return json(await fetch(`/api/rankings?period=${period}`))
+export async function fetchRankings(period: RankingPeriod, league: LeagueKey = 'MLB'): Promise<Rankings> {
+  return json(await fetch(`/api/rankings?period=${period}${league !== 'MLB' ? `&league=${league}` : ''}`))
 }

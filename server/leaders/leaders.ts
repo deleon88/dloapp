@@ -4,6 +4,7 @@
 // role — are applied here; the rest (minimum PA / IP, team, position, league)
 // and the sorting happen on the client over the whole list.
 import { sql } from '../db.js'
+import { constantsSource, type League } from '../leagues.js'
 import { battingTeam, countColumns, getConstants, getParkFactors } from '../stats/batting.js'
 import { obpSlg, pitcherSplit, woba, wrcPlus, type PitcherCounts, type PitchingConstants, type WobaConstants } from '../stats/formulas.js'
 import {
@@ -15,6 +16,7 @@ export type { Role }
 export type Hand = 'L' | 'R'
 
 export interface LeaderFilter {
+  league: League
   season: number
   from?: string
   to?: string
@@ -51,7 +53,7 @@ async function teamGames(f: LeaderFilter): Promise<Record<number, number>> {
   const rows = await sql<{ team_id: number; g: number }[]>`
     SELECT v.team_id, count(*)::int AS g
     FROM games g, LATERAL (VALUES (g.away_team_id), (g.home_team_id)) AS v(team_id)
-    WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' AND g.pbp_ingested_at IS NOT NULL
+    WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' AND g.pbp_ingested_at IS NOT NULL
       ${f.from ? sql`AND g.game_date >= ${f.from}` : sql``}
       ${f.to ? sql`AND g.game_date <= ${f.to}` : sql``}
     GROUP BY 1
@@ -69,7 +71,7 @@ async function handShare(f: LeaderFilter, column: 'pitch_hand' | 'bat_side'): Pr
   const [row] = await sql<{ share: number | null }[]>`
     SELECT (count(*) FILTER (WHERE ${sql(column)} = ${f.hand}))::float / nullif(count(*), 0) AS share
     FROM plays p JOIN games g USING (game_pk)
-    WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' AND p.is_pa ${dates(f)}
+    WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' AND p.is_pa ${dates(f)}
   `
   return row?.share ?? 1
 }
@@ -172,13 +174,13 @@ export async function getBattingLeaders(f: LeaderFilter) {
              count(DISTINCT p.game_pk)::int AS g, max(p.game_date)::text AS last,
              ${countColumns()}, ${battedBall()}
       FROM plays p JOIN games g USING (game_pk)
-      WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' AND p.is_pa ${dates(f)}
+      WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' AND p.is_pa ${dates(f)}
         ${f.hand ? sql`AND p.pitch_hand = ${f.hand}` : sql``}
       GROUP BY 1, 2
     `,
-    getConstants(f.season),
+    getConstants(f.season, constantsSource(f.league)),
     getParkFactors(f.season),
-    getPlayerDirectory(f.season),
+    getPlayerDirectory(f.league, f.season),
     teamGames(f),
     // Runs / steals have no pitcher-hand split: only without one.
     f.hand ? Promise.resolve(null) : getHittingExtras(f).catch(() => null),
@@ -210,7 +212,7 @@ function startersCte(f: LeaderFilter) {
     st AS (
       SELECT DISTINCT ON (p.game_pk, p.half) p.game_pk, p.half, p.pitcher_id AS starter_id
       FROM plays p JOIN games g USING (game_pk)
-      WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)}
+      WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)}
       ORDER BY p.game_pk, p.half, p.at_bat_index
     )
   `
@@ -251,13 +253,13 @@ export async function getPitchingLeaders(f: LeaderFilter) {
              ${pitchingColumns()}
       FROM plays p JOIN games g USING (game_pk)
       JOIN st ON st.game_pk = p.game_pk AND st.half = p.half
-      WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)} ${roleWhere(role)}
+      WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)} ${roleWhere(role)}
         ${f.hand ? sql`AND p.bat_side = ${f.hand}` : sql``}
       GROUP BY 1, 2
     `,
-    getConstants(f.season) as Promise<PitchingConstants>,
+    getConstants(f.season, constantsSource(f.league)) as Promise<PitchingConstants>,
     getParkFactors(f.season),
-    getPlayerDirectory(f.season),
+    getPlayerDirectory(f.league, f.season),
     teamGames(f),
     // ERA / W-L have no batter-hand split: only without one.
     f.hand ? Promise.resolve(null) : getPitchingRecords({ ...f, role }).catch(() => null),
@@ -294,7 +296,7 @@ export async function getTeamLeaders(f: LeaderFilter) {
     sql<BatRow[]>`
       SELECT ${battingTeam()} AS id, ${countColumns()}, ${battedBall()}
       FROM plays p JOIN games g USING (game_pk)
-      WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' AND p.is_pa ${dates(f)}
+      WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' AND p.is_pa ${dates(f)}
         ${f.hand ? sql`AND p.pitch_hand = ${f.hand}` : sql``}
       GROUP BY 1
     `,
@@ -303,11 +305,11 @@ export async function getTeamLeaders(f: LeaderFilter) {
       SELECT ${fieldingTeam} AS id, ${pitchingColumns()}
       FROM plays p JOIN games g USING (game_pk)
       JOIN st ON st.game_pk = p.game_pk AND st.half = p.half
-      WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)} ${roleWhere(role)}
+      WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)} ${roleWhere(role)}
         ${f.hand ? sql`AND p.bat_side = ${f.hand}` : sql``}
       GROUP BY 1
     `,
-    getConstants(f.season) as Promise<PitchingConstants>,
+    getConstants(f.season, constantsSource(f.league)) as Promise<PitchingConstants>,
     getParkFactors(f.season),
     teamGames(f),
     getTeamExtras({ ...f, role }).catch(() => new Map()),
@@ -316,7 +318,7 @@ export async function getTeamLeaders(f: LeaderFilter) {
   const runs = await sql<{ id: number; r: number }[]>`
     SELECT ${battingTeam()} AS id, coalesce(sum(p.runs_scored), 0)::int AS r
     FROM plays p JOIN games g USING (game_pk)
-    WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)}
+    WHERE g.league = ${f.league} AND g.season = ${f.season} AND g.game_type = 'R' ${dates(f)}
       ${f.hand ? sql`AND p.pitch_hand = ${f.hand}` : sql``}
     GROUP BY 1
   `

@@ -1,6 +1,7 @@
 import { mlbApi } from '../client'
 import type { ScheduleResponse } from '../types'
 import { shiftDate } from '@/utils/etDate'
+import { leagueParams, type LeagueKey } from '@/data/leagues'
 
 export type GameResult = 'W' | 'L'
 
@@ -13,9 +14,10 @@ const FIELDS = [
 /** Last 5 results per team before `beforeDate` (the game's official ET date, YYYY-MM-DD). */
 export async function fetchTeamRecentResults(
   beforeDate: string,
+  league: LeagueKey = 'MLB',
 ): Promise<Map<number, GameResult[]>> {
   const res = await mlbApi.get<ScheduleResponse>('/schedule', {
-    sportId: 1,
+    ...leagueParams(league),
     startDate: shiftDate(beforeDate, -18),
     endDate: shiftDate(beforeDate, -1),
     fields: FIELDS,

@@ -1,6 +1,5 @@
 import { mlbToday } from '@/utils/etDate'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
@@ -18,7 +17,8 @@ import HandSelect from '@/components/HandSelect/HandSelect'
 import GameCard from './GameCard'
 import DateNav from './DateNav'
 import { useT } from '@/i18n/useT'
-import { LEAGUE_KEYS, LEAGUE_PARAMS, leagueSeason, parseLeague, type LeagueKey } from '@/data/leagues'
+import { leagueParams, leagueSeason } from '@/data/leagues'
+import { useLeague } from '@/utils/useLeague'
 import StatBarsGuide from './StatBarsGuide'
 import styles from './SchedulePage.module.css'
 
@@ -27,20 +27,16 @@ export default function SchedulePage() {
   // Saved across pages; signed-in users only (see useStatFilters).
   const { period, setPeriod, handFilters, setHandFilters, locked: filtersLocked } = useStatFilters()
   const [glossaryOpen, setGlossaryOpen] = useState(false)
-  // In the URL, so coming back from a game keeps the league.
-  const [searchParams, setSearchParams] = useSearchParams()
-  const league = parseLeague(searchParams.get('league'))
-  const setLeague = (next: LeagueKey) => setSearchParams(next === 'MLB' ? {} : { league: next.toLowerCase() }, { replace: true })
-  // LIDOM's bars come from its own play-by-play. It has no probables, depth
-  // charts or rotation history worth projecting: starters show once the game
-  // is on (boxscore), offense once lineups are posted, and the bullpen is
-  // everyone who has relieved for the team.
-  const isMlb = league === 'MLB'
+  // The league is in the path (/lidom/games). Without probables or depth
+  // charts (LIDOM) nothing is projected: starters show once the game is on
+  // (boxscore), offense once lineups are posted, and the bullpen is everyone
+  // who has relieved for the team.
+  const { key: league, name: leagueName, caps } = useLeague()
   const season = leagueSeason(league, date)
 
   const scheduleQuery = useQuery({
     queryKey: ['schedule', league, date],
-    queryFn: () => getSchedule({ date, ...LEAGUE_PARAMS[league], hydrate: ['probablePitcher', 'linescore'] }),
+    queryFn: () => getSchedule({ date, ...leagueParams(league), hydrate: ['probablePitcher', 'linescore'] }),
     staleTime: 30_000,
   })
 
@@ -52,7 +48,7 @@ export default function SchedulePage() {
   const projectedQuery = useQuery({
     queryKey: ['projected-starters', date],
     queryFn: () => fetchProjectedStarters(date),
-    enabled: isMlb && rawGames.some(missingProbable),
+    enabled: caps.depthCharts && rawGames.some(missingProbable),
     staleTime: 30 * 60_000,
   })
 
@@ -126,7 +122,7 @@ export default function SchedulePage() {
   const rolesQuery = useQuery({
     queryKey: ['pitcher-roles', date, ...probables.map(p => `${p.id}-${p.teamId}`).sort()],
     queryFn: () => fetchPitcherRoles(probables, date),
-    enabled: isMlb && probables.length > 0,
+    enabled: caps.depthCharts && probables.length > 0,
     staleTime: 3_600_000,
   })
   // A projected opener (the projection knows it opens ahead of a bulk arm) counts too
@@ -149,7 +145,7 @@ export default function SchedulePage() {
 
   const bullpenFipQuery = useQuery({
     queryKey: ['bullpen-fip', league, season, uniqueTeamIds.slice().sort((a, b) => a - b).join(','), period, handFilters.pitcher],
-    queryFn: () => isMlb
+    queryFn: () => caps.depthCharts
       ? fetchBullpenFipPlusMap(uniqueTeamIds, period, handFilters.pitcher)
       : fetchTeamReliefFipPlusMap(uniqueTeamIds, period, handFilters.pitcher, league, season),
     enabled: uniqueTeamIds.length > 0,
@@ -161,7 +157,7 @@ export default function SchedulePage() {
   const goToQuery = useQuery({
     queryKey: ['go-to-lineups', ...uniqueTeamIds.slice().sort((a, b) => a - b)],
     queryFn: () => fetchGoToLineups(uniqueTeamIds),
-    enabled: isMlb && uniqueTeamIds.length > 0,
+    enabled: caps.depthCharts && uniqueTeamIds.length > 0,
     staleTime: 15 * 60_000,
   })
   const goTo = goToQuery.data
@@ -235,18 +231,9 @@ export default function SchedulePage() {
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.heading}>{t(isMlb ? 'mlbGames' : 'lidomGames')}</h1>
+          <h1 className={styles.heading}>{t('leagueGames').replace('{league}', leagueName)}</h1>
         </div>
         <div className={styles.headerRight}>
-          <div className={styles.leagueToggle} role="group" aria-label={t('leagueSelect')}>
-            {LEAGUE_KEYS.map(l => (
-              <button key={l} type="button" aria-pressed={league === l}
-                className={`${styles.leagueBtn} ${league === l ? styles.leagueActive : ''}`}
-                onClick={() => setLeague(l)}>
-                {l}
-              </button>
-            ))}
-          </div>
           <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
           <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
           <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>

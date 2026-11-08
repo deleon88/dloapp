@@ -1,6 +1,6 @@
 // Cron diario de Vercel (ver vercel.json → crons).
 // 1. Sincroniza el calendario de los últimos 2 días y hoy (hora del este) de
-//    cada liga de INGEST_LEAGUES.
+//    cada liga de SYNCED_LEAGUES.
 // 2. Ingresa el play-by-play de los juegos terminados que falten.
 // 3. Vuelve a ingresar los de los últimos 2 días, por si MLB corrigió la anotación.
 // 4. Recalcula las constantes de cada liga que recibió juegos de temporada regular.
@@ -11,14 +11,14 @@ import { sql } from '../../server/db.js'
 import { etDate, ingestMany, pendingGames, syncSchedule } from '../../server/ingest.js'
 import { computeConstants, saveConstants } from '../../server/stats/constants.js'
 import { mlbTeamIds, refreshGoTo } from '../../server/lineups/goTo.js'
-import type { League } from '../../server/leagues.js'
+import { SYNCED_LEAGUES } from '../../server/leagues.js'
 
 export const maxDuration = 300
 // Margen para recalcular constantes (~3 s), lineups y cerrar la bitácora antes del límite.
 const INGEST_BUDGET_MS = 220_000
 const LINEUPS_DEADLINE_MS = 280_000
-// Los lineups go-to siguen siendo solo de MLB (usan depth charts que LIDOM no tiene).
-const INGEST_LEAGUES: League[] = ['MLB', 'LIDOM']
+// Las ligas que se ingresan son SYNCED_LEAGUES (server/leagues.ts). Los lineups
+// go-to siguen siendo solo de MLB (usan depth charts que LIDOM no tiene).
 
 async function refreshLineups(from: string, to: string, deadline: number): Promise<number> {
   try {
@@ -61,7 +61,7 @@ export async function GET(request: Request): Promise<Response> {
     const twoDaysAgo = etDate(new Date(Date.now() - 2 * 86_400_000))
 
     let scheduled = 0
-    for (const league of INGEST_LEAGUES) scheduled += await syncSchedule(twoDaysAgo, today, league)
+    for (const league of SYNCED_LEAGUES) scheduled += await syncSchedule(twoDaysAgo, today, league)
     const pending = await pendingGames({ recheckSince: twoDaysAgo })
     const res = await ingestMany(pending, 5, undefined, startedAt + INGEST_BUDGET_MS)
 
@@ -70,7 +70,7 @@ export async function GET(request: Request): Promise<Response> {
     const regular = pending.slice(0, pending.length - res.deferred)
       .filter(g => g.game_type === 'R' && !failedPks.has(g.game_pk))
     let constantsSeason: number | null = null
-    for (const league of INGEST_LEAGUES) {
+    for (const league of SYNCED_LEAGUES) {
       const seasons = regular.filter(g => g.league === league).map(g => g.season)
       if (!seasons.length) continue
       const season = Math.max(...seasons)

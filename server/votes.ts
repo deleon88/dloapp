@@ -7,6 +7,7 @@ import { getJson } from './mlb/pbp.js'
 import { etDate, syncSchedule, upsertGames } from './ingest.js'
 import type { ScheduleGame } from './mlb/pbp.js'
 import { periodRange, type RankingPeriod } from './rankingPeriod.js'
+import { leagueOfLeagueId, leagueSeasonOf, seasonRange, SYNCED_LEAGUES, type League } from './leagues.js'
 import { pickResult, summarize, type PickResult, type PickSummary, votingOpen } from './picks.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
@@ -18,7 +19,8 @@ let lastRefresh = 0
 export async function refreshRecentResults(): Promise<void> {
   if (Date.now() - lastRefresh < 3 * 60_000) return
   lastRefresh = Date.now()
-  await syncSchedule(etDate(new Date(Date.now() - 86_400_000)), etDate()).catch(() => { lastRefresh = 0 })
+  const from = etDate(new Date(Date.now() - 86_400_000)), to = etDate()
+  await Promise.all(SYNCED_LEAGUES.map(l => syncSchedule(from, to, l))).catch(() => { lastRefresh = 0 })
 }
 
 // ── Casting a vote ──────────────────────────────────────────────────────────
@@ -31,10 +33,11 @@ export async function castVote(userId: string, gamePk: number, teamId: number): 
   const data = await getJson<{ dates?: Array<{ games?: Array<{
     gamePk: number; gameType: string; gameDate?: string; officialDate: string; season?: string
     status?: { abstractGameState?: string; detailedState?: string }
-    teams?: { away?: { team?: { id?: number } }; home?: { team?: { id?: number } } }
+    teams?: { away?: { team?: { id?: number } }; home?: { team?: { id?: number; league?: { id?: number } } } }
     venue?: { id?: number }
   }> }> }>(
-    `${MLB_API}/schedule?gamePk=${gamePk}&fields=dates,games,gamePk,gameType,gameDate,officialDate,season,status,abstractGameState,detailedState,teams,away,home,team,id,venue`,
+    // team(league): the home team's league says the game's (LIDOM, or AL / NL = MLB)
+    `${MLB_API}/schedule?gamePk=${gamePk}&hydrate=team(league)&fields=dates,games,gamePk,gameType,gameDate,officialDate,season,status,abstractGameState,detailedState,teams,away,home,team,id,league,venue`,
   )
   const g = data.dates?.flatMap(d => d.games ?? []).find(x => x.gamePk === gamePk)
   if (!g) return 'game_not_found'
@@ -47,7 +50,7 @@ export async function castVote(userId: string, gamePk: number, teamId: number): 
   const row: ScheduleGame = {
     game_pk: g.gamePk, season: Number(g.season ?? g.officialDate.slice(0, 4)), game_date: g.officialDate,
     game_type: g.gameType, abstract_state: state ?? 'Preview', status: g.status?.detailedState ?? 'Scheduled',
-    league: 'MLB', away_team_id: away!, home_team_id: home!, venue_id: g.venue?.id ?? null,
+    league: leagueOfLeagueId(g.teams?.home?.team?.league?.id), away_team_id: away!, home_team_id: home!, venue_id: g.venue?.id ?? null,
     game_time: g.gameDate ?? null, away_score: null, home_score: null, winner_team_id: null,
   }
   await upsertGames([row])
@@ -129,13 +132,13 @@ export interface RankingRow {
   streak: number         // current run of correct picks (all time, not just the period)
 }
 
-/** Current run of correct picks per username, over all their finished picks. */
-async function winStreaks(usernames: string[]): Promise<Map<string, number>> {
+/** Current run of correct picks per username, over all their finished picks in the league. */
+async function winStreaks(usernames: string[], league: League): Promise<Map<string, number>> {
   if (!usernames.length) return new Map()
   const rows = await sql<{ username: string; won: boolean }[]>`
     SELECT p.username, v.team_id = g.winner_team_id AS won
     FROM votes v JOIN games g USING (game_pk) JOIN profiles p ON p.id = v.user_id
-    WHERE g.winner_team_id IS NOT NULL AND p.username = ANY(${usernames})
+    WHERE g.winner_team_id IS NOT NULL AND g.league = ${league} AND p.username = ANY(${usernames})
     ORDER BY p.username, g.game_date DESC, g.game_time DESC NULLS LAST
   `
   const byUser = new Map<string, PickResult[]>()
@@ -151,11 +154,15 @@ async function winStreaks(usernames: string[]): Promise<Map<string, number>> {
 }
 
 /**
- * Picks leaderboard: most correct picks first; ties broken by hit rate, then
- * fewer picks (same hits with fewer misses ranks higher). Tied users share a rank.
+ * Picks leaderboard of a league: most correct picks first; ties broken by hit
+ * rate, then fewer picks (same hits with fewer misses ranks higher). Tied users
+ * share a rank.
  */
-export async function getRankings(period: RankingPeriod): Promise<{ from: string; to: string; rows: RankingRow[] }> {
-  const { from, to } = periodRange(period, etDate())
+export async function getRankings(period: RankingPeriod, league: League = 'MLB'): Promise<{ from: string; to: string; rows: RankingRow[] }> {
+  // A winter league's season crosses New Year: its own dates, not the calendar year
+  const today = etDate()
+  const winter = period === 'season' && league !== 'MLB' ? seasonRange(league, leagueSeasonOf(league, today)) : null
+  const { from, to } = winter ? { from: winter.start, to: winter.end } : periodRange(period, today)
   const rows = await sql<Array<{ username: string; favorite_team_id: number | null; correct: number; decided: number; rank: number }>>`
     WITH tally AS (
       SELECT p.username, p.favorite_team_id,
@@ -165,6 +172,7 @@ export async function getRankings(period: RankingPeriod): Promise<{ from: string
       JOIN games g USING (game_pk)
       JOIN profiles p ON p.id = v.user_id
       WHERE g.winner_team_id IS NOT NULL
+        AND g.league = ${league}
         AND p.username IS NOT NULL
         AND g.game_date BETWEEN ${from} AND ${to}
       GROUP BY p.username, p.favorite_team_id
@@ -173,7 +181,7 @@ export async function getRankings(period: RankingPeriod): Promise<{ from: string
     FROM tally
     ORDER BY rank, lower(username)
   `
-  const streaks = await winStreaks(rows.map(r => r.username))
+  const streaks = await winStreaks(rows.map(r => r.username), league)
   return {
     from, to,
     rows: rows.map(r => ({

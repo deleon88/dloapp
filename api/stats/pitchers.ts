@@ -2,7 +2,7 @@
 // FIP, FIP-, xFIP, WHIP, K-BB% and wOBA against (overall, vs LHB, vs RHB) from
 // the play-by-play, plus ERA / W-L / QS from MLB for the same period.
 // GET /api/stats/pitchers?teams=667,668&role=rp[&season][&period][&league]: each team's relief line
-// GET /api/stats/pitchers?guide=1[&season=2026]: league averages + tiers for the pitcher card guide
+// GET /api/stats/pitchers?guide=1[&season=2026][&league]: league averages + tiers for the pitcher card guide
 import { PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting.js'
 import { getPitcherLines, getTeamReliefLines, type PitcherRole } from '../../server/stats/pitching.js'
 import { isLeague } from '../../server/leagues.js'
@@ -24,8 +24,10 @@ export async function GET(request: Request): Promise<Response> {
   if (q.has('guide')) {
     const season = Number(q.get('season') ?? new Date().getFullYear())
     if (!Number.isInteger(season) || season < 2000 || season > 2100) return bad('season inválida')
+    const league = (q.get('league') ?? 'MLB').toUpperCase()
+    if (!isLeague(league)) return bad('league debe ser MLB, LIDOM o LMB')
     try {
-      return Response.json(await getPitchingGuide(season),
+      return Response.json(await getPitchingGuide(season, league),
         { headers: { 'Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=86400' } })
     } catch (e) {
       console.error('[api/stats/pitchers guide]', e)
