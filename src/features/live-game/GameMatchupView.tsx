@@ -201,7 +201,7 @@ export default function GameMatchupView({
 
       {/* ── Lineup comparison ──────────────────────────────── */}
       {/* Without go-to lineups to project, only lineups already posted */}
-      {(caps.depthCharts || lineupLoading || !!lineup?.away.length || !!lineup?.home.length) && <LineupComparison
+      {(caps.projections || lineupLoading || !!lineup?.away.length || !!lineup?.home.length) && <LineupComparison
         awayTeamId={teams.away.team.id}
         homeTeamId={teams.home.team.id}
         awayLineup={lineup?.away ?? []}

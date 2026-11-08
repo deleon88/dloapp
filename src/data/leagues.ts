@@ -26,7 +26,9 @@ export interface LeagueInfo {
   caps: {
     /** Announced probable starters (otherwise starters show once the game is on). */
     probables: boolean
-    /** Depth charts, rotation history and what's built on them (go-to lineups, bullpen card, openers). */
+    /** Projected starters and go-to lineups, from the team's own history. */
+    projections: boolean
+    /** Depth charts and what's built on them (opener roles, the bullpen card and its bar). */
     depthCharts: boolean
     /** AL / NL style sub-leagues on the Stats page. */
     subLeagues: boolean
@@ -42,13 +44,13 @@ export const LEAGUES: LeagueInfo[] = [
     key: 'MLB', slug: 'mlb', name: 'MLB', fullName: 'Major League Baseball', sport: 'baseball',
     sportId: 1, logo: 'https://www.mlbstatic.com/team-logos/league-on-dark/1.svg',
     season: { from: '03-15', to: '11-05' },
-    caps: { probables: true, depthCharts: true, subLeagues: true },
+    caps: { probables: true, projections: true, depthCharts: true, subLeagues: true },
   },
   {
     key: 'LIDOM', slug: 'lidom', name: 'LIDOM', fullName: 'Liga de Béisbol Dominicano', sport: 'baseball',
     sportId: 17, leagueId: 131, logo: 'https://www.mlbstatic.com/team-logos/league-on-dark/131.svg',
     season: { from: '10-10', to: '02-05' },
-    caps: { probables: false, depthCharts: false, subLeagues: false },
+    caps: { probables: false, projections: true, depthCharts: false, subLeagues: false },
   },
 ]
 

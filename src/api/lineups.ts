@@ -1,6 +1,7 @@
 // Client for the go-to lineups (api/lineups.ts): each team's lineup vs RHP and
 // vs LHP, built on the server from its last 5 lineups against that hand,
 // checked against the active roster, injured list and depth chart.
+import type { LeagueKey } from '@/data/leagues'
 import type { LineupSlot } from '@/api/mlb/endpoints/boxscore'
 
 export interface PlayerPrediction extends LineupSlot {
@@ -24,11 +25,14 @@ export interface TeamGoTo {
   computedAt: string
 }
 
-/** Go-to lineups by team id. */
-export async function fetchGoToLineups(teamIds: number[]): Promise<Map<number, TeamGoTo>> {
+/** Go-to lineups by team id (the teams of one league; LIDOM's are tuned to its roster turnover). */
+export async function fetchGoToLineups(teamIds: number[], league: LeagueKey = 'MLB', season?: number): Promise<Map<number, TeamGoTo>> {
   const ids = [...new Set(teamIds)].sort((a, b) => a - b)
   if (!ids.length) return new Map()
-  const res = await fetch(`/api/lineups?teams=${ids.join(',')}`)
+  const params = new URLSearchParams({ teams: ids.join(',') })
+  if (league !== 'MLB') params.set('league', league)
+  if (season) params.set('season', String(season))
+  const res = await fetch(`/api/lineups?${params}`)
   if (!res.ok) throw new Error(`lineups ${res.status}`)
   const body = await res.json() as { teams: TeamGoTo[] }
   return new Map(body.teams.map(t => [t.teamId, t]))

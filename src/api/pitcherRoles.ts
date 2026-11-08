@@ -1,5 +1,6 @@
 // Client for api/pitcher-roles.ts: is each probable starter a real starter or
 // an opener (an inning or two before the bulk of the pitching)?
+import type { LeagueKey } from '@/data/leagues'
 
 export type PitcherRole = 'starter' | 'opener'
 
@@ -97,8 +98,8 @@ export function missingProbable(g: ProjectableGame): boolean {
 }
 
 /** Projected starters for the games of a date (YYYY-MM-DD) with none announced. */
-export async function fetchProjectedStarters(date: string): Promise<GameProjections> {
-  const res = await fetch(`/api/pitcher-roles?starters=${date}`)
+export async function fetchProjectedStarters(date: string, league: LeagueKey = 'MLB'): Promise<GameProjections> {
+  const res = await fetch(`/api/pitcher-roles?starters=${date}${league !== 'MLB' ? `&league=${league}` : ''}`)
   if (!res.ok) throw new Error(`pitcher-roles starters ${res.status}`)
   return ((await res.json()) as { games: GameProjections }).games
 }

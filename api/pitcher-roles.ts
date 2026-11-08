@@ -6,12 +6,13 @@
 // of the game behind them, or null when it isn't clear enough to name.
 // See server/openers/detect.ts and bulk.ts.
 //
-// GET /api/pitcher-roles?starters=2026-10-23
+// GET /api/pitcher-roles?starters=2026-10-23[&league=LIDOM]
 // Projected starters for that date's games with no announced probable:
 // { games: { [gamePk]: { away?: {id, fullName}, home?: … } } } (server/starters).
 import { getPitcherRoles } from '../server/openers/roles.js'
 import { getBulkArm, type BulkArm } from '../server/openers/bulkService.js'
 import { projectStarters } from '../server/starters/service.js'
+import { isLeague } from '../server/leagues.js'
 
 const list = (s: string | null) => (s ?? '').split(',').filter(Boolean).map(Number)
 
@@ -21,8 +22,10 @@ export async function GET(request: Request): Promise<Response> {
   const startersDate = q.get('starters')
   if (startersDate != null) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(startersDate)) return Response.json({ error: 'starters debe ser YYYY-MM-DD' }, { status: 400 })
+    const league = (q.get('league') ?? 'MLB').toUpperCase()
+    if (!isLeague(league)) return Response.json({ error: 'league debe ser MLB, LIDOM o LMB' }, { status: 400 })
     try {
-      const games = await projectStarters(startersDate)
+      const games = await projectStarters(startersDate, league)
       // Changes when probables are announced or a game is played: half an hour
       return Response.json({ date: startersDate, games }, {
         headers: { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=7200' },

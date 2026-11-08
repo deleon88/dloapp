@@ -7,7 +7,7 @@ import { getStartingBattingOrders } from '@/api/mlb/endpoints/boxscore'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
 import { mlbToday } from '@/utils/etDate'
-import { leagueInfo, leagueParams, type LeagueKey } from '@/data/leagues'
+import { leagueInfo, leagueParams, leagueSeason, type LeagueKey } from '@/data/leagues'
 
 export interface TodaysStarters {
   date: string
@@ -36,7 +36,7 @@ export async function fetchTodaysStarters(league: LeagueKey = 'MLB'): Promise<To
   const teamIds = [...new Set(games.flatMap(g => [g.teams.away.team.id, g.teams.home.team.id]))]
   const [orders, goTo, hands] = await Promise.all([
     Promise.all(games.map(g => getStartingBattingOrders(g.gamePk).catch(() => ({ away: [] as number[], home: [] as number[], awayStarter: undefined, homeStarter: undefined })))),
-    teamIds.length && leagueInfo(league).caps.depthCharts ? fetchGoToLineups(teamIds).catch(() => new Map()) : Promise.resolve(new Map()),
+    teamIds.length && leagueInfo(league).caps.projections ? fetchGoToLineups(teamIds, league, leagueSeason(league, date)).catch(() => new Map()) : Promise.resolve(new Map()),
     pitchers.size ? getPitchHands([...pitchers]).catch(() => new Map<number, string>()) : Promise.resolve(new Map<number, string>()),
   ])
 

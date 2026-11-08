@@ -1,8 +1,9 @@
-// GET /api/lineups?teams=147,111[&season=2026]   (sin teams: los 30 equipos)
+// GET /api/lineups?teams=147,111[&season=2026][&league=LIDOM]   (sin teams: los 30 equipos de MLB)
 // Lineup go-to de cada equipo vs abridor derecho (vsRHP) y zurdo (vsLHP): sus
 // últimos 5 lineups contra esa mano, corregidos con roster activo, lesionados
 // y depth chart. Ver server/lineups.
 import { getGoTo, mlbTeamIds } from '../server/lineups/goTo.js'
+import { isLeague } from '../server/leagues.js'
 
 // Recomputing all 30 teams (roster calls to MLB) can take a while when the cron hasn't.
 export const maxDuration = 60
@@ -19,10 +20,13 @@ export async function GET(request: Request): Promise<Response> {
   const raw = q.get('teams') ?? q.get('team')
   const teams = raw ? raw.split(',').map(Number) : null
   if (teams && (teams.length > 30 || teams.some(t => !Number.isInteger(t) || t <= 0))) return bad('teams inválido')
+  const league = (q.get('league') ?? 'MLB').toUpperCase()
+  if (!isLeague(league)) return bad('league debe ser MLB, LIDOM o LMB')
+  if (!teams && league !== 'MLB') return bad('teams es obligatorio fuera de MLB')
 
   try {
     const ids = teams ? [...new Set(teams)] : await mlbTeamIds()
-    const goTo = await getGoTo(ids, season)
+    const goTo = await getGoTo(ids, season, league)
     // Roster moves happen during the day: short cache, served stale while it refreshes.
     return Response.json({ season, teams: goTo }, {
       headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=3600' },

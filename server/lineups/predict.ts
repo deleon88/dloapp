@@ -100,17 +100,27 @@ function expectedPosition(spot: number, maps: SpotMaps): string {
   return [...posFreq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'DH'
 }
 
+/** Tuning per league (see LINEUP_TUNING in goTo.ts). */
+export interface LineupOptions {
+  /** Lineups vs that hand in the sample (default SAMPLE_SIZE). */
+  sampleSize?: number
+  /** Lineups overall, the fallback for a spot (default OVERALL_SIZE). */
+  overallSize?: number
+}
+
 export function buildGoToLineup(
   history: PastLineup[],          // the team's lineups, newest first
   hand: Hand,
   roster: RosterInfo,
   previous: number[] = [],        // player ids of the last go-to: breaks frequency ties, keeps it stable
+  opts: LineupOptions = {},
 ): GoToResult {
+  const sampleSize = opts.sampleSize ?? SAMPLE_SIZE
   const played = history.filter(g => g.slots.length > 0)
-  const vsHand = played.filter(g => g.vsHand === hand).slice(0, SAMPLE_SIZE)
+  const vsHand = played.filter(g => g.vsHand === hand).slice(0, sampleSize)
   const fallback = vsHand.length < MIN_HAND_GAMES
-  const sample = fallback ? played.slice(0, SAMPLE_SIZE) : vsHand
-  const overall = played.slice(0, OVERALL_SIZE)
+  const sample = fallback ? played.slice(0, sampleSize) : vsHand
+  const overall = played.slice(0, opts.overallSize ?? OVERALL_SIZE)
   const games = sample.map(g => g.gamePk)
   if (!sample.length) return { lineup: null, games, fallback }
 
@@ -206,4 +216,22 @@ export function buildGoToLineup(
 
   const lineup = slots.filter((s): s is GoToSlot => s != null)
   return { lineup: lineup.length ? lineup : null, games, fallback }
+}
+
+/**
+ * A depth chart from the team's own recent lineups, for leagues the Stats API
+ * has none for (LIDOM): at each position, who started there, most starts first.
+ */
+export function depthFromHistory(history: PastLineup[], games: number, names: Map<number, DepthPlayer>): Map<string, DepthPlayer[]> {
+  const starts = new Map<string, Map<number, number>>()
+  for (const g of history.filter(h => h.slots.length > 0).slice(0, games)) {
+    for (const s of g.slots.slice(0, 9)) {
+      if (NON_STARTER_POS.has(s.position)) continue
+      const m = starts.get(s.position) ?? new Map<number, number>()
+      m.set(s.playerId, (m.get(s.playerId) ?? 0) + 1)
+      starts.set(s.position, m)
+    }
+  }
+  return new Map([...starts].map(([pos, m]) => [pos, [...m.entries()].sort((a, b) => b[1] - a[1])
+    .map(([id]) => names.get(id) ?? { id, fullName: '', jerseyNumber: '' })]))
 }

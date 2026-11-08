@@ -47,8 +47,9 @@ export default function LiveGamePage() {
   // starters show once the game is on), depth charts or bullpen card.
   const league = rawGame ? leagueOfGame(rawGame) : undefined
   const caps = league ? leagueInfo(league).caps : undefined
-  // Projected starters, opener roles, go-to lineups and the bullpen card stand on depth charts
+  // Opener roles and the bullpen card stand on depth charts; projections on the team's history
   const deep = !!caps?.depthCharts
+  const projects = !!caps?.projections
   const season = rawGame && league ? leagueSeason(league, rawGame.officialDate) : undefined
   // An old /game/:pk link, or one under the wrong league: to the game's own league path
   const { pathname } = useLocation()
@@ -58,9 +59,9 @@ export default function LiveGamePage() {
     }
   }, [league, pathname, pk, navigate])
   const projectedQuery = useQuery({
-    queryKey: ['projected-starters', rawGame?.officialDate],
-    queryFn: () => fetchProjectedStarters(rawGame!.officialDate),
-    enabled: deep && missingProbable(rawGame!),
+    queryKey: ['projected-starters', league, rawGame?.officialDate],
+    queryFn: () => fetchProjectedStarters(rawGame!.officialDate, league),
+    enabled: projects && missingProbable(rawGame!),
     staleTime: 30 * 60_000,
   })
 
@@ -120,9 +121,9 @@ export default function LiveGamePage() {
   // Go-to lineups (server: last 5 lineups vs that hand + roster/IL/depth chart).
   // Each side faces the other team's starter; vs RHP while that hand is unknown.
   const goToQuery = useQuery({
-    queryKey: ['go-to-lineups', awayTeamId, homeTeamId],
-    queryFn: () => fetchGoToLineups([awayTeamId!, homeTeamId!]),
-    enabled: deep && isPreview && !!awayTeamId && !!homeTeamId,
+    queryKey: ['go-to-lineups', league, season, awayTeamId, homeTeamId],
+    queryFn: () => fetchGoToLineups([awayTeamId!, homeTeamId!], league, season),
+    enabled: projects && isPreview && !!awayTeamId && !!homeTeamId,
     staleTime: 15 * 60_000,
   })
   const awayPredicted = goToFor(goToQuery.data?.get(awayTeamId!), homePitcherHand)

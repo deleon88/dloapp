@@ -46,9 +46,9 @@ export default function SchedulePage() {
 
   // Starters not announced yet: projected from the rotation (flagged on the card)
   const projectedQuery = useQuery({
-    queryKey: ['projected-starters', date],
-    queryFn: () => fetchProjectedStarters(date),
-    enabled: caps.depthCharts && rawGames.some(missingProbable),
+    queryKey: ['projected-starters', league, date],
+    queryFn: () => fetchProjectedStarters(date, league),
+    enabled: caps.projections && rawGames.some(missingProbable),
     staleTime: 30 * 60_000,
   })
 
@@ -135,8 +135,8 @@ export default function SchedulePage() {
     ...[...projBulks.values()].map(b => b.id),
   ])]
   const bulkStatsQuery = useQuery({
-    queryKey: ['pitcher-stats', period, ...bulkIds],
-    queryFn: () => fetchPitcherStats(bulkIds, period),
+    queryKey: ['pitcher-stats', league, season, period, ...bulkIds],
+    queryFn: () => fetchPitcherStats(bulkIds, period, league, season),
     enabled: bulkIds.length > 0,
     staleTime: 3_600_000,
   })
@@ -155,9 +155,9 @@ export default function SchedulePage() {
 
   // Go-to lineups (vs RHP / vs LHP) of every team on the schedule, built on the server.
   const goToQuery = useQuery({
-    queryKey: ['go-to-lineups', ...uniqueTeamIds.slice().sort((a, b) => a - b)],
-    queryFn: () => fetchGoToLineups(uniqueTeamIds),
-    enabled: caps.depthCharts && uniqueTeamIds.length > 0,
+    queryKey: ['go-to-lineups', league, season, ...uniqueTeamIds.slice().sort((a, b) => a - b)],
+    queryFn: () => fetchGoToLineups(uniqueTeamIds, league, season),
+    enabled: caps.projections && uniqueTeamIds.length > 0,
     staleTime: 15 * 60_000,
   })
   const goTo = goToQuery.data
@@ -198,8 +198,8 @@ export default function SchedulePage() {
   }, [games, lineupOffenseQuery.data, pitchHandQuery.data, goTo])
 
   const projectedWrcQuery = useQuery({
-    queryKey: ['projected-sched-wrc', projectedInfo.allIds.slice().sort().join(','), period],
-    queryFn: () => fetchWrcComputedBulk(projectedInfo.allIds, period),
+    queryKey: ['projected-sched-wrc', league, season, projectedInfo.allIds.slice().sort().join(','), period],
+    queryFn: () => fetchWrcComputedBulk(projectedInfo.allIds, period, season, league),
     enabled: projectedInfo.allIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,

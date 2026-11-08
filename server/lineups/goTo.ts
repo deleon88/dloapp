@@ -7,12 +7,27 @@
 import { sql } from '../db.js'
 import { getJson } from '../mlb/pbp.js'
 import { getBatterCounts } from '../stats/batting.js'
-import { buildGoToLineup, type DepthPlayer, type GoToSlot, type Hand, type PastLineup, type RosterInfo } from './predict.js'
+import type { League } from '../leagues.js'
+import { buildGoToLineup, depthFromHistory, type DepthPlayer, type GoToSlot, type Hand, type LineupOptions, type PastLineup, type RosterInfo } from './predict.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 export const MAX_AGE_MS = 3 * 60 * 60_000
 const HISTORY_GAMES = 60          // enough to find 5 starts vs LHP for any team
 const BATTER_POS_CODES = new Set(['2', '3', '4', '5', '6', '7', '8', '9', '10'])
+
+/**
+ * Per-league tuning. LIDOM rosters turn over fast (imports come and go) and the
+ * Stats API has no depth chart for it: a 2-game sample vs the hand, the last 3
+ * overall, and a depth chart from the last 10 lineups. Backtest (players in
+ * the real lineup / same spot): 2025 67.5% / 38.0%, 2026 69.9% / 43.2%, vs
+ * 62.3% / 32.0% and 67.4% / 36.2% with MLB's settings; repeating the last
+ * game's lineup gets 69.3% / 68.6% of the players. MLB 2026: 79.2% / 50.0%.
+ */
+const LINEUP_TUNING: Record<League, LineupOptions & { depthGames?: number }> = {
+  MLB: {},
+  LIDOM: { sampleSize: 2, overallSize: 3, depthGames: 10 },
+  LMB: {},
+}
 
 export interface GoToPlayer extends GoToSlot {
   fullName: string
@@ -118,7 +133,7 @@ export async function loadRoster(teamId: number, season: number): Promise<Roster
 const fmt3 = (x: number | null) => (x == null ? '.---' : x.toFixed(3).replace(/^0/, ''))
 
 /** Recomputes both hands for a team and stores them. */
-export async function computeGoTo(teamId: number, season: number): Promise<TeamGoTo> {
+export async function computeGoTo(teamId: number, season: number, league: League = 'MLB'): Promise<TeamGoTo> {
   const [history, roster, prevRows] = await Promise.all([
     loadHistory(teamId, season),
     loadRoster(teamId, season),
@@ -127,13 +142,16 @@ export async function computeGoTo(teamId: number, season: number): Promise<TeamG
   ])
   const prev = new Map(prevRows.map(r => [r.hand, (r.lineup ?? []).map(p => p.id)]))
 
-  const raw = { R: buildGoToLineup(history, 'R', roster, prev.get('R')), L: buildGoToLineup(history, 'L', roster, prev.get('L')) }
+  const { depthGames, ...opts } = LINEUP_TUNING[league]
+  // No depth chart from the Stats API (LIDOM): the team's own recent lineups stand in
+  if (!roster.depthByPosition.size && depthGames) roster.depthByPosition = depthFromHistory(history, depthGames, roster.names)
+  const raw = { R: buildGoToLineup(history, 'R', roster, prev.get('R'), opts), L: buildGoToLineup(history, 'L', roster, prev.get('L'), opts) }
 
   // Names from the roster (or the last lineup's player if no longer listed) and season AVG / OBP / PA.
   const ids = [...new Set([...(raw.R.lineup ?? []), ...(raw.L.lineup ?? [])].map(s => s.id))]
   const missing = ids.filter(id => !roster.names.has(id))
   const [counts, people] = await Promise.all([
-    ids.length ? getBatterCounts({ season, batterIds: ids }) : [],
+    ids.length ? getBatterCounts({ league, season, batterIds: ids }) : [],
     missing.length
       ? getJson<{ people?: Array<{ id: number; fullName: string; primaryNumber?: string }> }>(
           `${MLB_API}/people?personIds=${missing.join(',')}&fields=people,id,fullName,primaryNumber`)
@@ -191,9 +209,9 @@ async function pool<T>(items: T[], n: number, fn: (x: T) => Promise<unknown>, de
   return { done: next - failed.length, failed }
 }
 
-/** Recomputes several teams (cron). */
-export async function refreshGoTo(teamIds: number[], season: number, deadline?: number) {
-  return pool(teamIds, 5, id => computeGoTo(id, season), deadline)
+/** Recomputes several teams of a league (cron). */
+export async function refreshGoTo(teamIds: number[], season: number, deadline?: number, league: League = 'MLB') {
+  return pool(teamIds, 5, id => computeGoTo(id, season, league), deadline)
 }
 
 /** The 30 MLB clubs (the teams table also has the All-Star AL/NL teams, 159 and 160). */
@@ -203,8 +221,8 @@ export async function mlbTeamIds(): Promise<number[]> {
   return rows.map(r => Number(r.team_key)).filter(Number.isInteger)
 }
 
-/** Stored go-to lineups; teams missing or older than MAX_AGE are recomputed first. */
-export async function getGoTo(teamIds: number[], season: number): Promise<TeamGoTo[]> {
+/** Stored go-to lineups of a league's teams; teams missing or older than MAX_AGE are recomputed first. */
+export async function getGoTo(teamIds: number[], season: number, league: League = 'MLB'): Promise<TeamGoTo[]> {
   type Row = { team_id: number; hand: Hand; lineup: GoToPlayer[] | null; games: number[]; fallback: boolean; computed_at: Date }
   const read = () => sql<Row[]>`
     SELECT team_id, hand, lineup, games, fallback, computed_at
@@ -214,7 +232,7 @@ export async function getGoTo(teamIds: number[], season: number): Promise<TeamGo
   const fresh = new Set(rows.filter(r => Date.now() - r.computed_at.getTime() < MAX_AGE_MS).map(r => r.team_id))
   const stale = teamIds.filter(id => !fresh.has(id))
   if (stale.length) {
-    const res = await pool(stale, 6, id => computeGoTo(id, season))
+    const res = await pool(stale, 6, id => computeGoTo(id, season, league))
     for (const f of res.failed) console.error(`[go-to] team ${f.item}: ${f.error}`)
     rows = await read()
   }

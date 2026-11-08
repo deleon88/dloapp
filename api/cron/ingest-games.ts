@@ -4,7 +4,7 @@
 // 2. Ingresa el play-by-play de los juegos terminados que falten.
 // 3. Vuelve a ingresar los de los últimos 2 días, por si MLB corrigió la anotación.
 // 4. Recalcula las constantes de cada liga que recibió juegos de temporada regular.
-// 5. Recalcula los lineups go-to (vs LHP / vs RHP) de los equipos con juegos recientes.
+// 5. Recalcula los lineups go-to (vs LHP / vs RHP) de los equipos con juegos recientes, en cada liga.
 // Cada corrida queda en ingest_runs; /api/health avisa si la ingesta se atrasa.
 import { timingSafeEqual } from 'node:crypto'
 import { sql } from '../../server/db.js'
@@ -17,24 +17,27 @@ export const maxDuration = 300
 // Margen para recalcular constantes (~3 s), lineups y cerrar la bitácora antes del límite.
 const INGEST_BUDGET_MS = 220_000
 const LINEUPS_DEADLINE_MS = 280_000
-// Las ligas que se ingresan son SYNCED_LEAGUES (server/leagues.ts). Los lineups
-// go-to siguen siendo solo de MLB (usan depth charts que LIDOM no tiene).
+// Las ligas que se ingresan son SYNCED_LEAGUES (server/leagues.ts).
 
 async function refreshLineups(from: string, to: string, deadline: number): Promise<number> {
-  try {
-    const teams = await sql<{ team_id: number; season: number }[]>`
-      SELECT DISTINCT unnest(ARRAY[away_team_id, home_team_id]) AS team_id, season
-      FROM games WHERE league = 'MLB' AND game_date BETWEEN ${from} AND ${to} AND game_type <> 'S'`
-    const mlb = new Set(await mlbTeamIds())
-    const season = Math.max(...teams.map(t => t.season), 0)
-    const ids = teams.filter(t => t.season === season && mlb.has(t.team_id)).map(t => t.team_id)
-    const res = await refreshGoTo(ids, season, deadline)
-    for (const f of res.failed) console.error(`[ingest-games] go-to ${f.item}: ${f.error}`)
-    return res.done
-  } catch (e) {
-    console.error('[ingest-games] lineups', e)
-    return 0
+  let done = 0
+  for (const league of SYNCED_LEAGUES) {
+    try {
+      const teams = await sql<{ team_id: number; season: number }[]>`
+        SELECT DISTINCT unnest(ARRAY[away_team_id, home_team_id]) AS team_id, season
+        FROM games WHERE league = ${league} AND game_date BETWEEN ${from} AND ${to} AND game_type <> 'S'`
+      // MLB: the 30 clubs only (no All-Star teams)
+      const mlb = league === 'MLB' ? new Set(await mlbTeamIds()) : null
+      const season = Math.max(...teams.map(t => t.season), 0)
+      const ids = teams.filter(t => t.season === season && (!mlb || mlb.has(t.team_id))).map(t => t.team_id)
+      const res = await refreshGoTo(ids, season, deadline, league)
+      for (const f of res.failed) console.error(`[ingest-games] go-to ${league} ${f.item}: ${f.error}`)
+      done += res.done
+    } catch (e) {
+      console.error(`[ingest-games] lineups ${league}`, e)
+    }
   }
+  return done
 }
 
 function authorized(request: Request): boolean {

@@ -5,13 +5,16 @@
 // postseason ranks arms by that season's regular-season FIP. Baseline: a fixed
 // five-man rotation (the starter of five games ago).
 //
-//   npm run db:validate-starters -- [--season 2026]
+//   npm run db:validate-starters -- [--season 2026] [--league LIDOM]
 import { sql } from '../../server/db.js'
 import { getPitcherLines } from '../../server/stats/pitching.js'
 import { asTurn, CYCLE_BACK, rankStarters, rotation, STALE_DAYS, type ProjectOptions, type Start } from '../../server/starters/project.js'
+import { isLeague, seasonRange } from '../../server/leagues.js'
 
 const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined }
 const seasons = arg('season') ? [Number(arg('season'))] : [2025, 2026]
+const league = arg('league') ?? 'MLB'
+if (!isLeague(league)) throw new Error(`Liga desconocida: ${league}`)
 const HORIZONS = [1, 2, 3, 5, 7, 10]
 const pct = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : '—')
 
@@ -27,10 +30,11 @@ for (const season of seasons) {
       WHERE r.game_pk = a.game_pk AND r.team_id = a.team_id AND r.seq > 0
       ORDER BY r.outs DESC, r.pitches DESC LIMIT 1
     ) b ON a.pitches < 35
-    WHERE g.league = 'MLB' AND g.season = ${season} AND a.seq = 0
+    WHERE g.league = ${league} AND g.season = ${season} AND a.seq = 0
     ORDER BY a.team_id, g.game_date, g.game_pk`]
   const ids = [...new Set(rows.flatMap(r => (r.bulk_id ? [r.pitcher_id, r.bulk_id] : [r.pitcher_id])))]
-  const lines = await getPitcherLines({ season, pitcherIds: ids, to: `${season}-09-30` })
+  // regular-season FIP (the postseason ranks by it)
+  const lines = await getPitcherLines({ league, season, pitcherIds: ids, to: league === 'MLB' ? `${season}-09-30` : seasonRange(league, season).end })
   const quality = new Map<number, number>()
   for (const [id, l] of lines) if (l.fip != null && l.ip >= 20) quality.set(id, l.fip)
 

@@ -3,8 +3,11 @@
 // optioned arms), its starters' FIP, and its games from today up to that date
 // in order — an earlier game's starter (announced or projected) is used up
 // before the next one. See project.ts for the rules and the backtest
-// (npm run db:validate-starters).
+// (npm run db:validate-starters). LIDOM uses the same rules: on its 2025
+// season they get the next starter right 38.7% of the time (top-3 68.1%), 2026
+// so far 60.5% (76.3%); tuning the rotation for it gained little that held up.
 import { sql } from '../db.js'
+import { leagueParams, leagueSeasonOf, type League } from '../leagues.js'
 import { getJson } from '../mlb/pbp.js'
 import { etDate } from '../ingest.js'
 import { loadRoster } from '../lineups/goTo.js'
@@ -34,11 +37,11 @@ const shiftDate = (d: string, days: number) => {
   return t.toISOString().slice(0, 10)
 }
 
-export async function projectStarters(date: string): Promise<GameProjections> {
+export async function projectStarters(date: string, league: League = 'MLB'): Promise<GameProjections> {
   const today = etDate()
   const from = date < today ? date : today
   const sched = await getJson<{ dates?: Array<{ games?: SchedGame[] }> }>(
-    `${MLB_API}/schedule?sportId=1&startDate=${from}&endDate=${date}&hydrate=probablePitcher` +
+    `${MLB_API}/schedule?${leagueParams(league)}&startDate=${from}&endDate=${date}&hydrate=probablePitcher` +
     '&fields=dates,games,gamePk,officialDate,gameType,status,detailedState,abstractGameState,teams,away,home,team,id,probablePitcher',
   )
   const dead = (g: SchedGame) => /^(Postponed|Cancelled)/.test(g.status?.detailedState ?? '')
@@ -54,7 +57,7 @@ export async function projectStarters(date: string): Promise<GameProjections> {
     .filter(s => !g.teams[s].probablePitcher).map(s => g.teams[s].team.id)))]
   if (!teams.length) return {}
 
-  const season = Number(date.slice(0, 4))
+  const season = leagueSeasonOf(league, date)
   // Each start, and for a short one the longest reliever behind it (an opener's bulk)
   const rows = await sql<{ team_id: number; d: string; t: string; pitcher_id: number; pitches: number; bulk_id: number | null; bulk_pitches: number | null }[]>`
     SELECT a.team_id, g.game_date::text AS d, g.game_type AS t, a.pitcher_id, a.pitches,
@@ -70,7 +73,7 @@ export async function projectStarters(date: string): Promise<GameProjections> {
   `
   const ids = [...new Set(rows.flatMap(r => (r.bulk_id ? [r.pitcher_id, r.bulk_id] : [r.pitcher_id])))]
   const [lines, rosters] = await Promise.all([
-    ids.length ? getPitcherLines({ season, pitcherIds: ids }).catch(() => new Map()) : Promise.resolve(new Map()),
+    ids.length ? getPitcherLines({ league, season, pitcherIds: ids }).catch(() => new Map()) : Promise.resolve(new Map()),
     Promise.all(teams.map(t => loadRoster(t, season).catch(() => null))),
   ])
   const quality = new Map<number, number>()
