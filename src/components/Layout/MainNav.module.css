@@ -49,6 +49,22 @@
 
 .icon { width: 21px; height: 21px; flex-shrink: 0; }
 
+/* a section on the way: dimmed, a small padlock on its icon, not a link */
+.locked, .locked:hover { color: var(--text-faint); cursor: default; }
+.lockWrap { position: relative; display: grid; }
+
+.lockBadge {
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  width: 12px;
+  height: 12px;
+  padding: 1px;
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+}
+
 .item:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -4px; border-radius: var(--radius-sm); }
 
 /* Wide screens: a rail down the left, under the header */

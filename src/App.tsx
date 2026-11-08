@@ -16,7 +16,7 @@ import ProfilePage from '@/features/auth/ProfilePage'
 import RankingsPage from '@/features/rankings/RankingsPage'
 import StatsPage from '@/features/stats/StatsPage'
 import { supabase } from '@/lib/supabase'
-import { votingEnabled } from '@/lib/features'
+import { rankingEnabled, votingEnabled } from '@/lib/features'
 
 export default function App() {
   return (
@@ -30,7 +30,8 @@ export default function App() {
             <Route path="games" element={<SchedulePage />} />
             <Route path="stats" element={<StatsPage />} />
             <Route path="game/:gamePk" element={<LiveGamePage />} />
-            {supabase && votingEnabled && <Route path="ranking" element={<RankingsPage />} />}
+            {/* Ranking locked (production without VITE_ENABLE_RANKING): back to the games */}
+            {supabase && votingEnabled && <Route path="ranking" element={rankingEnabled ? <RankingsPage /> : <Navigate to="../games" replace />} />}
           </Route>
           {/* Old paths: to the same page of the default league (a game finds its own) */}
           <Route path="schedule" element={<LeagueRedirect page="games" />} />
@@ -47,7 +48,7 @@ export default function App() {
             <Route path="forgot-password" element={<OpenAuthRoute view="forgot" />} />
             <Route path="auth/callback" element={<AuthCallbackPage />} />
             <Route path="profile" element={<ProfilePage />} />
-            {votingEnabled && <Route path="rankings" element={<LeagueRedirect page="ranking" />} />}
+            {rankingEnabled && <Route path="rankings" element={<LeagueRedirect page="ranking" />} />}
           </>}
           <Route path="*" element={<LeagueRedirect page="games" />} />
         </Route>

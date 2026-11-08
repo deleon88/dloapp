@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/authStore'
-import { votingEnabled } from '@/lib/features'
+import { rankingEnabled, votingEnabled } from '@/lib/features'
 import { useT } from '@/i18n/useT'
 import { fetchPickHistory, fetchRankings, type RankingRow } from '@/api/votes'
 import { capLogoUrl, getTeamMeta } from '@/data/teams'
@@ -35,7 +35,7 @@ export default function AccountPanel({ open, onClose }: { open: boolean; onClose
   const ranking = useQuery({
     queryKey: ['rankings', 'week', league.key],
     queryFn: () => fetchRankings('week', league.key),
-    enabled: open && votingEnabled,
+    enabled: open && rankingEnabled,
     staleTime: 60_000,
   })
 
@@ -84,7 +84,7 @@ export default function AccountPanel({ open, onClose }: { open: boolean; onClose
           )}
         </div>
 
-        {votingEnabled && (
+        {rankingEnabled && (
           <section className={styles.stand} aria-label={t('rankingsNav')}>
             <div className={styles.standHead}>
               <b>{t('rankingsNav')} · {t('periodWeek').toLowerCase()}</b>
