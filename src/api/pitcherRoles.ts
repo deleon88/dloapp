@@ -115,3 +115,19 @@ export function withProjectedStarters<G extends ProjectableGame>(game: G, proj: 
     side.probablePitcher || !s ? side : { ...side, probablePitcher: { ...s, projected: true } }
   return { ...game, teams: { ...game.teams, away: fill(teams.away, p.away), home: fill(teams.home, p.home) } }
 }
+
+/**
+ * The game with each missing probable filled in by who actually started (from
+ * the boxscore). LIDOM doesn't announce probables, so this is how its cards
+ * get a starter once the game is on.
+ */
+export function withActualStarters<G extends ProjectableGame>(
+  game: G,
+  starters: { awayStarter?: { id: number; fullName: string }; homeStarter?: { id: number; fullName: string } } | undefined,
+): G {
+  if (!starters?.awayStarter && !starters?.homeStarter) return game
+  const teams = game.teams as { away: Side; home: Side }
+  const fill = (side: Side, s?: { id: number; fullName: string }): Side =>
+    side.probablePitcher || !s ? side : { ...side, probablePitcher: s }
+  return { ...game, teams: { ...game.teams, away: fill(teams.away, starters.awayStarter), home: fill(teams.home, starters.homeStarter) } }
+}

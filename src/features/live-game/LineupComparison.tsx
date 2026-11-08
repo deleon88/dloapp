@@ -34,6 +34,8 @@ interface Props {
   homeLineupStatus?: LineupStatus
   awayProbablePitcher?: ProbablePitcher
   homeProbablePitcher?: ProbablePitcher
+  /** League of the vs-pitcher history (1 = MLB). */
+  sportId?: number
 }
 
 const WRC_MIN = 40
@@ -101,6 +103,7 @@ export default function LineupComparison({
   mode, onModeChange,
   awayLineupStatus, homeLineupStatus,
   awayProbablePitcher, homeProbablePitcher,
+  sportId,
 }: Props) {
   const awayMeta = getTeamMeta(awayTeamId)
   const homeMeta = getTeamMeta(homeTeamId)
@@ -229,6 +232,7 @@ export default function LineupComparison({
           bgColor={activeBgColor}
           side={activeSide}
           teamLabel={activeLabel}
+          sportId={sportId}
         />
       )}
     </div>

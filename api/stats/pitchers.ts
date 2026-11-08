@@ -1,9 +1,11 @@
-// GET /api/stats/pitchers?ids=1,2,3[&season=2026][&period=season|60days|30days|14days|7days][&role=all|rp]
+// GET /api/stats/pitchers?ids=1,2,3[&season=2026][&period=season|60days|30days|14days|7days][&role=all|rp][&league=MLB|LIDOM]
 // FIP, FIP-, xFIP, WHIP, K-BB% and wOBA against (overall, vs LHB, vs RHB) from
 // the play-by-play, plus ERA / W-L / QS from MLB for the same period.
+// GET /api/stats/pitchers?teams=667,668&role=rp[&season][&period][&league]: each team's relief line
 // GET /api/stats/pitchers?guide=1[&season=2026]: league averages + tiers for the pitcher card guide
 import { PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting.js'
-import { getPitcherLines, type PitcherRole } from '../../server/stats/pitching.js'
+import { getPitcherLines, getTeamReliefLines, type PitcherRole } from '../../server/stats/pitching.js'
+import { isLeague } from '../../server/leagues.js'
 import { getPitcherRecords } from '../../server/mlb/pitcherRecord.js'
 import { getPitchingGuide } from '../../server/stats/pitchingGuide.js'
 
@@ -31,10 +33,11 @@ export async function GET(request: Request): Promise<Response> {
     }
   }
 
+  const teams = (q.get('teams') ?? '').split(',').filter(Boolean).map(Number)
   const ids = (q.get('ids') ?? '').split(',').filter(Boolean).map(Number)
-  if (!ids.length) return bad('ids es obligatorio')
-  if (ids.length > MAX_IDS) return bad(`máximo ${MAX_IDS} ids por petición`)
-  if (ids.some(id => !Number.isInteger(id) || id <= 0)) return bad('ids inválidos')
+  if (!ids.length && !teams.length) return bad('ids o teams es obligatorio')
+  if (ids.length > MAX_IDS || teams.length > MAX_IDS) return bad(`máximo ${MAX_IDS} ids por petición`)
+  if ([...ids, ...teams].some(id => !Number.isInteger(id) || id <= 0)) return bad('ids inválidos')
 
   const season = Number(q.get('season') ?? new Date().getFullYear())
   if (!Number.isInteger(season) || season < 2000 || season > 2100) return bad('season inválida')
@@ -43,13 +46,23 @@ export async function GET(request: Request): Promise<Response> {
   if (!PERIODS.has(period)) return bad(`period debe ser uno de: ${[...PERIODS].join(', ')}`)
   const role = (q.get('role') ?? 'all') as PitcherRole
   if (!ROLES.has(role)) return bad('role debe ser all o rp')
+  const league = (q.get('league') ?? 'MLB').toUpperCase()
+  if (!isLeague(league)) return bad('league debe ser MLB, LIDOM o LMB')
+  if (teams.length && role !== 'rp') return bad('teams solo con role=rp')
 
   try {
-    const range = await resolvePeriod(season, period as Period)
+    const range = await resolvePeriod(season, period as Period, league)
+    if (teams.length) {
+      const lines = await getTeamReliefLines({ league, season, teamIds: teams, ...range })
+      return Response.json(
+        { season, period, role, from: range.from ?? null, to: range.to ?? null, teams: Object.fromEntries(lines) },
+        { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' } },
+      )
+    }
     const [lines, records] = await Promise.all([
-      getPitcherLines({ season, pitcherIds: ids, role, ...range }),
+      getPitcherLines({ league, season, pitcherIds: ids, role, ...range }),
       // ERA etc. are informative only: if MLB fails, the rest still answers.
-      getPitcherRecords({ season, pitcherIds: ids, ...range, reliefOnly: role === 'rp' }).catch(() => new Map()),
+      getPitcherRecords({ league, season, pitcherIds: ids, ...range, reliefOnly: role === 'rp' }).catch(() => new Map()),
     ])
     const players = Object.fromEntries(ids.filter(id => lines.has(id)).map(id => [id, { ...lines.get(id), record: records.get(id) ?? null }]))
     return Response.json(

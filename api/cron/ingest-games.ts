@@ -3,7 +3,7 @@
 //    cada liga de INGEST_LEAGUES.
 // 2. Ingresa el play-by-play de los juegos terminados que falten.
 // 3. Vuelve a ingresar los de los últimos 2 días, por si MLB corrigió la anotación.
-// 4. Si entraron juegos de temporada regular de MLB, recalcula las constantes de liga.
+// 4. Recalcula las constantes de cada liga que recibió juegos de temporada regular.
 // 5. Recalcula los lineups go-to (vs LHP / vs RHP) de los equipos con juegos recientes.
 // Cada corrida queda en ingest_runs; /api/health avisa si la ingesta se atrasa.
 import { timingSafeEqual } from 'node:crypto'
@@ -17,8 +17,7 @@ export const maxDuration = 300
 // Margen para recalcular constantes (~3 s), lineups y cerrar la bitácora antes del límite.
 const INGEST_BUDGET_MS = 220_000
 const LINEUPS_DEADLINE_MS = 280_000
-// Las stats, constantes y lineups siguen siendo solo de MLB: LIDOM se ingresa
-// para tener su play-by-play, pero nada lo consulta todavía.
+// Los lineups go-to siguen siendo solo de MLB (usan depth charts que LIDOM no tiene).
 const INGEST_LEAGUES: League[] = ['MLB', 'LIDOM']
 
 async function refreshLineups(from: string, to: string, deadline: number): Promise<number> {
@@ -66,12 +65,19 @@ export async function GET(request: Request): Promise<Response> {
     const pending = await pendingGames({ recheckSince: twoDaysAgo })
     const res = await ingestMany(pending, 5, undefined, startedAt + INGEST_BUDGET_MS)
 
-    // Constantes de la temporada regular de MLB más reciente que recibió juegos nuevos.
+    // Constantes de la temporada regular más reciente de cada liga que recibió juegos nuevos.
     const failedPks = new Set(res.failed.map(f => f.gamePk))
     const regular = pending.slice(0, pending.length - res.deferred)
-      .filter(g => g.league === 'MLB' && g.game_type === 'R' && !failedPks.has(g.game_pk))
-    const constantsSeason = regular.length ? Math.max(...regular.map(g => g.season)) : null
-    if (constantsSeason) await saveConstants(constantsSeason, await computeConstants(constantsSeason))
+      .filter(g => g.game_type === 'R' && !failedPks.has(g.game_pk))
+    let constantsSeason: number | null = null
+    for (const league of INGEST_LEAGUES) {
+      const seasons = regular.filter(g => g.league === league).map(g => g.season)
+      if (!seasons.length) continue
+      const season = Math.max(...seasons)
+      await saveConstants(season, await computeConstants(season, league), league)
+      // ingest_runs y /api/health siguen la de MLB.
+      if (league === 'MLB') constantsSeason = season
+    }
 
     // Lineups go-to de los equipos que jugaron (nuevos lineups) o juegan hoy.
     // No cuenta como fallo de la corrida: la API los recalcula si están viejos.

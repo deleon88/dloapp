@@ -1,6 +1,6 @@
 // Carga inicial: calendario + play-by-play de una temporada completa.
 // Uso: npm run db:backfill -- --season 2026 [--league LIDOM] [--concurrency 5] [--reingest]
-// --league es MLB por defecto; las constantes solo se recalculan para MLB.
+// --league es MLB por defecto.
 // Se puede volver a correr: solo procesa los juegos que faltan. Con --reingest
 // vuelve a descargar todos los juegos terminados (p. ej. al agregar un campo nuevo).
 import { parseArgs } from 'node:util'
@@ -47,9 +47,9 @@ const [tot] = await sql<{ games: number; pa: number }[]>`
 console.log(`Temporada regular ${league} ${season} en la base: ${tot.games} juegos, ${tot.pa.toLocaleString()} turnos.`)
 
 // Same as the daily cron: constants follow the regular-season games in the base.
-if (league === 'MLB' && tot.games && res.ok) {
-  await saveConstants(season, await computeConstants(season))
-  console.log(`Constantes ${season} recalculadas.`)
+if (tot.games && res.ok) {
+  await saveConstants(season, await computeConstants(season, league), league)
+  console.log(`Constantes ${league} ${season} recalculadas.`)
 }
 await sql.end()
 if (res.failed.length) process.exitCode = 1

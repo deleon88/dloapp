@@ -1,6 +1,7 @@
 // Client for /api/stats/pitchers: pitching stats computed by our backend from
 // the play-by-play (see server/stats/pitching.ts), plus ERA/W-L from MLB.
 import type { StatPeriod } from '@/utils/period'
+import type { LeagueKey } from '@/data/leagues'
 
 export interface PitcherSplit {
   bf: number
@@ -35,6 +36,8 @@ export interface PitcherLine extends PitcherSplit {
 }
 
 export interface PitcherLinesOptions {
+  /** MLB by default: only the batters faced in that league count. */
+  league?: LeagueKey
   season?: number
   period?: StatPeriod
   /** 'rp' = relief appearances only (bullpen). */
@@ -56,6 +59,7 @@ export async function fetchPitcherLines(
     if (opts.season) params.set('season', String(opts.season))
     if (opts.period && opts.period !== 'season') params.set('period', opts.period)
     if (opts.role === 'rp') params.set('role', 'rp')
+    if (opts.league && opts.league !== 'MLB') params.set('league', opts.league)
     const res = await fetch(`/api/stats/pitchers?${params}`)
     if (!res.ok) throw new Error(`stats/pitchers ${res.status}`)
     return ((await res.json()) as { players: Record<string, PitcherLine> }).players
@@ -64,6 +68,25 @@ export async function fetchPitcherLines(
   const out = new Map<number, PitcherLine>()
   for (const r of results) for (const [id, line] of Object.entries(r)) out.set(Number(id), line)
   return out
+}
+
+export type TeamReliefLine = PitcherSplit & { vsL: PitcherSplit; vsR: PitcherSplit }
+
+/** Each team's relief line: every relief appearance for it in the period, added up. */
+export async function fetchTeamReliefLines(
+  teamIds: number[],
+  opts: Omit<PitcherLinesOptions, 'role'> = {},
+): Promise<Map<number, TeamReliefLine>> {
+  const ids = [...new Set(teamIds)].sort((a, b) => a - b)
+  if (!ids.length) return new Map()
+  const params = new URLSearchParams({ teams: ids.join(','), role: 'rp' })
+  if (opts.season) params.set('season', String(opts.season))
+  if (opts.period && opts.period !== 'season') params.set('period', opts.period)
+  if (opts.league && opts.league !== 'MLB') params.set('league', opts.league)
+  const res = await fetch(`/api/stats/pitchers?${params}`)
+  if (!res.ok) throw new Error(`stats/pitchers ${res.status}`)
+  const { teams } = (await res.json()) as { teams: Record<string, TeamReliefLine> }
+  return new Map(Object.entries(teams).map(([id, line]) => [Number(id), line]))
 }
 
 export type GuideStat = 'era' | 'fip' | 'xfip' | 'whip' | 'kbb' | 'woba'

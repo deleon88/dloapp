@@ -1,8 +1,9 @@
 // GET /api/stats/batters?ids=1,2,3[&season=2026][&period=season|60days|30days|14days|7days]
-//                       [&from=YYYY-MM-DD&to=YYYY-MM-DD]
+//                       [&from=YYYY-MM-DD&to=YYYY-MM-DD][&league=MLB|LIDOM]
 // wOBA, wRC+, OPS y HR (general, vs LHP, vs RHP) calculados desde el play-by-play.
 // `period` calcula el rango en el servidor; `from`/`to` explícitos tienen prioridad.
 import { getBatterLines, PERIOD_DAYS, resolvePeriod, type Period } from '../../server/stats/batting.js'
+import { isLeague } from '../../server/leagues.js'
 
 const MAX_IDS = 200
 const DATE = /^\d{4}-\d{2}-\d{2}$/
@@ -26,13 +27,16 @@ export async function GET(request: Request): Promise<Response> {
   const period = q.get('period') ?? 'season'
   if (!PERIODS.has(period)) return bad(`period debe ser uno de: ${[...PERIODS].join(', ')}`)
 
+  const league = (q.get('league') ?? 'MLB').toUpperCase()
+  if (!isLeague(league)) return bad('league debe ser MLB, LIDOM o LMB')
+
   const fromParam = q.get('from') ?? undefined
   const toParam = q.get('to') ?? undefined
   if ((fromParam && !DATE.test(fromParam)) || (toParam && !DATE.test(toParam))) return bad('from/to deben ser YYYY-MM-DD')
 
   try {
-    const range = fromParam || toParam ? { from: fromParam, to: toParam } : await resolvePeriod(season, period as Period)
-    const lines = await getBatterLines({ season, batterIds: ids, ...range })
+    const range = fromParam || toParam ? { from: fromParam, to: toParam } : await resolvePeriod(season, period as Period, league)
+    const lines = await getBatterLines({ league, season, batterIds: ids, ...range })
     return Response.json(
       { season, period, from: range.from ?? null, to: range.to ?? null, players: Object.fromEntries(lines) },
       // Los datos solo cambian cuando corre la ingesta diaria: el CDN puede servirlos.

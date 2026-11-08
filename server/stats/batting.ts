@@ -1,7 +1,8 @@
 // Estadísticas de bateo calculadas desde la tabla plays: conteos por bateador
-// filtrables por temporada, ventana de fechas y mano del pitcher, más wOBA y
-// wRC+ con las constantes de league_constants.
+// filtrables por liga, temporada, ventana de fechas y mano del pitcher, más
+// wOBA y wRC+ con las constantes de esa liga en league_constants.
 import { sql } from '../db.js'
+import { constantsSource, type League } from '../leagues.js'
 import { woba, wrcPlus, type WobaConstants } from './formulas.js'
 
 // Re-exported so existing importers (scripts, pitching.ts) keep working.
@@ -29,6 +30,8 @@ export interface BatterCounts {
 }
 
 export interface BatterFilter {
+  /** MLB por defecto. */
+  league?: League
   season: number
   batterIds?: number[]
   from?: string           // YYYY-MM-DD inclusive
@@ -62,7 +65,7 @@ export function battingTeam() {
 
 function whereClause(f: BatterFilter) {
   return sql`
-    WHERE g.league = 'MLB'
+    WHERE g.league = ${f.league ?? 'MLB'}
       AND g.season = ${f.season}
       AND g.game_type = 'R'
       AND p.is_pa
@@ -127,12 +130,12 @@ export type Period = 'season' | keyof typeof PERIOD_DAYS
  * juegos de temporada regular ya cargados, no en hoy: así "últimos 7 días"
  * sigue teniendo datos en la postemporada o el día después de un día libre.
  */
-export async function resolvePeriod(season: number, period: Period): Promise<{ from?: string; to?: string }> {
+export async function resolvePeriod(season: number, period: Period, league: League = 'MLB'): Promise<{ from?: string; to?: string }> {
   if (period === 'season') return {}
   const [row] = await sql<{ last: string | null }[]>`
     SELECT to_char(max(game_date), 'YYYY-MM-DD') AS last
     FROM games
-    WHERE league = 'MLB' AND season = ${season} AND game_type = 'R' AND pbp_ingested_at IS NOT NULL
+    WHERE league = ${league} AND season = ${season} AND game_type = 'R' AND pbp_ingested_at IS NOT NULL
   `
   if (!row?.last) return {}
   const to = new Date(`${row.last}T00:00:00Z`)
@@ -180,7 +183,7 @@ const COUNT_KEYS = ['pa', 'ab', 'h1', 'h2', 'h3', 'hr', 'ubb', 'ibb', 'hbp', 'sf
 export async function getBatterLines(f: Omit<BatterFilter, 'vsHand' | 'teamId'>): Promise<Map<number, BatterLine>> {
   const [rows, c, parks] = await Promise.all([
     getBatterSplitRows(f),
-    getConstants(f.season),
+    getConstants(f.season, constantsSource(f.league ?? 'MLB')),
     getParkFactors(f.season),
   ])
 

@@ -1,6 +1,7 @@
 // Cliente de /api/stats/batters: wOBA, wRC+, OPS y HR calculados en nuestro
 // backend desde el play-by-play (ver server/stats/batting.ts).
 import type { StatPeriod } from '@/utils/period'
+import type { LeagueKey } from '@/data/leagues'
 
 export interface SplitLine {
   pa: number
@@ -19,6 +20,8 @@ export interface BatterLine extends SplitLine {
 }
 
 export interface BatterLinesOptions {
+  /** MLB by default: only the plate appearances in that league count. */
+  league?: LeagueKey
   season?: number
   period?: StatPeriod   // el servidor calcula el rango de fechas
 }
@@ -29,6 +32,7 @@ async function fetchChunk(ids: number[], opts: BatterLinesOptions): Promise<Reco
   const params = new URLSearchParams({ ids: ids.join(',') })
   if (opts.season) params.set('season', String(opts.season))
   if (opts.period && opts.period !== 'season') params.set('period', opts.period)
+  if (opts.league && opts.league !== 'MLB') params.set('league', opts.league)
 
   const res = await fetch(`/api/stats/batters?${params}`)
   if (!res.ok) throw new Error(`stats/batters ${res.status}`)

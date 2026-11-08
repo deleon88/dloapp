@@ -7,9 +7,9 @@ import { applyPitcherHand, fetchPitcherStats } from '@/api/mlb/endpoints/pitcher
 import { getGameLineup, type LineupSlot } from '@/api/mlb/endpoints/boxscore'
 import { applyBatterHand, fetchLineupStats } from '@/api/mlb/endpoints/lineupStats'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
-import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, withProjectedStarters } from '@/api/pitcherRoles'
+import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, withActualStarters, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchBullpenStats } from '@/api/mlb/endpoints/bullpenStats'
-import { isLidomTeam } from '@/data/teams'
+import { leagueOfGame, leagueSeason } from '@/data/leagues'
 import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
 import HandSelect from '@/components/HandSelect/HandSelect'
 import { batterLabelKey, batterSplitFor, pitcherLabelKey } from '@/utils/handFilter'
@@ -41,16 +41,29 @@ export default function LiveGamePage() {
   })
   // A starter not announced yet comes projected from the rotation (flagged on the cards)
   const rawGame = gameQuery.data
+  // Nothing league-specific is fetched until the game says which league it is.
+  // LIDOM numbers come from its own play-by-play; it has no probables (the
+  // starters show once the game is on), depth charts or bullpen card.
+  const league = rawGame ? leagueOfGame(rawGame) : undefined
+  const isMlb = league === 'MLB'
+  const season = rawGame && league ? leagueSeason(league, rawGame.officialDate) : undefined
   const projectedQuery = useQuery({
     queryKey: ['projected-starters', rawGame?.officialDate],
     queryFn: () => fetchProjectedStarters(rawGame!.officialDate),
-    enabled: !!rawGame && !isLidomTeam(rawGame.teams.home.team.id) && missingProbable(rawGame),
+    enabled: isMlb && missingProbable(rawGame!),
     staleTime: 30 * 60_000,
   })
-  const game = useMemo(() => (rawGame ? withProjectedStarters(rawGame, projectedQuery.data) : rawGame), [rawGame, projectedQuery.data])
-  // Every number on this page comes from our MLB data. A LIDOM game shows the
-  // matchup, lineups and weather; nothing is fetched until we know the league.
-  const isMlb = !!rawGame && !isLidomTeam(rawGame.teams.home.team.id)
+
+  // Batting orders from the boxscore (Live / Final games), and who started
+  const lineupQuery = useQuery({
+    queryKey: ['lineup', pk],
+    queryFn: () => getGameLineup(pk),
+    enabled: !!pk,
+    staleTime: 300_000,
+  })
+  const game = useMemo(() => (rawGame
+    ? withActualStarters(withProjectedStarters(rawGame, projectedQuery.data), lineupQuery.data)
+    : rawGame), [rawGame, projectedQuery.data, lineupQuery.data])
 
   // 2. Pitcher season stats
   const awayPitcherId = (game as GameWithPitcher)?.teams?.away?.probablePitcher?.id
@@ -58,9 +71,9 @@ export default function LiveGamePage() {
   const pitcherIds = [awayPitcherId, homePitcherId].filter((id): id is number => id != null)
 
   const pitcherQuery = useQuery({
-    queryKey: ['pitcher-stats', period, ...pitcherIds],
-    queryFn: () => fetchPitcherStats(pitcherIds, period),
-    enabled: isMlb && pitcherIds.length > 0,
+    queryKey: ['pitcher-stats', league, season, period, ...pitcherIds],
+    queryFn: () => fetchPitcherStats(pitcherIds, period, league, season),
+    enabled: !!league && pitcherIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -85,17 +98,10 @@ export default function LiveGamePage() {
   const projBulks = useMemo(() => (game ? projectedBulks([game]) : new Map()), [game])
   const isOpener = (id?: number) => id != null && (rolesQuery.data?.get(id)?.role === 'opener' || projBulks.has(id))
 
-  // 3. Batting orders from boxscore (Live / Final games)
+  // 3. Lineups
   const isPreview = game?.status.abstractGameState === 'Preview'
   const awayTeamId = game?.teams.away.team.id
   const homeTeamId = game?.teams.home.team.id
-
-  const lineupQuery = useQuery({
-    queryKey: ['lineup', pk],
-    queryFn: () => getGameLineup(pk),
-    enabled: !!pk,
-    staleTime: 300_000,
-  })
 
   // 4. Projected lineups (Preview games only)
   const awayPitcherHand = awayPitcherId ? pitcherQuery.data?.get(awayPitcherId)?.pitchHand : undefined
@@ -153,9 +159,9 @@ export default function LiveGamePage() {
     ...homeLineup.map(p => p.id),
   ]
   const saberQuery = useQuery({
-    queryKey: ['lineup-saber', period, ...allBatterIds],
-    queryFn: () => fetchLineupStats(allBatterIds, period),
-    enabled: isMlb && allBatterIds.length > 0,
+    queryKey: ['lineup-saber', league, season, period, ...allBatterIds],
+    queryFn: () => fetchLineupStats(allBatterIds, period, season, league),
+    enabled: !!league && allBatterIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
   })
@@ -217,17 +223,17 @@ export default function LiveGamePage() {
       <div ref={headerSentinel} className={styles.headerSentinel} aria-hidden="true" />
       <div className={`${styles.pageHeader} ${filtersFloating ? styles.pageHeaderFloating : ''}`}>
         <button className={styles.backBtn} onClick={() => navigate(-1)} tabIndex={filtersFloating ? -1 : 0}>← Back</button>
-        {(isMlb || !game) && (
-          <div className={styles.headerRight}>
-            <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
-            <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
-            {/* Share: a phone-sized image of the matchup, with the filters above */}
+        <div className={styles.headerRight}>
+          <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
+          <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
+          {/* Share: a phone-sized image of the matchup, with the filters above (MLB only) */}
+          {(isMlb || !game) && (
             <button className={styles.shareBtn} onClick={() => setSharing(true)} disabled={!shareData}
               aria-label={t('share')} title={t('share')}>
               <ShareIcon />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {sharing && shareData && <ShareSheet data={shareData} onClose={() => setSharing(false)} />}
@@ -241,7 +247,7 @@ export default function LiveGamePage() {
           pitcherStats={pitcherStats}
           lineup={{ away: awayLineup, home: homeLineup }}
           wrcMap={wrcMap}
-          showStats={isMlb}
+          league={league}
           lineupLoading={
             lineupQuery.isLoading || saberQuery.isLoading ||
             (isPreview && goToQuery.isLoading)

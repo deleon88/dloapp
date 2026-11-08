@@ -5,13 +5,30 @@
 //       · league wOBA = league OBP WITHOUT intentional walks (FanGraphs' anchor)
 //       · out value = average of balls-in-play outs, not only the groundout
 //   - cFIP / lgFIP (league ERA) from MLB team totals, lgHRFB for xFIP.
-// Used by the daily cron and by `npm run db:constants`.
+// Used by the daily cron and by `npm run db:constants`. Each league gets its
+// own (league_constants.source, see constantsSource): LIDOM's come from its
+// own play-by-play and team totals, the same way.
 import { sql } from '../db.js'
+import { constantsSource, leagueTeamStatsParams, type League } from '../leagues.js'
 
 const NON_AB = ['Walk', 'Intent Walk', 'Hit By Pitch', 'Sac Fly', 'Sac Fly Double Play',
   'Sac Bunt', 'Sac Bunt Double Play', 'Catcher Interference', 'Batter Interference']
 
 const BIP_OUTS = ['Groundout', 'Flyout', 'Lineout', 'Pop Out', 'Forceout', 'Fielders Choice Out']
+
+interface EventValue { event: string; n: number; lw: number }
+
+// Weight of MLB's run value of an event, in events, for the other leagues.
+const PRIOR_EVENTS = 200
+
+function shrinkToward(own: EventValue[], mlb: EventValue[]): EventValue[] {
+  const byEvent = new Map(own.map(r => [r.event, r]))
+  return mlb.map(m => {
+    const o = byEvent.get(m.event)
+    const n = o?.n ?? 0
+    return { event: m.event, n, lw: (n * (o?.lw ?? 0) + PRIOR_EVENTS * m.lw) / (n + PRIOR_EVENTS) }
+  })
+}
 
 export interface LeagueConstants {
   wBB: number; wHBP: number; w1B: number; w2B: number; w3B: number; wHR: number
@@ -20,13 +37,13 @@ export interface LeagueConstants {
   games: number; pa: number
 }
 
-export async function computeConstants(season: number): Promise<LeagueConstants> {
-  // Run value of each event: RE(after) − RE(before) + runs scored.
-  const runValues = await sql<{ event: string; n: number; lw: number }[]>`
+/** Run value of each event: RE(after) − RE(before) + runs scored. */
+function eventValues(season: number, league: League) {
+  return sql<EventValue[]>`
     WITH season_plays AS (
       SELECT p.*
       FROM plays p JOIN games g USING (game_pk)
-      WHERE g.league = 'MLB' AND g.season = ${season} AND g.game_type = 'R'
+      WHERE g.league = ${league} AND g.season = ${season} AND g.game_type = 'R'
     ),
     -- Runs from this play to the end of the half-inning (includes non-PA plays).
     remaining AS (
@@ -55,6 +72,14 @@ export async function computeConstants(season: number): Promise<LeagueConstants>
     LEFT JOIN re24 post ON (post.pre_outs, post.on_1b, post.on_2b, post.on_3b) = (pa.nx_outs, pa.nx_1b, pa.nx_2b, pa.nx_3b)
     GROUP BY pa.event
   `
+}
+
+export async function computeConstants(season: number, league: League = 'MLB'): Promise<LeagueConstants> {
+  // Run value of each event. A winter league's season is a few thousand PA:
+  // each event's value is pulled toward MLB's by PRIOR_EVENTS, so rare events
+  // (triples, HBP) lean on MLB and common ones on the league's own data.
+  const own = await eventValues(season, league)
+  const runValues = league === 'MLB' ? own : shrinkToward(own, await eventValues(season, 'MLB'))
 
   const [t] = await sql<Record<string, number>[]>`
     SELECT
@@ -73,9 +98,9 @@ export async function computeConstants(season: number): Promise<LeagueConstants>
       count(*) FILTER (WHERE p.trajectory IN ('fly_ball', 'popup'))::int    AS fb,
       count(DISTINCT p.game_pk)::int                                        AS games
     FROM plays p JOIN games g USING (game_pk)
-    WHERE g.league = 'MLB' AND g.season = ${season} AND g.game_type = 'R' AND p.is_pa
+    WHERE g.league = ${league} AND g.season = ${season} AND g.game_type = 'R' AND p.is_pa
   `
-  if (!t.pa) throw new Error(`No regular-season plays for ${season}`)
+  if (!t.pa) throw new Error(`No regular-season ${league} plays for ${season}`)
 
   const lw = Object.fromEntries(runValues.map(r => [r.event, r.lw]))
   // Out value: frequency-weighted average of the balls-in-play outs. The rule
@@ -96,11 +121,11 @@ export async function computeConstants(season: number): Promise<LeagueConstants>
   const r3 = (x: number) => Math.round(x * 1000) / 1000
 
   // cFIP makes league FIP equal league ERA. Earned runs aren't in the
-  // play-by-play, so the league totals come from MLB.
+  // play-by-play, so the league totals come from the Stats API.
   const res = await fetch(
-    `https://statsapi.mlb.com/api/v1/teams/stats?group=pitching&season=${season}&sportIds=1&gameType=R&stats=season`,
+    `https://statsapi.mlb.com/api/v1/teams/stats?group=pitching&season=${season}&${leagueTeamStatsParams(league)}&gameType=R&stats=season`,
   )
-  if (!res.ok) throw new Error(`MLB team pitching totals: HTTP ${res.status}`)
+  if (!res.ok) throw new Error(`${league} team pitching totals: HTTP ${res.status}`)
   const mlbTotals = await res.json() as { stats: Array<{ splits: Array<{ stat: Record<string, number | string> }> }> }
   const lg = { er: 0, outs: 0, hr: 0, bb: 0, hbp: 0, so: 0 }
   for (const s of mlbTotals.stats[0].splits) {
@@ -129,10 +154,10 @@ export async function computeConstants(season: number): Promise<LeagueConstants>
   }
 }
 
-export async function saveConstants(season: number, constants: LeagueConstants): Promise<void> {
+export async function saveConstants(season: number, constants: LeagueConstants, league: League = 'MLB'): Promise<void> {
   await sql`
     INSERT INTO league_constants (season, source, constants)
-    VALUES (${season}, 're24', ${sql.json(constants as unknown as Record<string, number>)})
+    VALUES (${season}, ${constantsSource(league)}, ${sql.json(constants as unknown as Record<string, number>)})
     ON CONFLICT (season, source) DO UPDATE SET constants = EXCLUDED.constants, computed_at = now()
   `
 }

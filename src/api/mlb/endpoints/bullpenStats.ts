@@ -1,5 +1,6 @@
 import { mlbApi } from '../client'
-import { fetchPitcherLines, type PitcherLine, type PitcherSplit } from '@/api/stats/pitchers'
+import { fetchPitcherLines, fetchTeamReliefLines, type PitcherLine, type PitcherSplit } from '@/api/stats/pitchers'
+import type { LeagueKey } from '@/data/leagues'
 import type { StatPeriod } from '@/utils/period'
 
 export interface BullpenPitcher {
@@ -92,9 +93,29 @@ function ipToDecimal(ip: string | null | undefined): number {
   return (whole ?? 0) + ((thirds ?? 0) / 3)
 }
 
-function pickSplit(line: PitcherLine | undefined, hand: BullpenHand): PitcherSplit | undefined {
+function pickSplit(line: Pick<PitcherLine, 'vsL' | 'vsR'> & PitcherSplit | undefined, hand: BullpenHand): PitcherSplit | undefined {
   if (!line) return undefined
   return hand === 'L' ? line.vsL : hand === 'R' ? line.vsR : line
+}
+
+/**
+ * Bullpen bar for a league without depth charts (LIDOM): FIP+ of everything
+ * each team's relievers threw in the period, from our backend.
+ */
+export async function fetchTeamReliefFipPlusMap(
+  teamIds: number[],
+  period: StatPeriod,
+  hand: BullpenHand,
+  league: LeagueKey,
+  season: number,
+): Promise<Map<number, number>> {
+  const lines = await fetchTeamReliefLines(teamIds, { league, season, period })
+  const map = new Map<number, number>()
+  for (const [teamId, line] of lines) {
+    const s = pickSplit(line, hand)
+    if (s && s.ip > 0 && s.fipMinus != null) map.set(teamId, Math.round(200 - s.fipMinus))
+  }
+  return map
 }
 
 /**

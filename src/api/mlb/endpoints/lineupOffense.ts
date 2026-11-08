@@ -1,11 +1,15 @@
-import { getStartingBattingOrders } from './boxscore'
+import { getStartingBattingOrders, type Starter } from './boxscore'
 import { fetchBatterLines, type SplitLine } from '@/api/stats/batters'
+import type { LeagueKey } from '@/data/leagues'
 import type { StatPeriod } from '@/utils/period'
 
 /** Confirmed batting orders of one game (empty = not confirmed yet). */
 export interface GameLineupIds {
   awayIds: number[]
   homeIds: number[]
+  /** Starting pitchers, once the game is under way. */
+  awayStarter?: Starter
+  homeStarter?: Starter
 }
 
 export interface LineupOffense {
@@ -60,6 +64,7 @@ export async function fetchLineupOffenseMap(
   games: GameTeamIds[],
   period: StatPeriod = 'season',
   season = new Date().getFullYear(),
+  league: LeagueKey = 'MLB',
 ): Promise<LineupOffense> {
   const result: LineupOffense = { games: new Map(), wrc: new Map() }
   if (!games.length) return result
@@ -75,13 +80,13 @@ export async function fetchLineupOffenseMap(
   orders.forEach((o, i) => {
     const awayIds = o?.away ?? []
     const homeIds = o?.home ?? []
-    result.games.set(games[i].gamePk, { awayIds, homeIds })
+    result.games.set(games[i].gamePk, { awayIds, homeIds, awayStarter: o?.awayStarter, homeStarter: o?.homeStarter })
     awayIds.forEach(id => allPlayerIds.add(id))
     homeIds.forEach(id => allPlayerIds.add(id))
   })
 
   // 3. wRC+ ajustado por parque, desde nuestro backend
-  if (allPlayerIds.size) result.wrc = await fetchWrcComputedBulk([...allPlayerIds], period, season)
+  if (allPlayerIds.size) result.wrc = await fetchWrcComputedBulk([...allPlayerIds], period, season, league)
   return result
 }
 
@@ -94,8 +99,9 @@ export async function fetchWrcComputedBulk(
   playerIds: number[],
   period: StatPeriod = 'season',
   season = new Date().getFullYear(),
+  league: LeagueKey = 'MLB',
 ): Promise<Map<number, PlayerWrcSplits>> {
-  const lines = await fetchBatterLines(playerIds, { season, period })
+  const lines = await fetchBatterLines(playerIds, { league, season, period })
   const toWrcPa = (l: SplitLine): PlayerWrcPa | null => (l.wrcPlus != null ? { wrc: l.wrcPlus, pa: l.pa } : null)
   const out = new Map<number, PlayerWrcSplits>()
   for (const [id, d] of lines) out.set(id, { all: toWrcPa(d), L: toWrcPa(d.vsL), R: toWrcPa(d.vsR) })

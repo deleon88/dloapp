@@ -11,6 +11,7 @@ interface RawBoxscorePlayer {
 
 interface RawBoxscoreTeam {
   battingOrder: number[]
+  pitchers?: number[]
   players: Record<string, RawBoxscorePlayer>
 }
 
@@ -34,11 +35,23 @@ export interface LineupSlot {
 export interface GameLineup {
   away: LineupSlot[]
   home: LineupSlot[]
+  /** Who started on the mound, once the game is under way. */
+  awayStarter?: Starter
+  homeStarter?: Starter
+}
+
+export interface Starter { id: number; fullName: string }
+
+/** First pitcher the team used; none before the game starts. */
+function starter(team: { pitchers?: number[]; players: Record<string, { person: { id: number; fullName?: string } }> }): Starter | undefined {
+  const id = team.pitchers?.[0]
+  const p = id != null ? team.players[`ID${id}`] : undefined
+  return p?.person.fullName ? { id: p.person.id, fullName: p.person.fullName } : undefined
 }
 
 const BOXSCORE_FIELDS = [
   'teams', 'away', 'home',
-  'battingOrder',
+  'battingOrder', 'pitchers',
   'players', 'person', 'id', 'fullName',
   'position', 'allPositions', 'abbreviation',
   'seasonStats', 'batting', 'avg', 'obp', 'ops', 'plateAppearances',
@@ -52,6 +65,8 @@ export async function getGameLineup(gamePk: number): Promise<GameLineup> {
   return {
     away: buildLineup(data.teams.away),
     home: buildLineup(data.teams.home),
+    awayStarter: starter(data.teams.away),
+    homeStarter: starter(data.teams.home),
   }
 }
 
@@ -67,16 +82,18 @@ function starters<P extends { battingOrder?: string }>(players: Record<string, P
     .sort((a, b) => parseInt(a.battingOrder!) - parseInt(b.battingOrder!))
 }
 
-/** Starting batting orders (player ids) of both teams; empty until confirmed. */
-export async function getStartingBattingOrders(gamePk: number): Promise<{ away: number[]; home: number[] }> {
+/** Starting batting orders (player ids) of both teams, empty until confirmed, and the starting pitchers once the game is on. */
+export async function getStartingBattingOrders(gamePk: number): Promise<{ away: number[]; home: number[]; awayStarter?: Starter; homeStarter?: Starter }> {
   const data = await mlbApi.get<{
-    teams: Record<'away' | 'home', { players: Record<string, { person: { id: number }; battingOrder?: string }> }>
+    teams: Record<'away' | 'home', { pitchers?: number[]; players: Record<string, { person: { id: number; fullName?: string }; battingOrder?: string }> }>
   }>(`/game/${gamePk}/boxscore`, {
-    fields: 'teams,away,home,players,person,id,battingOrder',
+    fields: 'teams,away,home,pitchers,players,person,id,fullName,battingOrder',
   })
   return {
     away: starters(data.teams.away.players).map(p => p.person.id),
     home: starters(data.teams.home.players).map(p => p.person.id),
+    awayStarter: starter(data.teams.away),
+    homeStarter: starter(data.teams.home),
   }
 }
 

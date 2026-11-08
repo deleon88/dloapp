@@ -2,6 +2,7 @@
 // (starter / reliever) and batter hand, plus FIP, FIP-, xFIP, WHIP, K-BB% and
 // wOBA against, with the constants in league_constants.
 import { sql } from '../db.js'
+import { constantsSource, type League } from '../leagues.js'
 import { getConstants, getParkFactors } from './batting.js'
 import {
   obpSlg, pitcherSplit,
@@ -23,6 +24,8 @@ const FLY_BALLS = ['fly_ball', 'popup']
 export type PitcherRole = 'all' | 'rp'
 
 export interface PitcherFilter {
+  /** MLB by default. */
+  league?: League
   season: number
   pitcherIds: number[]
   from?: string
@@ -33,17 +36,19 @@ export interface PitcherFilter {
 
 type Row = PitcherCounts & { pitcher_id: number; team_id: number; bat_side: string | null }
 
-function getPitcherRows(f: PitcherFilter) {
+/** Rows of the given pitchers, or (teamIds) of everyone who pitched for those teams. */
+function getPitcherRows(f: Omit<PitcherFilter, 'pitcherIds'> & ({ pitcherIds: number[] } | { teamIds: number[] })) {
+  const fielding = sql`CASE WHEN p.half = 't' THEN g.home_team_id ELSE g.away_team_id END`
   return sql<Row[]>`
     WITH base AS (
       SELECT p.*,
              -- fielding team: the home team pitches in the top half
-             CASE WHEN p.half = 't' THEN g.home_team_id ELSE g.away_team_id END AS team_id
+             ${fielding} AS team_id
       FROM plays p JOIN games g USING (game_pk)
-      WHERE g.league = 'MLB'
+      WHERE g.league = ${f.league ?? 'MLB'}
         AND g.season = ${f.season}
         AND g.game_type = 'R'
-        AND p.pitcher_id = ANY(${f.pitcherIds})
+        ${'teamIds' in f ? sql`AND ${fielding} = ANY(${f.teamIds})` : sql`AND p.pitcher_id = ANY(${f.pitcherIds})`}
         ${f.from ? sql`AND p.game_date >= ${f.from}` : sql``}
         ${f.to ? sql`AND p.game_date <= ${f.to}` : sql``}
     ),
@@ -78,11 +83,11 @@ function getPitcherRows(f: PitcherFilter) {
 type LeagueOps = Record<'all' | 'L' | 'R', { obp: number | null; slg: number | null }>
 
 /**
- * All-MLB OBP / SLG for the same window, overall and by batter hand: the base of
+ * League-wide OBP / SLG for the same window, overall and by batter hand: the base of
  * OPS+ against (Baseball-Reference's sOPS+: a split is compared with the
  * league in that same split).
  */
-async function getLeagueOps(f: PitcherFilter): Promise<LeagueOps> {
+async function getLeagueOps(f: Pick<PitcherFilter, 'league' | 'season' | 'from' | 'to'>): Promise<LeagueOps> {
   const rows = await sql<Array<PitcherCounts & { bat_side: string | null }>>`
     SELECT p.bat_side,
       count(*) FILTER (WHERE p.is_pa)::int                                                    AS bf,
@@ -98,7 +103,7 @@ async function getLeagueOps(f: PitcherFilter): Promise<LeagueOps> {
       count(*) FILTER (WHERE p.is_pa AND p.event IN ('Sac Fly', 'Sac Fly Double Play'))::int AS sf,
       0::int AS so, 0::int AS fb
     FROM plays p JOIN games g USING (game_pk)
-    WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R'
+    WHERE g.league = ${f.league ?? 'MLB'} AND g.season = ${f.season} AND g.game_type = 'R'
       ${f.from ? sql`AND p.game_date >= ${f.from}` : sql``}
       ${f.to ? sql`AND p.game_date <= ${f.to}` : sql``}
     GROUP BY 1
@@ -129,17 +134,21 @@ const empty = (): PitcherCounts => ({ bf: 0, outs: 0, ab: 0, h1: 0, h2: 0, h3: 0
 export async function getPitcherLines(f: PitcherFilter): Promise<Map<number, PitcherLine>> {
   const [rows, constants, parks, lg] = await Promise.all([
     getPitcherRows(f),
-    getConstants(f.season) as Promise<PitchingConstants>,
+    getConstants(f.season, constantsSource(f.league ?? 'MLB')) as Promise<PitchingConstants>,
     getParkFactors(f.season),
     getLeagueOps(f),
   ])
   if (constants.cFIP == null) throw new Error(`No pitching constants for ${f.season} (npm run db:constants -- --save)`)
+  return toLines(rows, r => r.pitcher_id, constants, parks, lg)
+}
 
+/** Adds the rows up by `key` (pitcher or team) into lines: overall, vs LHB, vs RHB. */
+function toLines(rows: Row[], key: (r: Row) => number, constants: PitchingConstants, parks: Map<number, number>, lg: LeagueOps) {
   type Acc = { c: PitcherCounts; pfBf: number }
   const acc = new Map<number, { all: Acc; L: Acc; R: Acc }>()
   for (const r of rows) {
-    let a = acc.get(r.pitcher_id)
-    if (!a) acc.set(r.pitcher_id, a = { all: { c: empty(), pfBf: 0 }, L: { c: empty(), pfBf: 0 }, R: { c: empty(), pfBf: 0 } })
+    let a = acc.get(key(r))
+    if (!a) acc.set(key(r), a = { all: { c: empty(), pfBf: 0 }, L: { c: empty(), pfBf: 0 }, R: { c: empty(), pfBf: 0 } })
     const pf = parks.get(r.team_id) ?? 1
     for (const t of [a.all, r.bat_side === 'L' ? a.L : r.bat_side === 'R' ? a.R : null]) {
       if (!t) continue
@@ -154,4 +163,19 @@ export async function getPitcherLines(f: PitcherFilter): Promise<Map<number, Pit
     out.set(id, { ...line(a.all, 'all'), vsL: line(a.L, 'L'), vsR: line(a.R, 'R') })
   }
   return out
+}
+
+/**
+ * Relief line of each team: every relief appearance for it in the window,
+ * added up (overall, vs LHB, vs RHB). The schedule's bullpen bar for leagues
+ * without depth charts (LIDOM), where "the bullpen" is whoever relieved.
+ */
+export async function getTeamReliefLines(f: Omit<PitcherFilter, 'pitcherIds' | 'role'> & { teamIds: number[] }): Promise<Map<number, PitcherLine>> {
+  const [rows, constants, parks, lg] = await Promise.all([
+    getPitcherRows({ ...f, role: 'rp' }),
+    getConstants(f.season, constantsSource(f.league ?? 'MLB')) as Promise<PitchingConstants>,
+    getParkFactors(f.season),
+    getLeagueOps(f),
+  ])
+  return toLines(rows, r => r.team_id, constants, parks, lg)
 }

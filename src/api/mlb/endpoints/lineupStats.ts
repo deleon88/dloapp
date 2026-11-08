@@ -1,6 +1,7 @@
 import { mlbApi } from '../client'
 import { fetchBatterLines, type SplitLine } from '@/api/stats/batters'
 import type { StatPeriod } from '@/utils/period'
+import type { LeagueKey } from '@/data/leagues'
 
 export interface PlayerStats {
   wRcPlus: number | null
@@ -83,23 +84,27 @@ function handStats(l: SplitLine): HandStats {
  * periodo elegido. SB viene de MLB y solo se muestra en temporada completa.
  * Si el backend no responde en temporada completa, se usan los de MLB para no
  * dejar la tabla vacía; en un periodo corto se dejan vacíos para no mezclar.
+ * En LIDOM todo sale de nuestro backend (sin SB ni respaldo de MLB).
  */
 export async function fetchLineupStats(
   playerIds: number[],
   period: StatPeriod = 'season',
   season = new Date().getFullYear(),
+  league: LeagueKey = 'MLB',
 ): Promise<Map<number, PlayerStats>> {
   if (!playerIds.length) return new Map()
 
   const [data, ours] = await Promise.all([
-    mlbApi.get<PeopleResponse>('/people', {
-      personIds: playerIds.join(','),
-      season,
-      hydrate: `stats(group=[hitting],type=[season,sabermetrics],season=${season})`,
-    }),
-    fetchBatterLines(playerIds, { season, period }).catch(() => null),
+    league === 'MLB'
+      ? mlbApi.get<PeopleResponse>('/people', {
+          personIds: playerIds.join(','),
+          season,
+          hydrate: `stats(group=[hitting],type=[season,sabermetrics],season=${season})`,
+        })
+      : { people: playerIds.map(id => ({ id })) } as PeopleResponse,
+    fetchBatterLines(playerIds, { league, season, period }).catch(() => null),
   ])
-  const mlbFallback = !ours && period === 'season'
+  const mlbFallback = league === 'MLB' && !ours && period === 'season'
 
   const map = new Map<number, PlayerStats>()
 

@@ -16,6 +16,7 @@ import LineupComparison from './LineupComparison'
 import BullpenCard from './BullpenCard'
 import GameVote from './GameVote'
 import { votingEnabled } from '@/lib/features'
+import { LEAGUE_PARAMS, type LeagueKey } from '@/data/leagues'
 import styles from './GameMatchupView.module.css'
 
 interface HydratedGame extends ScheduledGame {
@@ -53,8 +54,8 @@ interface Props {
   homeLast5?: GameResult[]
   awayOpener?: boolean
   homeOpener?: boolean
-  /** Votes, starters and bullpen; off for leagues we have no numbers for (LIDOM). */
-  showStats?: boolean
+  /** LIDOM: no votes or bullpen card, and starters / lineups only once known. */
+  league?: LeagueKey
 }
 
 export default function GameMatchupView({
@@ -72,8 +73,9 @@ export default function GameMatchupView({
   homeLast5,
   awayOpener,
   homeOpener,
-  showStats = true,
+  league = 'MLB',
 }: Props) {
+  const isMlb = league === 'MLB'
   const [mode, setMode] = useState<ViewMode>('comparison')
   const t = useT()
 
@@ -112,7 +114,7 @@ export default function GameMatchupView({
 
       {/* ── Game header ──────────────────────────────────────── */}
       {/* With votes on, the vote drawer slides out from under the header. */}
-      <div className={`${styles.header} ${votingEnabled && showStats ? styles.headerOverVote : ''}`}>
+      <div className={`${styles.header} ${votingEnabled && isMlb ? styles.headerOverVote : ''}`}>
         <CardBgLayers awayColor={ac} homeColor={hc} mode={mode} />
         <div className={styles.teamBlock}>
           <div className={styles.teamBlockInner}>
@@ -175,10 +177,10 @@ export default function GameMatchupView({
       </div>
 
       {/* ── Who wins? (votes) ─────────────────────────────── */}
-      {showStats && <GameVote game={game} awayColor={ac} homeColor={hc} awayBarColor={acBar} homeBarColor={hcBar} mode={mode} />}
+      {isMlb && <GameVote game={game} awayColor={ac} homeColor={hc} awayBarColor={acBar} homeBarColor={hcBar} mode={mode} />}
 
       {/* ── Pitcher matchup ────────────────────────────────── */}
-      {showStats && <PitcherMatchup
+      {(isMlb || g.teams.away.probablePitcher || g.teams.home.probablePitcher) && <PitcherMatchup
         awayPitcher={awayPitcher}
         homePitcher={homePitcher}
         awayColor={ac}
@@ -197,8 +199,8 @@ export default function GameMatchupView({
       />}
 
       {/* ── Lineup comparison ──────────────────────────────── */}
-      {/* Without stats there's nothing to project: only lineups already posted. */}
-      {(showStats || lineupLoading || !!lineup?.away.length || !!lineup?.home.length) && <LineupComparison
+      {/* LIDOM has no go-to lineups to project: only lineups already posted. */}
+      {(isMlb || lineupLoading || !!lineup?.away.length || !!lineup?.home.length) && <LineupComparison
         awayTeamId={teams.away.team.id}
         homeTeamId={teams.home.team.id}
         awayLineup={lineup?.away ?? []}
@@ -211,10 +213,11 @@ export default function GameMatchupView({
         homeLineupStatus={homeLineupStatus}
         awayProbablePitcher={teams.away.probablePitcher}
         homeProbablePitcher={teams.home.probablePitcher}
+        sportId={LEAGUE_PARAMS[league].sportId}
       />}
 
       {/* ── Bullpen ────────────────────────────────────────── */}
-      {showStats && <BullpenCard
+      {isMlb && <BullpenCard
         away={awayBullpen}
         home={homeBullpen}
         awayColor={ac}

@@ -2,6 +2,7 @@
 // decisions, which the stored play-by-play doesn't have. Supports a date range
 // (byDateRange) and relief-only splits (sitCodes=rp, season only).
 import { getJson } from './pbp.js'
+import { LEAGUES, type League } from '../leagues.js'
 
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 
@@ -13,10 +14,12 @@ export interface PitcherRecord {
 }
 
 interface RawPeople {
-  people?: Array<{ id: number; stats?: Array<{ type: { displayName: string }; splits?: Array<{ stat: Record<string, unknown> }> }> }>
+  people?: Array<{ id: number; stats?: Array<{ type: { displayName: string }; splits?: Array<{ league?: { id?: number }; stat: Record<string, unknown> }> }> }>
 }
 
 export async function getPitcherRecords(opts: {
+  /** MLB by default. */
+  league?: League
   season: number
   pitcherIds: number[]
   from?: string
@@ -28,17 +31,23 @@ export async function getPitcherRecords(opts: {
   const out = new Map<number, PitcherRecord>()
   if (!pitcherIds.length) return out
 
+  // Winter leagues share sportId 17: a pitcher who also pitched in the LVBP or
+  // the LMP gets one split per league, so keep the one of this league.
+  const { sportId, leagueId } = LEAGUES[opts.league ?? 'MLB']
+  const end = sportId === 1 ? `${season}-12-31` : `${season + 1}-02-28`
   const hydrate = from || to
-    ? `stats(group=[pitching],type=[byDateRange],startDate=${from ?? `${season}-01-01`},endDate=${to ?? `${season}-12-31`},season=${season},gameType=R)`
+    ? `stats(group=[pitching],type=[byDateRange],startDate=${from ?? `${season}-01-01`},endDate=${to ?? end},season=${season},gameType=R,sportId=${sportId})`
     : reliefOnly
-      ? `stats(group=[pitching],type=[statSplits],sitCodes=[rp],season=${season},gameType=R)`
-      : `stats(group=[pitching],type=[season,seasonAdvanced],season=${season},gameType=R)`
+      ? `stats(group=[pitching],type=[statSplits],sitCodes=[rp],season=${season},gameType=R,sportId=${sportId})`
+      : `stats(group=[pitching],type=[season,seasonAdvanced],season=${season},gameType=R,sportId=${sportId})`
+  type Split = { league?: { id?: number }; stat: Record<string, unknown> }
+  const pick = (splits: Split[] = []) => (leagueId ? splits.find(s => s.league?.id === leagueId) : splits[0])?.stat ?? {}
 
   for (let i = 0; i < pitcherIds.length; i += 100) {
     const ids = pitcherIds.slice(i, i + 100)
     const data = await getJson<RawPeople>(`${MLB_API}/people?personIds=${ids.join(',')}&hydrate=${hydrate}`)
     for (const p of data.people ?? []) {
-      const stats = new Map((p.stats ?? []).map(s => [s.type.displayName, s.splits?.[0]?.stat ?? {}]))
+      const stats = new Map((p.stats ?? []).map(s => [s.type.displayName, pick(s.splits)]))
       const main = stats.get('byDateRange') ?? stats.get('statSplits') ?? stats.get('season') ?? {}
       const adv = stats.get('seasonAdvanced') ?? main
       const num = (v: unknown) => (typeof v === 'number' ? v : null)

@@ -1,5 +1,6 @@
 import { mlbApi } from '../client'
 import { fetchPitcherLines, formatIp, type PitcherSplit } from '@/api/stats/pitchers'
+import type { LeagueKey } from '@/data/leagues'
 import type { StatPeriod } from '@/utils/period'
 
 export interface PitcherSeasonStats {
@@ -61,20 +62,22 @@ interface RawPerson {
  * FIP, FIP-, xFIP, WHIP, K, BB, IP and ERA/W-L/QS follow the chosen period via
  * our backend. If the backend fails in full season, MLB's numbers are kept;
  * in a shorter period they're left empty rather than mixing periods.
+ * Outside MLB, MLB only gives name and hand: every number is ours.
  */
 export async function fetchPitcherStats(
   personIds: number[],
   period: StatPeriod = 'season',
+  league: LeagueKey = 'MLB',
+  season = new Date().getFullYear(),
 ): Promise<Map<number, PitcherInfo>> {
   if (!personIds.length) return new Map()
 
-  const season = new Date().getFullYear()
-  const oursPromise = fetchPitcherLines(personIds, { season, period }).catch(() => null)
+  const oursPromise = fetchPitcherLines(personIds, { league, season, period }).catch(() => null)
 
   const data = await mlbApi.get<{ people: RawPerson[] }>('/people', {
     personIds: personIds.join(','),
     season,
-    hydrate: `stats(group=[pitching],type=[season,seasonAdvanced,sabermetrics],season=${season})`,
+    ...(league === 'MLB' ? { hydrate: `stats(group=[pitching],type=[season,seasonAdvanced,sabermetrics],season=${season})` } : {}),
     fields: [
       'people', 'id', 'fullName', 'primaryNumber',
       'pitchHand', 'code', 'description',

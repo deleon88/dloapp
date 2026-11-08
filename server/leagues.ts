@@ -20,6 +20,20 @@ export function leagueParams(league: League): string {
   return `sportId=${sportId}${leagueId ? `&leagueId=${leagueId}` : ''}`
 }
 
+/** Lo mismo para /teams/stats, que los pide en plural: `sportIds=17&leagueIds=131`. */
+export function leagueTeamStatsParams(league: League): string {
+  const { sportId, leagueId } = LEAGUES[league]
+  return `sportIds=${sportId}${leagueId ? `&leagueIds=${leagueId}` : ''}`
+}
+
+/**
+ * Fuente de las constantes de la liga en league_constants: 're24' para MLB
+ * (la de siempre), 're24-lidom' para LIDOM.
+ */
+export function constantsSource(league: League): string {
+  return league === 'MLB' ? 're24' : `re24-${league.toLowerCase()}`
+}
+
 /**
  * Fechas que cubren una temporada completa con postemporada. La temporada de
  * invierno lleva el año en que empieza: LIDOM 2026 va de octubre de 2026 a

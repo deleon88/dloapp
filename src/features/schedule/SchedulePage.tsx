@@ -4,12 +4,12 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
-import { fetchBullpenFipPlusMap } from '@/api/mlb/endpoints/bullpenStats'
+import { fetchBullpenFipPlusMap, fetchTeamReliefFipPlusMap } from '@/api/mlb/endpoints/bullpenStats'
 import { getPitchHands } from '@/api/mlb/endpoints/people'
 import { fetchLineupOffenseMap } from '@/api/mlb/endpoints/lineupOffense'
 import { applyPitcherHand, fetchPitcherStats, fipPlus } from '@/api/mlb/endpoints/pitcherStats'
 import { fetchGoToLineups, goToFor } from '@/api/lineups'
-import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, starterValue, withProjectedStarters } from '@/api/pitcherRoles'
+import { fetchPitcherRoles, fetchProjectedStarters, missingProbable, projectedBulks, starterValue, withActualStarters, withProjectedStarters } from '@/api/pitcherRoles'
 import { fetchWrcComputedBulk, weightedWrcAvg } from '@/api/mlb/endpoints/lineupOffense'
 import { batterSplitFor } from '@/utils/handFilter'
 import { useStatFilters } from '@/utils/useStatFilters'
@@ -18,7 +18,7 @@ import HandSelect from '@/components/HandSelect/HandSelect'
 import GameCard from './GameCard'
 import DateNav from './DateNav'
 import { useT } from '@/i18n/useT'
-import { LEAGUE_KEYS, LEAGUE_PARAMS, parseLeague, type LeagueKey } from '@/data/leagues'
+import { LEAGUE_KEYS, LEAGUE_PARAMS, leagueSeason, parseLeague, type LeagueKey } from '@/data/leagues'
 import StatBarsGuide from './StatBarsGuide'
 import styles from './SchedulePage.module.css'
 
@@ -31,9 +31,12 @@ export default function SchedulePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const league = parseLeague(searchParams.get('league'))
   const setLeague = (next: LeagueKey) => setSearchParams(next === 'MLB' ? {} : { league: next.toLowerCase() }, { replace: true })
-  // The stat bars, projections and lineups come from our MLB data; LIDOM
-  // games show the matchup only.
+  // LIDOM's bars come from its own play-by-play. It has no probables, depth
+  // charts or rotation history worth projecting: starters show once the game
+  // is on (boxscore), offense once lineups are posted, and the bullpen is
+  // everyone who has relieved for the team.
   const isMlb = league === 'MLB'
+  const season = leagueSeason(league, date)
 
   const scheduleQuery = useQuery({
     queryKey: ['schedule', league, date],
@@ -52,7 +55,26 @@ export default function SchedulePage() {
     enabled: isMlb && rawGames.some(missingProbable),
     staleTime: 30 * 60_000,
   })
-  const games = useMemo(() => rawGames.map(g => withProjectedStarters(g, projectedQuery.data)), [rawGames, projectedQuery.data])
+
+  // Confirmed lineup wRC+ from boxscores (PA-weighted), and who started once the game is on
+  const allGamesForLineup = rawGames.map(g => ({
+    gamePk: g.gamePk,
+    awayTeamId: g.teams.away.team.id,
+    homeTeamId: g.teams.home.team.id,
+  }))
+  const allGamePks = allGamesForLineup.map(g => g.gamePk).join(',')
+
+  const lineupOffenseQuery = useQuery({
+    queryKey: ['lineup-offense', league, date, allGamePks, period],
+    queryFn: () => fetchLineupOffenseMap(allGamesForLineup, period, season, league),
+    enabled: allGamesForLineup.length > 0,
+    staleTime: 120_000,
+    placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
+  })
+
+  const games = useMemo(() => rawGames.map(g => withActualStarters(
+    withProjectedStarters(g, projectedQuery.data), lineupOffenseQuery.data?.games.get(g.gamePk),
+  )), [rawGames, projectedQuery.data, lineupOffenseQuery.data])
 
   // On first load, jump to tomorrow if today's slate is already complete — only
   // once, so going back to today with the arrow stays there.
@@ -86,9 +108,9 @@ export default function SchedulePage() {
   })
 
   const pitcherStatsQuery = useQuery({
-    queryKey: ['pitcher-stats', period, ...pitcherIds],
-    queryFn: () => fetchPitcherStats(pitcherIds, period),
-    enabled: isMlb && pitcherIds.length > 0,
+    queryKey: ['pitcher-stats', league, season, period, ...pitcherIds],
+    queryFn: () => fetchPitcherStats(pitcherIds, period, league, season),
+    enabled: pitcherIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -126,9 +148,11 @@ export default function SchedulePage() {
   const uniqueTeamIds = [...new Set(games.flatMap(g => [g.teams.away.team.id, g.teams.home.team.id]))]
 
   const bullpenFipQuery = useQuery({
-    queryKey: ['bullpen-fip', uniqueTeamIds.slice().sort((a, b) => a - b).join(','), period, handFilters.pitcher],
-    queryFn: () => fetchBullpenFipPlusMap(uniqueTeamIds, period, handFilters.pitcher),
-    enabled: isMlb && uniqueTeamIds.length > 0,
+    queryKey: ['bullpen-fip', league, season, uniqueTeamIds.slice().sort((a, b) => a - b).join(','), period, handFilters.pitcher],
+    queryFn: () => isMlb
+      ? fetchBullpenFipPlusMap(uniqueTeamIds, period, handFilters.pitcher)
+      : fetchTeamReliefFipPlusMap(uniqueTeamIds, period, handFilters.pitcher, league, season),
+    enabled: uniqueTeamIds.length > 0,
     staleTime: 3_600_000,
     placeholderData: prev => prev,
   })
@@ -141,22 +165,6 @@ export default function SchedulePage() {
     staleTime: 15 * 60_000,
   })
   const goTo = goToQuery.data
-
-  // Confirmed lineup wRC+ from boxscores (PA-weighted)
-  const allGamesForLineup = games.map(g => ({
-    gamePk: g.gamePk,
-    awayTeamId: g.teams.away.team.id,
-    homeTeamId: g.teams.home.team.id,
-  }))
-  const allGamePks = allGamesForLineup.map(g => g.gamePk).join(',')
-
-  const lineupOffenseQuery = useQuery({
-    queryKey: ['lineup-offense', date, allGamePks, period],
-    queryFn: () => fetchLineupOffenseMap(allGamesForLineup, period),
-    enabled: isMlb && allGamesForLineup.length > 0,
-    staleTime: 120_000,
-    placeholderData: prev => prev,   // al cambiar de periodo, mantener los números anteriores mientras carga
-  })
 
   // Projected lineup: the go-to player IDs for teams without a confirmed lineup,
   // vs RHP or vs LHP depending on the opposing starter's hand.
@@ -239,13 +247,9 @@ export default function SchedulePage() {
               </button>
             ))}
           </div>
-          {isMlb && (
-            <>
-              <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
-              <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
-              <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
-            </>
-          )}
+          <PeriodSelect value={period} onChange={setPeriod} locked={filtersLocked} />
+          <HandSelect value={handFilters} onChange={setHandFilters} locked={filtersLocked} />
+          <button className={styles.glossaryBtn} onClick={() => setGlossaryOpen(true)} aria-label="Stat guide">?</button>
         </div>
       </div>
 
@@ -323,7 +327,6 @@ export default function SchedulePage() {
               homePitchHand={homePitcherId ? pitchHands?.get(homePitcherId) : undefined}
               awayLineupStatus={awayLineupStatus}
               homeLineupStatus={homeLineupStatus}
-              showStats={isMlb}
               animDelay={i * 60}
             />
           )
