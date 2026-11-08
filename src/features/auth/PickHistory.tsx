@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { fetchPickHistory, type Pick, type PickResult } from '@/api/votes'
 import { capLogoUrl, getTeamMeta } from '@/data/teams'
 import { useLangStore } from '@/stores/langStore'
@@ -25,10 +26,16 @@ export default function PickHistory({ userId }: { userId: string }) {
   const s = query.data?.summary
   const decided = s ? s.won + s.lost : 0
   // Current run: "+3" correct in a row, "−2" missed in a row.
+  // /profile#picks (the account panel's "My picks"): scroll here once it's loaded
+  const ref = useRef<HTMLElement>(null)
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (hash === '#picks' && query.data) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [hash, query.data])
   const streak = s?.streak ? `${s.streak.kind === 'won' ? '+' : '−'}${s.streak.n}` : '—'
 
   return (
-    <section className={styles.card} aria-labelledby="my-picks">
+    <section ref={ref} id="picks" className={styles.card} aria-labelledby="my-picks">
       <div className={styles.head}>
         <h2 id="my-picks" className={styles.title}>{t('myPicks')}</h2>
         {s && s.pending > 0 && <span className={styles.summary}>{t('pendingCount').replace('{n}', String(s.pending))}</span>}

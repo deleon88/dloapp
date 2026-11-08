@@ -1,0 +1,212 @@
+/* Closed it stays mounted, off screen, so it slides both ways */
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 150;   /* over the nav (100), under the auth modal (200) */
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0s linear 0.3s;
+}
+
+.open { pointer-events: auto; visibility: visible; transition-delay: 0s; }
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 16, 0.62);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.open .scrim { opacity: 1; }
+
+.panel {
+  --team: #2a3347;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(340px, 90vw);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-active);
+  box-shadow: var(--shadow-modal);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.open .panel { transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .root, .scrim, .panel { transition: none; }
+}
+
+/* ── Who ─────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  padding-top: calc(18px + env(safe-area-inset-top));
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--team) 85%, #fff 5%),
+    color-mix(in srgb, var(--team) 40%, var(--bg-card)));
+  border-bottom: 1px solid var(--border-active);
+}
+
+.watermark {
+  position: absolute;
+  right: -24px;
+  bottom: -30px;
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.close {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.close:hover { background: rgba(0, 0, 0, 0.2); color: var(--text-primary); }
+
+.first {
+  position: relative;
+  margin-top: 12px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.last {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.chips { position: relative; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* the cards' neutral chips */
+.chip {
+  padding: 4px 7px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-active);
+  background: rgba(0, 0, 0, 0.25);
+  font: 700 0.55rem var(--font-body);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ── Ranking ─────────────────────────────────────────────────────── */
+.stand {
+  margin: 14px 12px 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.standHead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 11px 14px 8px; }
+.standHead b { font-size: 0.8rem; color: var(--text-primary); }
+.standHead span { font: 700 0.6rem var(--font-mono); color: var(--text-muted); }
+
+.standNote { margin: 0; padding: 8px 14px 10px; font-size: 0.74rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+
+.lb {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 14px;
+  font-size: 0.78rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.lbRank { font: 700 0.7rem var(--font-mono); color: var(--text-muted); text-align: center; }
+.lbName { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lbPct { font: 700 0.72rem var(--font-mono); }
+
+/* the user's row: the ranking's own "you" amber */
+.lbMe { background: var(--accent-amber-dim); }
+.lbMe .lbRank, .lbMe .lbPct { color: var(--accent-amber); }
+
+.all {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.all:hover { background: var(--bg-subtle); }
+
+/* ── Account ─────────────────────────────────────────────────────── */
+.sect {
+  padding: 16px 18px 6px;
+  font: 700 0.58rem var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  margin: 0 8px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: 500 0.88rem var(--font-body);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.row:hover, button.row:hover { background: var(--bg-subtle); color: var(--text-primary); }
+div.row { cursor: default; }
+
+.icon { width: 18px; height: 18px; flex-shrink: 0; }
+.chev { width: 16px; height: 16px; margin-left: auto; color: var(--text-muted); }
+.end { margin-left: auto; }
+
+.foot {
+  margin-top: auto;
+  padding: 6px 0 calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+
+.foot .row { width: calc(100% - 16px); }
+.danger { color: #f0787a; }
+.danger:hover { color: #ff9a9c !important; }

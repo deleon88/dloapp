@@ -72,4 +72,6 @@
   /* Layout */
   --container-max: 480px;
   --nav-height:    52px;
+  --tabbar-height: 60px;   /* the section bar at the bottom on phones */
+  --rail-width:    84px;   /* the section rail on the left on wide screens */
 }

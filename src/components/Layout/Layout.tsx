@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import AuthModal from '@/features/auth/AuthModal'
@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { useTeamsVersion } from '@/data/teams'
 import { loadTeams } from '@/data/loadTeams'
 import NavBar from './NavBar'
+import MainNav from './MainNav'
+import AccountPanel from './AccountPanel'
 import ErrorBoundary from '@/components/ErrorBoundary/ErrorBoundary'
 import styles from './Layout.module.css'
 
@@ -25,6 +27,11 @@ export default function Layout() {
   const teamsVersion = useTeamsVersion(s => s.version)
   useEffect(() => { void loadTeams() }, [])
 
+  // The account panel: "You" in the nav opens it; going anywhere closes it
+  const [accountOpen, setAccountOpen] = useState(false)
+  const closeAccount = useCallback(() => setAccountOpen(false), [])
+  useEffect(() => { setAccountOpen(false) }, [location.pathname])
+
   useEffect(() => {
     if (AUTH_PATHS.includes(location.pathname)) return
     // Cuenta nueva (Google): falta elegir nombre de usuario.
@@ -39,6 +46,8 @@ export default function Layout() {
           <Outlet />
         </ErrorBoundary>
       </main>
+      <MainNav accountOpen={accountOpen} onAccount={() => setAccountOpen(o => !o)} />
+      {supabase && <AccountPanel open={accountOpen} onClose={closeAccount} />}
       {supabase && <AuthModal />}
     </div>
   )
