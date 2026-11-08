@@ -40,7 +40,8 @@ function getPitcherRows(f: PitcherFilter) {
              -- fielding team: the home team pitches in the top half
              CASE WHEN p.half = 't' THEN g.home_team_id ELSE g.away_team_id END AS team_id
       FROM plays p JOIN games g USING (game_pk)
-      WHERE g.season = ${f.season}
+      WHERE g.league = 'MLB'
+        AND g.season = ${f.season}
         AND g.game_type = 'R'
         AND p.pitcher_id = ANY(${f.pitcherIds})
         ${f.from ? sql`AND p.game_date >= ${f.from}` : sql``}
@@ -97,7 +98,7 @@ async function getLeagueOps(f: PitcherFilter): Promise<LeagueOps> {
       count(*) FILTER (WHERE p.is_pa AND p.event IN ('Sac Fly', 'Sac Fly Double Play'))::int AS sf,
       0::int AS so, 0::int AS fb
     FROM plays p JOIN games g USING (game_pk)
-    WHERE g.season = ${f.season} AND g.game_type = 'R'
+    WHERE g.league = 'MLB' AND g.season = ${f.season} AND g.game_type = 'R'
       ${f.from ? sql`AND p.game_date >= ${f.from}` : sql``}
       ${f.to ? sql`AND p.game_date <= ${f.to}` : sql``}
     GROUP BY 1

@@ -3,6 +3,8 @@
 // hand-splits-stat-fixes): misma lógica de outs y bases, para que las
 // constantes RE24 calculadas en SQL den lo mismo que el script de Python.
 
+import { leagueParams, type League } from '../leagues.js'
+
 const MLB_API = 'https://statsapi.mlb.com/api/v1'
 
 // Solo los campos que usamos: ~32 KB por juego en lugar de ~560 KB.
@@ -229,6 +231,7 @@ export interface ScheduleGame {
   game_type: string
   abstract_state: string
   status: string
+  league: League
   away_team_id: number
   home_team_id: number
   venue_id: number | null
@@ -259,14 +262,14 @@ interface RawSchedule {
 const DEAD_STATUSES = new Set(['Postponed', 'Cancelled'])
 
 /**
- * Juegos de temporada regular y postemporada en el rango, uno por gamePk.
+ * Juegos de temporada regular y postemporada de la liga en el rango, uno por gamePk.
  * Un juego pospuesto aparece dos veces con el mismo gamePk (fecha original
  * "Postponed" y fecha de reposición); nos quedamos con la entrada viva.
  */
-export async function fetchSchedule(startDate: string, endDate: string): Promise<ScheduleGame[]> {
+export async function fetchSchedule(startDate: string, endDate: string, league: League = 'MLB'): Promise<ScheduleGame[]> {
   const fields = 'dates,games,gamePk,gameType,gameDate,officialDate,season,status,abstractGameState,detailedState,teams,away,home,team,id,score,isWinner,venue'
   const data = await getJson<RawSchedule>(
-    `${MLB_API}/schedule?sportId=1&gameType=R,F,D,L,W&startDate=${startDate}&endDate=${endDate}&fields=${fields}`,
+    `${MLB_API}/schedule?${leagueParams(league)}&gameType=R,F,D,L,W&startDate=${startDate}&endDate=${endDate}&fields=${fields}`,
   )
 
   const byPk = new Map<number, ScheduleGame>()
@@ -279,6 +282,7 @@ export async function fetchSchedule(startDate: string, endDate: string): Promise
         game_type: g.gameType,
         abstract_state: g.status?.abstractGameState ?? 'Preview',
         status: g.status?.detailedState ?? 'Scheduled',
+        league,
         away_team_id: g.teams?.away?.team?.id ?? 0,
         home_team_id: g.teams?.home?.team?.id ?? 0,
         venue_id: g.venue?.id ?? null,

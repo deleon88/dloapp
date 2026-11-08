@@ -26,7 +26,7 @@ export async function computeConstants(season: number): Promise<LeagueConstants>
     WITH season_plays AS (
       SELECT p.*
       FROM plays p JOIN games g USING (game_pk)
-      WHERE g.season = ${season} AND g.game_type = 'R'
+      WHERE g.league = 'MLB' AND g.season = ${season} AND g.game_type = 'R'
     ),
     -- Runs from this play to the end of the half-inning (includes non-PA plays).
     remaining AS (
@@ -73,7 +73,7 @@ export async function computeConstants(season: number): Promise<LeagueConstants>
       count(*) FILTER (WHERE p.trajectory IN ('fly_ball', 'popup'))::int    AS fb,
       count(DISTINCT p.game_pk)::int                                        AS games
     FROM plays p JOIN games g USING (game_pk)
-    WHERE g.season = ${season} AND g.game_type = 'R' AND p.is_pa
+    WHERE g.league = 'MLB' AND g.season = ${season} AND g.game_type = 'R' AND p.is_pa
   `
   if (!t.pa) throw new Error(`No regular-season plays for ${season}`)
 

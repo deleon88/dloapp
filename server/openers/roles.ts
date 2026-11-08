@@ -24,7 +24,7 @@ export async function getPitcherRoles(probables: Probable[], beforeDate?: string
   const teamIds = [...new Set(probables.map(p => p.teamId).filter((t): t is number => t != null))]
   const before = beforeDate ? sql`AND g.game_date < ${beforeDate}` : sql``
   // The season in course at that date (in the off-season, the one that just ended).
-  const currentSeason = sql`(SELECT max(season) FROM games WHERE game_type = 'R'
+  const currentSeason = sql`(SELECT max(season) FROM games WHERE league = 'MLB' AND game_type = 'R'
     AND game_date <= ${beforeDate ? sql`${beforeDate}::date` : sql`current_date`})`
 
   const [rows, teams] = await Promise.all([
@@ -33,7 +33,7 @@ export async function getPitcherRoles(probables: Probable[], beforeDate?: string
         SELECT a.pitcher_id, a.seq, a.outs, a.pitches,
                row_number() OVER (PARTITION BY a.pitcher_id ORDER BY g.game_date DESC, g.game_time DESC NULLS LAST) AS rn
         FROM pitcher_appearances a JOIN games g USING (game_pk)
-        WHERE a.pitcher_id = ANY(${ids}) AND g.game_type <> 'S' AND g.season = ${currentSeason} ${before}
+        WHERE a.pitcher_id = ANY(${ids}) AND g.league = 'MLB' AND g.game_type <> 'S' AND g.season = ${currentSeason} ${before}
       ) x
       WHERE rn <= 40
       ORDER BY pitcher_id, rn

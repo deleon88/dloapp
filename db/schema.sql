@@ -17,6 +17,12 @@ CREATE TABLE IF NOT EXISTS games (
   updated_at       timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS games_season_date_idx ON games (season, game_date);
+-- Liga del juego (server/leagues.ts). La temporada y el game_type se repiten
+-- entre ligas (LIDOM 2026 también es season 2026, tipo 'R'), así que toda
+-- consulta de stats filtra por liga. Las filas viejas son de MLB.
+ALTER TABLE games ADD COLUMN IF NOT EXISTS league text NOT NULL DEFAULT 'MLB'
+  CHECK (league IN ('MLB', 'LIDOM', 'LMB'));
+CREATE INDEX IF NOT EXISTS games_league_season_date_idx ON games (league, season, game_date);
 -- Hora de inicio y resultado, para las votaciones (quién ganó, si ya empezó).
 ALTER TABLE games ADD COLUMN IF NOT EXISTS game_time      timestamptz;
 ALTER TABLE games ADD COLUMN IF NOT EXISTS away_score     smallint;

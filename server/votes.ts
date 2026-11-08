@@ -47,7 +47,7 @@ export async function castVote(userId: string, gamePk: number, teamId: number): 
   const row: ScheduleGame = {
     game_pk: g.gamePk, season: Number(g.season ?? g.officialDate.slice(0, 4)), game_date: g.officialDate,
     game_type: g.gameType, abstract_state: state ?? 'Preview', status: g.status?.detailedState ?? 'Scheduled',
-    away_team_id: away!, home_team_id: home!, venue_id: g.venue?.id ?? null,
+    league: 'MLB', away_team_id: away!, home_team_id: home!, venue_id: g.venue?.id ?? null,
     game_time: g.gameDate ?? null, away_score: null, home_score: null, winner_team_id: null,
   }
   await upsertGames([row])

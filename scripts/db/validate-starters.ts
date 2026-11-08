@@ -27,7 +27,7 @@ for (const season of seasons) {
       WHERE r.game_pk = a.game_pk AND r.team_id = a.team_id AND r.seq > 0
       ORDER BY r.outs DESC, r.pitches DESC LIMIT 1
     ) b ON a.pitches < 35
-    WHERE g.season = ${season} AND a.seq = 0
+    WHERE g.league = 'MLB' AND g.season = ${season} AND a.seq = 0
     ORDER BY a.team_id, g.game_date, g.game_pk`]
   const ids = [...new Set(rows.flatMap(r => (r.bulk_id ? [r.pitcher_id, r.bulk_id] : [r.pitcher_id])))]
   const lines = await getPitcherLines({ season, pitcherIds: ids, to: `${season}-09-30` })

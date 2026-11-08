@@ -23,7 +23,7 @@ const rows = await sql<Array<{ game_pk: number; team_id: number; pitcher_id: num
   SELECT a.game_pk, a.team_id, a.pitcher_id, a.seq, a.outs, a.pitches, g.season, g.game_type,
          (g.game_date - DATE '2000-01-01')::int AS day
   FROM pitcher_appearances a JOIN games g USING (game_pk)
-  WHERE g.season BETWEEN ${season - 1} AND ${season} AND g.game_type <> 'S'
+  WHERE g.league = 'MLB' AND g.season BETWEEN ${season - 1} AND ${season} AND g.game_type <> 'S'
   ORDER BY g.game_date, g.game_time NULLS LAST, a.game_pk, a.seq
 `
 await sql.end()

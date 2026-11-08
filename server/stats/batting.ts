@@ -62,7 +62,8 @@ export function battingTeam() {
 
 function whereClause(f: BatterFilter) {
   return sql`
-    WHERE g.season = ${f.season}
+    WHERE g.league = 'MLB'
+      AND g.season = ${f.season}
       AND g.game_type = 'R'
       AND p.is_pa
       ${f.batterIds ? sql`AND p.batter_id = ANY(${f.batterIds})` : sql``}
@@ -131,7 +132,7 @@ export async function resolvePeriod(season: number, period: Period): Promise<{ f
   const [row] = await sql<{ last: string | null }[]>`
     SELECT to_char(max(game_date), 'YYYY-MM-DD') AS last
     FROM games
-    WHERE season = ${season} AND game_type = 'R' AND pbp_ingested_at IS NOT NULL
+    WHERE league = 'MLB' AND season = ${season} AND game_type = 'R' AND pbp_ingested_at IS NOT NULL
   `
   if (!row?.last) return {}
   const to = new Date(`${row.last}T00:00:00Z`)

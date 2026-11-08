@@ -44,7 +44,7 @@ async function runValues(season: number, reFilter: string, rvFilter: string): Pr
   return sql.unsafe<EventLw[]>(`
     WITH sp AS (
       SELECT p.* FROM plays p JOIN games g USING (game_pk)
-      WHERE g.season = $1 AND g.game_type = 'R'
+      WHERE g.league = 'MLB' AND g.season = $1 AND g.game_type = 'R'
     ),
     remaining AS (
       SELECT *, sum(runs_scored) OVER (
@@ -85,7 +85,7 @@ async function counts(season: number) {
       count(*) FILTER (WHERE p.event = 'Hit By Pitch')::int              AS hbp,
       count(*) FILTER (WHERE p.event IN ('Sac Fly', 'Sac Fly Double Play'))::int AS sf
     FROM plays p JOIN games g USING (game_pk)
-    WHERE g.season = ${season} AND g.game_type = 'R' AND p.is_pa
+    WHERE g.league = 'MLB' AND g.season = ${season} AND g.game_type = 'R' AND p.is_pa
   `
   return t
 }

@@ -28,20 +28,22 @@ interface Props {
   bgColor: string
   side: 'away' | 'home'
   teamLabel: string
+  /** League the matchup history comes from (1 = MLB). */
+  sportId?: number
 }
 
 /** The lineup's career numbers against the opposing starter, TV style. */
 export default function VsPitcherModal({
   isOpen, onClose,
   lineup, pitcherId, pitcherName,
-  bgColor, side, teamLabel,
+  bgColor, side, teamLabel, sportId = 1,
 }: Props) {
   const t = useT()
   const playerIds = lineup.map(p => p.id)
 
   const { data: statsMap, isLoading } = useQuery({
-    queryKey: ['vsPlayer', playerIds.join(','), pitcherId],
-    queryFn: () => getVsPlayerStats(playerIds, pitcherId),
+    queryKey: ['vsPlayer', playerIds.join(','), pitcherId, sportId],
+    queryFn: () => getVsPlayerStats(playerIds, pitcherId, sportId),
     enabled: isOpen && playerIds.length > 0 && pitcherId > 0,
     staleTime: 5 * 60 * 1000,
   })

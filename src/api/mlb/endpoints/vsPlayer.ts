@@ -18,9 +18,15 @@ export interface VsPlayerStat {
   ops: string | null
 }
 
+/**
+ * Career numbers of each batter against one pitcher, in a single league:
+ * vsPlayer only counts games of the sportId it's given (1 MLB, 17 winter
+ * leagues such as LIDOM, 23 LMB).
+ */
 export async function getVsPlayerStats(
   playerIds: number[],
   opposingPlayerId: number,
+  sportId = 1,
 ): Promise<Map<number, VsPlayerStat>> {
   if (!playerIds.length) return new Map()
 
@@ -37,8 +43,8 @@ export async function getVsPlayerStats(
     }>
   }>('/people', {
     personIds: playerIds.join(','),
-    sportId: 1,
-    hydrate: `stats(group=[hitting],type=[vsPlayerTotal],opposingPlayerId=${opposingPlayerId},sportId=1)`,
+    sportId,
+    hydrate: `stats(group=[hitting],type=[vsPlayerTotal],opposingPlayerId=${opposingPlayerId},sportId=${sportId})`,
   })
 
   const result = new Map<number, VsPlayerStat>()

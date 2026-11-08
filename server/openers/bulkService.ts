@@ -29,7 +29,7 @@ async function teamHistory(teamId: number, date: string): Promise<TeamAppearance
     LEFT JOIN pitcher_appearances s ON s.game_pk = a.game_pk AND s.team_id = a.team_id AND s.seq = 0
     WHERE a.team_id = ${teamId} AND g.game_type <> 'S'
       AND g.game_date < ${date} AND g.game_date >= ${addDays(date, -45)}
-      AND g.season = (SELECT max(season) FROM games WHERE game_type = 'R' AND game_date <= ${date}::date)
+      AND g.season = (SELECT max(season) FROM games WHERE league = 'MLB' AND game_type = 'R' AND game_date <= ${date}::date)
   `
   return rows.map(r => ({ pitcherId: r.pitcher_id, day: r.day, isStart: r.seq === 0, outs: r.outs, pitches: r.pitches, bulk: r.bulk }))
 }

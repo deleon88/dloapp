@@ -20,7 +20,7 @@ export async function GET(): Promise<Response> {
             AND status NOT IN ('Postponed', 'Cancelled') AND status NOT LIKE 'Suspended%'
             AND game_date < (now() AT TIME ZONE 'America/New_York')::date - 1`,
       sql`SELECT c.season, c.computed_at,
-                 (SELECT max(pbp_ingested_at) FROM games g WHERE g.season = c.season AND g.game_type = 'R') AS last_regular
+                 (SELECT max(pbp_ingested_at) FROM games g WHERE g.league = 'MLB' AND g.season = c.season AND g.game_type = 'R') AS last_regular
           FROM league_constants c WHERE c.source = 're24' ORDER BY c.season DESC LIMIT 1`,
     ])
 

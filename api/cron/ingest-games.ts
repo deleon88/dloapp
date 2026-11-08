@@ -1,8 +1,9 @@
 // Cron diario de Vercel (ver vercel.json → crons).
-// 1. Sincroniza el calendario de ayer y hoy (hora del este).
+// 1. Sincroniza el calendario de los últimos 2 días y hoy (hora del este) de
+//    cada liga de INGEST_LEAGUES.
 // 2. Ingresa el play-by-play de los juegos terminados que falten.
 // 3. Vuelve a ingresar los de los últimos 2 días, por si MLB corrigió la anotación.
-// 4. Si entraron juegos de temporada regular, recalcula las constantes de liga.
+// 4. Si entraron juegos de temporada regular de MLB, recalcula las constantes de liga.
 // 5. Recalcula los lineups go-to (vs LHP / vs RHP) de los equipos con juegos recientes.
 // Cada corrida queda en ingest_runs; /api/health avisa si la ingesta se atrasa.
 import { timingSafeEqual } from 'node:crypto'
@@ -10,17 +11,21 @@ import { sql } from '../../server/db.js'
 import { etDate, ingestMany, pendingGames, syncSchedule } from '../../server/ingest.js'
 import { computeConstants, saveConstants } from '../../server/stats/constants.js'
 import { mlbTeamIds, refreshGoTo } from '../../server/lineups/goTo.js'
+import type { League } from '../../server/leagues.js'
 
 export const maxDuration = 300
 // Margen para recalcular constantes (~3 s), lineups y cerrar la bitácora antes del límite.
 const INGEST_BUDGET_MS = 220_000
 const LINEUPS_DEADLINE_MS = 280_000
+// Las stats, constantes y lineups siguen siendo solo de MLB: LIDOM se ingresa
+// para tener su play-by-play, pero nada lo consulta todavía.
+const INGEST_LEAGUES: League[] = ['MLB', 'LIDOM']
 
 async function refreshLineups(from: string, to: string, deadline: number): Promise<number> {
   try {
     const teams = await sql<{ team_id: number; season: number }[]>`
       SELECT DISTINCT unnest(ARRAY[away_team_id, home_team_id]) AS team_id, season
-      FROM games WHERE game_date BETWEEN ${from} AND ${to} AND game_type <> 'S'`
+      FROM games WHERE league = 'MLB' AND game_date BETWEEN ${from} AND ${to} AND game_type <> 'S'`
     const mlb = new Set(await mlbTeamIds())
     const season = Math.max(...teams.map(t => t.season), 0)
     const ids = teams.filter(t => t.season === season && mlb.has(t.team_id)).map(t => t.team_id)
@@ -56,14 +61,15 @@ export async function GET(request: Request): Promise<Response> {
     const today = etDate()
     const twoDaysAgo = etDate(new Date(Date.now() - 2 * 86_400_000))
 
-    const scheduled = await syncSchedule(twoDaysAgo, today)
+    let scheduled = 0
+    for (const league of INGEST_LEAGUES) scheduled += await syncSchedule(twoDaysAgo, today, league)
     const pending = await pendingGames({ recheckSince: twoDaysAgo })
     const res = await ingestMany(pending, 5, undefined, startedAt + INGEST_BUDGET_MS)
 
-    // Constantes de la temporada regular más reciente que recibió juegos nuevos.
+    // Constantes de la temporada regular de MLB más reciente que recibió juegos nuevos.
     const failedPks = new Set(res.failed.map(f => f.gamePk))
     const regular = pending.slice(0, pending.length - res.deferred)
-      .filter(g => g.game_type === 'R' && !failedPks.has(g.game_pk))
+      .filter(g => g.league === 'MLB' && g.game_type === 'R' && !failedPks.has(g.game_pk))
     const constantsSeason = regular.length ? Math.max(...regular.map(g => g.season)) : null
     if (constantsSeason) await saveConstants(constantsSeason, await computeConstants(constantsSeason))
 

@@ -1,15 +1,19 @@
 import { sql } from './db.js'
 import { fetchGamePlays, fetchSchedule, type ScheduleGame } from './mlb/pbp.js'
 import { fetchBoxscoreRows } from './mlb/appearances.js'
+import type { League } from './leagues.js'
 
-/** Inserta o actualiza los juegos del calendario. No toca el estado de ingesta. */
+/**
+ * Inserta o actualiza los juegos del calendario. No toca el estado de ingesta
+ * ni la liga: la de un gamePk no cambia, y un voto puede crear la fila sin saberla.
+ */
 export async function upsertGames(games: ScheduleGame[]): Promise<void> {
   if (!games.length) return
   for (let i = 0; i < games.length; i += 500) {
     const chunk = games.slice(i, i + 500)
     await sql`
       INSERT INTO games ${sql(chunk, 'game_pk', 'season', 'game_date', 'game_type', 'abstract_state',
-        'status', 'away_team_id', 'home_team_id', 'venue_id', 'game_time', 'away_score', 'home_score', 'winner_team_id')}
+        'status', 'league', 'away_team_id', 'home_team_id', 'venue_id', 'game_time', 'away_score', 'home_score', 'winner_team_id')}
       ON CONFLICT (game_pk) DO UPDATE SET
         game_time      = EXCLUDED.game_time,
         away_score     = EXCLUDED.away_score,
@@ -28,20 +32,24 @@ export async function upsertGames(games: ScheduleGame[]): Promise<void> {
   }
 }
 
-export async function syncSchedule(startDate: string, endDate: string): Promise<number> {
-  const games = await fetchSchedule(startDate, endDate)
+export async function syncSchedule(startDate: string, endDate: string, league: League = 'MLB'): Promise<number> {
+  const games = await fetchSchedule(startDate, endDate, league)
   await upsertGames(games)
   return games.length
 }
 
-/** Juegos terminados cuyo play-by-play falta (o hay que revisar desde `recheckSince`). */
-export async function pendingGames(opts: { season?: number; recheckSince?: string; limit?: number } = {}) {
-  return sql<{ game_pk: number; game_date: string; season: number; game_type: string }[]>`
-    SELECT game_pk, to_char(game_date, 'YYYY-MM-DD') AS game_date, season, game_type
+/**
+ * Juegos terminados cuyo play-by-play falta (o hay que revisar desde
+ * `recheckSince`). Sin `league`, los de todas las ligas.
+ */
+export async function pendingGames(opts: { league?: League; season?: number; recheckSince?: string; limit?: number } = {}) {
+  return sql<{ game_pk: number; game_date: string; season: number; game_type: string; league: League }[]>`
+    SELECT game_pk, to_char(game_date, 'YYYY-MM-DD') AS game_date, season, game_type, league
     FROM games
     WHERE abstract_state = 'Final'
       AND status NOT IN ('Postponed', 'Cancelled')
       AND status NOT LIKE 'Suspended%'
+      ${opts.league ? sql`AND league = ${opts.league}` : sql``}
       ${opts.season ? sql`AND season = ${opts.season}` : sql``}
       AND (pbp_ingested_at IS NULL
            ${opts.recheckSince ? sql`OR game_date >= ${opts.recheckSince}` : sql``})
