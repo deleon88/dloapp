@@ -75,10 +75,6 @@ export const translations = {
     previousDay: 'Previous day',
     nextDay: 'Next day',
     pickDay: 'Pick a day',
-    filtersTitle: 'Filters',
-    filtersReset: 'Reset',
-    filtersPeriod: 'Stats period',
-    filtersDone: 'Done',
     gamesN: '{n} g',
     // Openers
     opener: 'Opener',
@@ -336,10 +332,6 @@ export const translations = {
     previousDay: 'Día anterior',
     nextDay: 'Día siguiente',
     pickDay: 'Elegir día',
-    filtersTitle: 'Filtros',
-    filtersReset: 'Restablecer',
-    filtersPeriod: 'Periodo de las stats',
-    filtersDone: 'Listo',
     gamesN: '{n} j',
     // Openers
     opener: 'Opener',

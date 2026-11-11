@@ -1,16 +1,14 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { addDays, format, parseISO } from 'date-fns'
 import { getSchedule } from '@/api/mlb/endpoints/schedule'
 import { leagueParams, type LeagueKey } from '@/data/leagues'
 import { useT } from '@/i18n/useT'
 import { useLangStore } from '@/stores/langStore'
-import { useAuthStore } from '@/stores/authStore'
-import { PERIOD_OPTIONS, periodLabel, type StatPeriod } from '@/utils/period'
-import {
-  BATTER_HAND_VALUES, DEFAULT_HAND_FILTERS, HAND_VALUES, batterLabelKey, pitcherLabelKey, type HandFilters,
-} from '@/utils/handFilter'
+import type { StatPeriod } from '@/utils/period'
+import type { HandFilters } from '@/utils/handFilter'
+import PeriodSelect from '@/components/PeriodSelect/PeriodSelect'
+import HandSelect from '@/components/HandSelect/HandSelect'
 import styles from './GamesToolbar.module.css'
 
 const CAROUSEL_DAYS = 10   // either side of the day shown
@@ -31,22 +29,16 @@ interface Props {
 
 const shift = (d: string, n: number) => format(addDays(parseISO(d), n), 'yyyy-MM-dd')
 
-// The filters button's shorthand, the same in every language (L-30 = last 30 days, SH = starter's hand)
-const SHORT_PERIOD: Record<StatPeriod, string> = { season: '', '60days': 'L-60', '30days': 'L-30', '14days': 'L-14', '7days': 'L-7' }
-const SHORT_BAT: Record<HandFilters['batter'], string> = { all: '', L: 'BAT vs LHP', R: 'BAT vs RHP', starter: 'BAT vs SH' }
-const SHORT_PIT: Record<HandFilters['pitcher'], string> = { all: '', L: 'PIT vs LHB', R: 'PIT vs RHB' }
-
 /**
  * The Games page's one line: the day (‹ arrows on both sides ›; the center opens
- * a carousel of days with their game counts, for the odd jump) and a Filters
- * button that says what's applied and opens the filters sheet.
+ * a carousel of days with their game counts, for the odd jump) and the same
+ * filters as the game page: the period, the hands (funnel, a dot when set) and
+ * the bars guide.
  */
 export default function GamesToolbar({ league, date, today, onDate, period, onPeriod, hands, onHands, locked, onGuide }: Props) {
   const t = useT()
   const lang = useLangStore(s => s.lang)
-  const openAuth = useAuthStore(s => s.openAuth)
   const [daysOpen, setDaysOpen] = useState(false)
-  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const locale = lang === 'es' ? 'es-MX' : 'en-US'
   const fmt = (d: string, o: Intl.DateTimeFormatOptions) =>
@@ -60,14 +52,6 @@ export default function GamesToolbar({ league, date, today, onDate, period, onPe
   const title = rel ?? wd.charAt(0).toUpperCase() + wd.slice(1)
   // with Today / Yesterday / Tomorrow the weekday would repeat it: just the date
   const sub = lang === 'es' ? `${day} ${mon}` : `${mon} ${day}`
-
-  // What the filters button says: the active ones in baseball shorthand (the
-  // sheet spells them out), and how many
-  const active = [
-    period !== 'season' ? SHORT_PERIOD[period] : null,
-    hands.batter !== 'all' ? SHORT_BAT[hands.batter] : null,
-    hands.pitcher !== 'all' ? SHORT_PIT[hands.pitcher] : null,
-  ].filter((x): x is string => !!x)
 
   return (
     <div className={styles.wrap}>
@@ -87,25 +71,16 @@ export default function GamesToolbar({ league, date, today, onDate, period, onPe
           </button>
         </div>
 
-        <button type="button" className={`${styles.filters} ${active.length ? styles.filtersOn : ''}`}
-          onClick={() => (locked ? openAuth('login') : setFiltersOpen(true))}
-          aria-haspopup="dialog" title={locked ? t('filtersNeedAccount') : undefined}>
-          {/* with filters on, the count says it: the icon gives its room to the text */}
-          {(locked || !active.length) && <SlidersIcon />}
-          <span className={styles.filtersText}>{active.length ? active.join(' · ') : t('filtersTitle')}</span>
-          {locked ? <LockIcon /> : active.length > 0 && <span className={styles.count}>{active.length}</span>}
-        </button>
+        <div className={styles.filters}>
+          <PeriodSelect value={period} onChange={onPeriod} locked={locked} />
+          <HandSelect value={hands} onChange={onHands} locked={locked} />
+          <button type="button" className={styles.guideBtn} onClick={onGuide} aria-label={t('statBarsGuide')} title={t('statBarsGuide')}>?</button>
+        </div>
       </div>
 
       {daysOpen && (
         <DayCarousel league={league} date={date} today={today} locale={locale}
           onPick={d => { onDate(d); setDaysOpen(false) }} />
-      )}
-
-      {filtersOpen && createPortal(
-        <FiltersSheet period={period} onPeriod={onPeriod} hands={hands} onHands={onHands}
-          onGuide={() => { setFiltersOpen(false); onGuide() }} onClose={() => setFiltersOpen(false)} />,
-        document.body,
       )}
     </div>
   )
@@ -161,96 +136,12 @@ function DayCarousel({ league, date, today, locale, onPick }: {
   )
 }
 
-/* ── Filters sheet ─────────────────────────────────────────────────── */
-
-function FiltersSheet({ period, onPeriod, hands, onHands, onGuide, onClose }: {
-  period: StatPeriod; onPeriod: (p: StatPeriod) => void
-  hands: HandFilters; onHands: (h: HandFilters) => void
-  onGuide: () => void; onClose: () => void
-}) {
-  const t = useT()
-
-  useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', key)
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', key); document.body.style.overflow = prev }
-  }, [onClose])
-
-  const isDefault = period === 'season' && hands.batter === 'all' && hands.pitcher === 'all'
-
-  return (
-    <div className={styles.backdrop} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className={styles.sheet} role="dialog" aria-modal="true" aria-labelledby="filters-title">
-        <span className={styles.grabber} aria-hidden="true" />
-        <div className={styles.sheetHead}>
-          <h2 id="filters-title" className={styles.sheetTitle}>{t('filtersTitle')}</h2>
-          <button type="button" className={styles.reset} disabled={isDefault}
-            onClick={() => { onPeriod('season'); onHands(DEFAULT_HAND_FILTERS) }}>{t('filtersReset')}</button>
-        </div>
-
-        <div className={styles.group}>{t('filtersPeriod')}</div>
-        <div className={styles.pills} role="radiogroup" aria-label={t('filtersPeriod')}>
-          {PERIOD_OPTIONS.map(({ value }) => (
-            <button key={value} type="button" role="radio" aria-checked={value === period}
-              className={`${styles.pill} ${value === period ? styles.pillOn : ''}`} onClick={() => onPeriod(value)}>
-              {periodLabel(value, t)}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.group}>{t('handGroupBatters')}</div>
-        <div className={styles.pills} role="radiogroup" aria-label={t('handGroupBatters')}>
-          {BATTER_HAND_VALUES.map(v => (
-            <button key={v} type="button" role="radio" aria-checked={hands.batter === v}
-              className={`${styles.pill} ${hands.batter === v ? styles.pillOn : ''}`} onClick={() => onHands({ ...hands, batter: v })}>
-              {t(batterLabelKey(v))}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.group}>{t('handGroupPitchers')}</div>
-        <div className={styles.pills} role="radiogroup" aria-label={t('handGroupPitchers')}>
-          {HAND_VALUES.map(v => (
-            <button key={v} type="button" role="radio" aria-checked={hands.pitcher === v}
-              className={`${styles.pill} ${hands.pitcher === v ? styles.pillOn : ''}`} onClick={() => onHands({ ...hands, pitcher: v })}>
-              {t(pitcherLabelKey(v))}
-            </button>
-          ))}
-        </div>
-
-        <button type="button" className={styles.guide} onClick={onGuide}>
-          <span className={styles.guideQ} aria-hidden="true">?</span>{t('statBarsGuide')}
-        </button>
-        <button type="button" className={styles.done} onClick={onClose}>{t('filtersDone')}</button>
-      </div>
-    </div>
-  )
-}
-
 /* ── Icons ─────────────────────────────────────────────────────────── */
 
 function Chevron({ dir }: { dir: 'left' | 'right' }) {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d={dir === 'left' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
-    </svg>
-  )
-}
-
-function SlidersIcon() {
-  return (
-    <svg className={styles.sliders} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-      <path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" />
-    </svg>
-  )
-}
-
-function LockIcon() {
-  return (
-    <svg className={styles.lock} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-      <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   )
 }
