@@ -7,7 +7,7 @@ import type { StatPeriod } from '@/utils/period'
 export interface GameLineupIds {
   awayIds: number[]
   homeIds: number[]
-  /** Starting pitchers, once the game is under way. */
+  /** Starting pitchers, once the lineup cards are in. */
   awayStarter?: Starter
   homeStarter?: Starter
 }

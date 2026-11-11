@@ -35,14 +35,14 @@ export interface LineupSlot {
 export interface GameLineup {
   away: LineupSlot[]
   home: LineupSlot[]
-  /** Who started on the mound, once the game is under way. */
+  /** The starting pitcher, once the team hands in its lineup card (before the game). */
   awayStarter?: Starter
   homeStarter?: Starter
 }
 
 export interface Starter { id: number; fullName: string }
 
-/** First pitcher the team used; none before the game starts. */
+/** The team's starting pitcher: first in the boxscore's pitchers, listed once the lineup card is in (before the first pitch). */
 function starter(team: { pitchers?: number[]; players: Record<string, { person: { id: number; fullName?: string } }> }): Starter | undefined {
   const id = team.pitchers?.[0]
   const p = id != null ? team.players[`ID${id}`] : undefined
